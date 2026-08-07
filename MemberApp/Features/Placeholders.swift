@@ -22,8 +22,8 @@ struct SignUpView: View {
     var body: some View { Stub(title: "建立會員", note: "兩步驟註冊：基本資料、就讀學校與年級") }
 }
 
-struct HomeView: View {
-    var body: some View { Stub(title: "首頁", note: "會員卡入口、活動／Buddy 捷徑、公告列表") }
+struct ChannelsView: View {
+    var body: some View { Stub(title: "頻道", note: "各校分會與新生頻道的推播訂閱開關") }
 }
 
 struct EventsView: View {
