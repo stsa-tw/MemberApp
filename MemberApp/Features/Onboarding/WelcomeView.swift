@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @Environment(Session.self) private var session
-    @State private var isLoggingIn = false
+    @Environment(AuthManager.self) private var auth
+    @State private var errorMessage: String?
 
     private struct Highlight: Identifiable {
         let id = UUID()
@@ -64,24 +64,46 @@ struct WelcomeView: View {
 
             Spacer(minLength: 34)
 
-            // No sign-up here: accounts are created in authentik, so the app only
-            // ever authenticates an existing one.
-            Button("登入") { isLoggingIn = true }
-                .buttonStyle(.brand)
+            // Straight into the browser flow — no intermediate screen. There is
+            // no sign-up either: accounts are created in authentik, so the app
+            // only ever authenticates an existing one.
+            Button {
+                signIn()
+            } label: {
+                if auth.isBusy {
+                    ProgressView().tint(.white)
+                } else {
+                    Text("登入")
+                }
+            }
+            .buttonStyle(.brand)
+            .disabled(auth.isBusy)
         }
         .padding(.horizontal, 28)
         .padding(.top, 96)
         .padding(.bottom, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(.systemBackground))
-        .sheet(isPresented: $isLoggingIn) {
-            LoginView()
+        .alert("登入失敗", isPresented: .constant(errorMessage != nil)) {
+            Button("好") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func signIn() {
+        Task {
+            do {
+                try await auth.login()
+            } catch {
+                // Dismissing the sign-in sheet is a choice, not a failure.
+                guard !AuthManager.isUserCancellation(error) else { return }
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }
 
 #Preview {
-    WelcomeView()
-        .environment(Session())
-        .environment(AuthManager())
+    WelcomeView().environment(AuthManager())
 }

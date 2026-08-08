@@ -1,24 +1,16 @@
 import SwiftUI
 
-/// App-wide state: who is signed in, and which tab is showing.
+/// Navigation state that outlives any one screen.
 ///
-/// The prototype models 21 screens as one `screen` string; natively that splits
-/// into (a) an onboarding-vs-app gate and (b) per-tab `NavigationStack` paths,
-/// so back gestures, large-title collapse and state restoration come for free.
+/// Identity deliberately does not live here — `AuthManager` owns whether there
+/// is a session and who it belongs to. Keeping a second copy is what previously
+/// let a successful OIDC login leave the app sitting on the welcome screen.
 @Observable
 final class Session {
     enum Tab: Hashable {
         case home, events, deals, jobs, profile
     }
 
-    /// `nil` until sign-up completes — drives the onboarding gate in `RootView`.
-    var member: Member?
     var selectedTab: Tab = .home
     var isShowingMemberCard = false
-
-    var isSignedIn: Bool { member != nil }
-
-    func signIn(as member: Member = .sample) {
-        self.member = member
-    }
 }

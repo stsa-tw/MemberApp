@@ -34,6 +34,3 @@ struct JobsView: View {
     var body: some View { Stub(title: "職缺與實習", note: "分段篩選、職缺列表與詳情") }
 }
 
-struct ProfileView: View {
-    var body: some View { Stub(title: "我的", note: "個人資料、頻道訂閱、Buddy 配對") }
-}

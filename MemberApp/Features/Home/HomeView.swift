@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
 
     private let announcements = Announcement.samples
 
@@ -62,7 +63,9 @@ struct HomeView: View {
     }
 
     private var greeting: String {
-        let name = session.member.map { String($0.name.dropFirst()) } ?? ""
+        // Prefer the nickname: authentik fills given_name with the full name, and
+        // trimming a surname by character count breaks on two-character ones.
+        let name = auth.profile.map { $0.nickname ?? $0.givenName ?? $0.displayName } ?? ""
         let hour = Calendar.current.component(.hour, from: Date())
         let time = switch hour {
         case 5..<12: "早安"
@@ -78,6 +81,7 @@ struct HomeView: View {
 /// The dark banner that opens the member card.
 private struct MemberCardBanner: View {
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
 
     var body: some View {
         Button {
@@ -92,8 +96,8 @@ private struct MemberCardBanner: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("會員卡")
                         .font(.headline)
-                    if let member = session.member {
-                        Text("No. \(member.memberNumber) · 有效至 \(member.validThroughLabel)")
+                    if let profile = auth.profile {
+                        Text([profile.displayName, profile.school].compactMap(\.self).joined(separator: " · "))
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.6))
                     }
@@ -181,7 +185,8 @@ private struct AnnouncementRow: View {
 }
 
 #Preview {
-    let session = Session()
-    session.signIn()
-    return RootView().environment(session)
+    RootView()
+        .environment(Session())
+        .environment(AuthManager())
+        .environment(MembershipCodeStore())
 }

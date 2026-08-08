@@ -128,6 +128,14 @@ final class AuthManager {
         isLoggedIn = false
     }
 
+    /// True when the person dismissed the sign-in sheet themselves. Callers
+    /// should treat this as "nothing happened", not as a failure worth an alert.
+    static func isUserCancellation(_ error: any Error) -> Bool {
+        let error = error as NSError
+        return error.domain == OIDGeneralErrorDomain
+            && error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue
+    }
+
     /// Hands the redirect back to the in-flight authorization request.
     /// Wired up from `.onOpenURL` in `MemberAppApp`.
     @discardableResult

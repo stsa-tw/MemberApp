@@ -1,18 +1,19 @@
 import SwiftUI
 
-/// Onboarding gate plus the five-tab shell.
+/// Auth gate plus the five-tab shell.
 ///
 /// On iOS 26 `TabView` renders the floating Liquid Glass tab bar the prototype
 /// mocks up by hand, so there is no custom bar to build — the trailing 會員卡
 /// button rides alongside it as a bottom accessory.
 struct RootView: View {
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
 
     var body: some View {
         @Bindable var session = session
 
         Group {
-            if session.isSignedIn {
+            if auth.isLoggedIn {
                 TabView(selection: $session.selectedTab) {
                     Tab("首頁", systemImage: "house.fill", value: Session.Tab.home) {
                         HomeView()
@@ -27,7 +28,7 @@ struct RootView: View {
                         JobsView()
                     }
                     Tab("我的", systemImage: "person.fill", value: Session.Tab.profile) {
-                        ProfileView()
+                        AccountView()
                     }
                 }
                 .tabViewBottomAccessory {
@@ -46,6 +47,7 @@ struct RootView: View {
 /// The 會員卡 shortcut that sits with the tab bar.
 private struct MemberCardAccessory: View {
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
 
     var body: some View {
         Button {
@@ -57,18 +59,14 @@ private struct MemberCardAccessory: View {
                 Text("會員卡")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                Text(session.member?.memberNumber ?? "")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                if let name = auth.profile?.displayName {
+                    Text(name)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.horizontal, 16)
         }
         .buttonStyle(.plain)
     }
-}
-
-#Preview {
-    let session = Session()
-    session.signIn()
-    return RootView().environment(session)
 }
