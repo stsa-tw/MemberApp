@@ -1,22 +1,12 @@
 import SwiftUI
 
-/// The 我的 tab: who is signed in, and the controls for verifying the session.
+/// The 我的 tab — what a member actually needs to see about their account.
 ///
-/// Only reachable behind the auth gate, so there is no sign-in branch — that
-/// lives on `WelcomeView`. The token section is here because silent refresh is
-/// otherwise invisible: it exposes the one thing worth checking by hand, that
-/// `accessToken()` renews without a browser once the 5-minute token lapses.
+/// Only reachable behind the auth gate, so there is no sign-in branch; that
+/// lives on `WelcomeView`. Token plumbing is diagnostic, not member-facing, so
+/// it is confined to a debug-only section at the bottom.
 struct AccountView: View {
     @Environment(AuthManager.self) private var auth
-
-    @State private var snapshot = AuthManager.TokenSnapshot(
-        hasRefreshToken: false, accessTokenExpiry: nil, scopesGranted: nil
-    )
-    @State private var lastTokenFetch: Date?
-    @State private var errorMessage: String?
-    @State private var now = Date()
-
-    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationStack {
@@ -26,31 +16,25 @@ struct AccountView: View {
                     if !profile.groups.isEmpty { groupsSection(profile) }
                 }
 
-                tokenSection
-                actionsSection
-
-                if let errorMessage {
-                    Section("錯誤") {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                Section {
+                    Button("登出", role: .destructive) {
+                        auth.logout()
                     }
+                } footer: {
+                    Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
                 }
+
+                #if DEBUG
+                TokenDiagnostics()
+                #endif
             }
             .navigationTitle("我的")
         }
-        .onAppear { snapshot = auth.snapshot() }
-        .onReceive(tick) { now = $0 }
     }
 
-    // MARK: - Sections
-
     private func identitySection(_ profile: Profile) -> some View {
-        Section {
+        Section("身分") {
             LabeledContent("姓名", value: profile.displayName)
-            if let username = profile.preferredUsername {
-                LabeledContent("帳號", value: username)
-            }
             if let email = profile.email {
                 LabeledContent("信箱") {
                     HStack(spacing: 6) {
@@ -66,48 +50,47 @@ struct AccountView: View {
             if let school = profile.school {
                 LabeledContent("學校", value: school)
             }
+        }
+    }
+
+    /// Shown because members care which departments they are in. Note that these
+    /// drive display only — see the comment on `Profile.groups`.
+    private func groupsSection(_ profile: Profile) -> some View {
+        Section("身分組") {
+            ForEach(profile.groups, id: \.self) { group in
+                Text(group)
+            }
+        }
+    }
+}
+
+// MARK: - Debug only
+
+#if DEBUG
+/// Session plumbing, for checking that silent refresh is working. Never built
+/// into a release, so it is free to expose `sub` and token timings.
+private struct TokenDiagnostics: View {
+    @Environment(AuthManager.self) private var auth
+
+    @State private var snapshot = AuthManager.TokenSnapshot(
+        hasRefreshToken: false, accessTokenExpiry: nil, scopesGranted: nil
+    )
+    @State private var now = Date()
+
+    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Section {
             LabeledContent("sub") {
-                Text(profile.sub)
+                Text(auth.profile?.sub ?? "—")
                     .font(.caption.monospaced())
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
             }
-        } header: {
-            Text("身分")
-        } footer: {
-            Text("本機資料一律以 sub 為索引 — email 與帳號都可能變更。")
-        }
-    }
-
-    private func groupsSection(_ profile: Profile) -> some View {
-        Section {
-            ForEach(profile.groups, id: \.self) { group in
-                Text(group).font(.footnote)
-            }
-        } header: {
-            Text("群組")
-        } footer: {
-            Text("僅供介面判斷使用。實際權限一律由後端依 token 簽章重新驗證。")
-        }
-    }
-
-    private var tokenSection: some View {
-        Section("連線狀態") {
             LabeledContent("Refresh token", value: snapshot.hasRefreshToken ? "已取得" : "無")
             LabeledContent("Access token 到期") {
                 if let expiry = snapshot.accessTokenExpiry {
-                    Text(expiry, format: .dateTime.hour().minute().second())
-                        .monospacedDigit()
-                } else {
-                    Text("—")
-                }
-            }
-            if let expiry = snapshot.accessTokenExpiry {
-                LabeledContent("剩餘") {
-                    // An expired access token is the normal resting state — it is
-                    // renewed on the next request, not on a timer. Showing it in
-                    // red made it read as a failure.
                     if expiry <= now {
                         Text("已過期，下次使用時自動更新")
                             .font(.footnote)
@@ -117,45 +100,35 @@ struct AccountView: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
+                } else {
+                    Text("—")
                 }
             }
-        }
-    }
-
-    private var actionsSection: some View {
-        Section {
-            Button("取得 access token（驗證 silent refresh）") {
-                errorMessage = nil
-                Task {
-                    do {
-                        _ = try await auth.accessToken()
-                        lastTokenFetch = Date()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                    }
-                    snapshot = auth.snapshot()
-                }
+            if let scopes = snapshot.scopesGranted {
+                LabeledContent("Scopes", value: scopes)
+                    .font(.footnote)
             }
-            Button("登出", role: .destructive) {
-                auth.logout()
-                snapshot = auth.snapshot()
-                lastTokenFetch = nil
-            }
+        } header: {
+            Text("連線狀態（DEBUG）")
         } footer: {
-            if let lastTokenFetch {
-                Text("上次取得：\(lastTokenFetch.formatted(date: .omitted, time: .standard))。到期後再按一次,「到期」時間應自動往後跳,且不會跳出瀏覽器。")
-            } else {
-                Text("登出只會清除這支手機上的憑證。因為登入走的是 Safari 共用工作階段,authentik 的登入狀態仍會保留。")
-            }
+            Text("token 只在有請求時更新，不是定時更新，所以閒置時顯示已過期是正常的。")
+        }
+        .task {
+            await auth.refreshIfNeeded()
+            snapshot = auth.snapshot()
+        }
+        .onReceive(tick) { moment in
+            now = moment
+            snapshot = auth.snapshot()
         }
     }
 
     private func remaining(until expiry: Date) -> String {
         let seconds = Int(expiry.timeIntervalSince(now))
-        guard seconds > 0 else { return "已過期" }
-        return "\(seconds / 60)分 \(seconds % 60)秒"
+        return "\(seconds / 60) 分 \(seconds % 60) 秒後"
     }
 }
+#endif
 
 #Preview {
     AccountView().environment(AuthManager())

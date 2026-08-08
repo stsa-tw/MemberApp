@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct MemberAppApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var session = Session()
     @State private var auth = AuthManager()
     @State private var codes = MembershipCodeStore()
@@ -17,6 +18,12 @@ struct MemberAppApp: App {
                     // tw.stsa.membership://callback — hand the authorization
                     // code back to the in-flight AppAuth request.
                     auth.resume(url)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // Coming back from the background is where the token has
+                    // usually lapsed; renewing here keeps the first tap instant.
+                    guard phase == .active else { return }
+                    Task { await auth.refreshIfNeeded() }
                 }
         }
     }

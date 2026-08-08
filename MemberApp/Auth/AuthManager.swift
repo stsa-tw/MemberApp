@@ -176,6 +176,20 @@ final class AuthManager {
         return token
     }
 
+    /// Renews the access token if it has lapsed, so the next request does not
+    /// pay for a token exchange first.
+    ///
+    /// Called when the app comes to the foreground — not on a timer. An access
+    /// token is only needed at the moment of a request, and `performAction`
+    /// already renews one transparently, so polling would spend battery and
+    /// rotate refresh tokens for nothing. Safe to call often: AppAuth returns
+    /// the cached token while it is fresh and queues concurrent callers onto a
+    /// single refresh when it is not.
+    func refreshIfNeeded() async {
+        guard isLoggedIn else { return }
+        _ = try? await accessToken()
+    }
+
     /// Builds a request carrying a token that is fresh at the moment of the call.
     /// Use this for every outbound API call rather than holding a token.
     func authorizedRequest(for url: URL) async throws -> URLRequest {
