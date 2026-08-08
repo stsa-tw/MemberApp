@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EventsView: View {
     @Environment(EventsStore.self) private var store
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         NavigationStack {
@@ -21,6 +22,17 @@ struct EventsView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("活動")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // The app shows a read-only slice of Indico; the full site
+                    // has registration, attachments and past material.
+                    Button {
+                        openURL(URL(string: "https://event.stsa.tw")!)
+                    } label: {
+                        Label("活動網站", systemImage: "safari")
+                    }
+                }
+            }
             .refreshable { await store.load() }
             .task { if store.events.isEmpty { await store.load() } }
         }

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct DealsView: View {
+    @Environment(\.openURL) private var openURL
+
     private let deals = Deal.samples
 
     private var active: [Deal] { deals.filter { !$0.hasExpired() } }
@@ -21,6 +23,18 @@ struct DealsView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("會員優惠")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // Offers are hardcoded here but maintained on the website,
+                    // so the canonical list is one tap away until this reads
+                    // from a backend.
+                    Button {
+                        openURL(URL(string: "https://stsa.tw/discount/")!)
+                    } label: {
+                        Label("優惠網頁", systemImage: "safari")
+                    }
+                }
+            }
         }
     }
 

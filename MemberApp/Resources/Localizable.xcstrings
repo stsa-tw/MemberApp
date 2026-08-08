@@ -65,6 +65,9 @@
         }
       }
     },
+    "Code": {},
+    "Role": {},
+    "School": {},
     "Singapore Taiwan Student Association": {},
     "STSA MEMBER 2026": {},
     "STSA 官網": {
@@ -228,6 +231,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Register"
+          }
+        }
+      }
+    },
+    "前往官網": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visit website"
           }
         }
       }
@@ -404,6 +418,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Done"
+          }
+        }
+      }
+    },
+    "將前往合作商家網站。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the partner’s website."
           }
         }
       }
@@ -936,6 +961,17 @@
         }
       }
     },
+    "開戶資訊": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account opening"
+          }
+        }
+      }
+    },
     "開啟後，出示會員卡前需通過 %@。會員卡是身分憑證，這可以避免手機在解鎖狀態下被他人取用。": {
       "extractionState": "manual",
       "localizations": {
@@ -1013,35 +1049,24 @@
         }
       }
     },
-    "前往官網": {
+    "活動網站": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Visit website"
+            "value": "Event website"
           }
         }
       }
     },
-    "將前往合作商家網站。": {
+    "優惠網頁": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opens the partner’s website."
-          }
-        }
-      }
-    },
-    "開戶資訊": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Account opening"
+            "value": "Offers page"
           }
         }
       }
