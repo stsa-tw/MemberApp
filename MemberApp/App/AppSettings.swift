@@ -33,8 +33,12 @@ final class AppSettings {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
     }
 
-    /// Requires device authentication before the member card is shown. Off by
-    /// default — it protects the member's own data, so it is theirs to opt into.
+    /// Requires device authentication before the member card is shown.
+    ///
+    /// On by default: the card is the member's identity credential, and a phone
+    /// handed to someone while unlocked is exactly the case the lock screen does
+    /// not cover. Devices with no passcode fall through in `BiometricGate`
+    /// rather than being locked out.
     var requireBiometricsForCard: Bool {
         didSet { defaults.set(requireBiometricsForCard, forKey: Keys.biometrics) }
     }
@@ -50,6 +54,10 @@ final class AppSettings {
         self.defaults = defaults
         appearance = defaults.string(forKey: Keys.appearance)
             .flatMap(Appearance.init(rawValue:)) ?? .system
-        requireBiometricsForCard = defaults.bool(forKey: Keys.biometrics)
+        // `bool(forKey:)` cannot tell "never set" from "explicitly off", and the
+        // default is on — so check for the key before falling back.
+        requireBiometricsForCard = defaults.object(forKey: Keys.biometrics) == nil
+            ? true
+            : defaults.bool(forKey: Keys.biometrics)
     }
 }
