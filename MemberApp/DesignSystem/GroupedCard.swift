@@ -20,10 +20,10 @@ struct GroupedCard<Content: View>: View {
 
 /// Section label above a `GroupedCard` — uppercase, tracked, secondary.
 struct GroupedCardHeader<Trailing: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder var trailing: Trailing
 
-    init(_ title: String, @ViewBuilder trailing: () -> Trailing = { EmptyView() }) {
+    init(_ title: LocalizedStringKey, @ViewBuilder trailing: () -> Trailing = { EmptyView() }) {
         self.title = title
         self.trailing = trailing()
     }

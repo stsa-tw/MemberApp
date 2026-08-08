@@ -26,7 +26,7 @@ struct EventsView: View {
         }
     }
 
-    private func section(_ title: String, events: [IndicoEvent], highlightFirst: Bool) -> some View {
+    private func section(_ title: LocalizedStringKey, events: [IndicoEvent], highlightFirst: Bool) -> some View {
         VStack(spacing: 0) {
             GroupedCardHeader(title)
             GroupedCard {

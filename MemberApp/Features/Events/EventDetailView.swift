@@ -99,7 +99,7 @@ struct EventDetailView: View {
         .clipShape(.rect(cornerRadius: Theme.Radius.card))
     }
 
-    private func row(_ label: String, value: String) -> some View {
+    private func row(_ label: LocalizedStringKey, value: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(label)
                 .foregroundStyle(.secondary)

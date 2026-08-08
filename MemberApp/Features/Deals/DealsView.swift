@@ -25,7 +25,7 @@ struct DealsView: View {
     }
 
     @ViewBuilder
-    private func section(_ title: String, deals: [Deal], footnote: String?) -> some View {
+    private func section(_ title: LocalizedStringKey, deals: [Deal], footnote: LocalizedStringKey?) -> some View {
         if !deals.isEmpty {
             VStack(spacing: 0) {
                 GroupedCardHeader(title)

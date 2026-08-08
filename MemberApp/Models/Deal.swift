@@ -20,7 +20,12 @@ struct Deal: Identifiable, Hashable {
     var code: String?
     /// Absent when the offer has no stated end date.
     var expires: DateComponents?
+
+    /// Where the offer is actually claimed, when that is a website rather than
+    /// showing the card in person. Drives the detail screen's primary action.
     var link: URL?
+    /// Names that action, since "開戶資訊" and "前往官網" are not interchangeable.
+    var linkTitle: String?
 
     var id: String { brand }
 
@@ -76,6 +81,8 @@ extension Deal {
                 "多幣種帳戶支援多達 11 種貨幣，海外提款手續費優惠",
                 "多層級換匯優惠方案",
                 "新加坡開戶需準備：身分證明文件（如護照）、現居地址證明",
-              ]),
+              ],
+              link: URL(string: "https://www.hsbc.com.sg/employee-workplace/partners/sap/?cid=STSA"),
+              linkTitle: "開戶資訊"),
     ]
 }

@@ -124,7 +124,7 @@ struct MemberCardView: View {
                 }
                 Spacer()
                 if auth.profile?.isOfficer == true {
-                    field("Role", "幹部")
+                    field("Role", String(localized: "幹部"))
                 }
                 Spacer()
                 field("Code", codeFreshness)
@@ -189,7 +189,7 @@ struct MemberCardView: View {
         }
     }
 
-    private func field(_ label: String, _ value: String) -> some View {
+    private func field(_ label: LocalizedStringKey, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.caption2)

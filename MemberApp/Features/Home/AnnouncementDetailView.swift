@@ -68,7 +68,7 @@ struct AnnouncementDetailView: View {
 }
 
 private struct DetailRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
 
     var body: some View {

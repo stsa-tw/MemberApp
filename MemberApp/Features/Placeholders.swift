@@ -7,8 +7,8 @@ import SwiftUI
 
 /// Placeholder body shared by the stubs below.
 private struct Stub: View {
-    let title: String
-    let note: String
+    let title: LocalizedStringKey
+    let note: LocalizedStringKey
 
     var body: some View {
         NavigationStack {

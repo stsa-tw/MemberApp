@@ -136,7 +136,7 @@ private struct MemberCardBanner: View {
 /// One of the two square shortcuts under the member card.
 private struct ShortcutTile: View {
     let symbol: String
-    let title: String
+    let title: LocalizedStringKey
     let detail: String
     let action: () -> Void
 

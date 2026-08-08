@@ -89,7 +89,7 @@ private struct TokenDiagnostics: View {
                     .truncationMode(.middle)
                     .textSelection(.enabled)
             }
-            LabeledContent("Refresh token", value: snapshot.hasRefreshToken ? "已取得" : "無")
+            LabeledContent("Refresh token", value: snapshot.hasRefreshToken ? String(localized: "已取得") : String(localized: "無"))
             LabeledContent("Access token 到期") {
                 if let expiry = snapshot.accessTokenExpiry {
                     if expiry <= now {

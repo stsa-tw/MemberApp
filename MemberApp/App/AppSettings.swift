@@ -14,9 +14,9 @@ final class AppSettings {
 
         var label: String {
             switch self {
-            case .system: "跟隨系統"
-            case .light: "淺色"
-            case .dark: "深色"
+            case .system: String(localized: "跟隨系統")
+            case .light: String(localized: "淺色")
+            case .dark: String(localized: "深色")
             }
         }
 

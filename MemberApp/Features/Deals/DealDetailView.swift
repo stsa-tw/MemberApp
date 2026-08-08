@@ -4,6 +4,7 @@ struct DealDetailView: View {
     let deal: Deal
 
     @Environment(Session.self) private var session
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -22,12 +23,22 @@ struct DealDetailView: View {
                 }
 
                 // Inline rather than pinned — see Theme.Metrics.accessoryClearance.
+                // Some partnerships are claimed on a website rather than by
+                // showing the card at a counter, so the action follows the deal.
                 VStack(spacing: 6) {
-                    Button("出示會員卡") { session.isShowingMemberCard = true }
-                        .buttonStyle(.brand)
-                    Text("合作商家需確認 STSA 會員身分。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if let link = deal.link {
+                        Button(deal.linkTitle ?? "前往官網") { openURL(link) }
+                            .buttonStyle(.brand)
+                        Text("將前往合作商家網站。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button("出示會員卡") { session.isShowingMemberCard = true }
+                            .buttonStyle(.brand)
+                        Text("合作商家需確認 STSA 會員身分。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.horizontal, Theme.Metrics.gutter)
                 .padding(.top, 16)
@@ -60,7 +71,7 @@ struct DealDetailView: View {
                 .resizable()
                 .scaledToFit()
                 .padding(12)
-                .frame(maxWidth: 220, maxHeight: 76, alignment: .leading)
+                .frame(maxWidth: 220, maxHeight: 76)
                 .background(.white)
                 .clipShape(.rect(cornerRadius: 14))
 

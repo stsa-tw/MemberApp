@@ -7,8 +7,8 @@ struct WelcomeView: View {
     private struct Highlight: Identifiable {
         let id = UUID()
         let symbol: String
-        let title: String
-        let detail: String
+        let title: LocalizedStringKey
+        let detail: LocalizedStringKey
     }
 
     private let highlights: [Highlight] = [
