@@ -23,9 +23,6 @@ struct ChannelsView: View {
 }
 
 
-struct DealsView: View {
-    var body: some View { Stub(title: "會員優惠", note: "合作商家、折扣碼詳情與出示畫面") }
-}
 
 struct JobsView: View {
     var body: some View { Stub(title: "職缺與實習", note: "分段篩選、職缺列表與詳情") }
