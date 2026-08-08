@@ -12,6 +12,12 @@ struct HomeView: View {
         events.upcoming.isEmpty ? "目前沒有活動" : "\(events.upcoming.count) 場即將舉行"
     }
 
+    /// Buddy 配對 has no data source yet, so the second shortcut points at the
+    /// one thing behind it that does.
+    private var dealsLabel: String {
+        "\(Deal.samples.filter { !$0.hasExpired() }.count) 間合作商家"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -24,10 +30,10 @@ struct HomeView: View {
                                      detail: upcomingLabel) {
                             session.selectedTab = .events
                         }
-                        ShortcutTile(symbol: "person.2.fill",
-                                     title: "Buddy 配對",
-                                     detail: "新生找學長姐") {
-                            session.selectedTab = .profile
+                        ShortcutTile(symbol: "tag.fill",
+                                     title: "會員優惠",
+                                     detail: dealsLabel) {
+                            session.selectedTab = .deals
                         }
                     }
                     .padding(.horizontal, Theme.Metrics.gutter)

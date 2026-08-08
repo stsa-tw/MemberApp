@@ -188,6 +188,15 @@ final class AuthManager {
     func refreshIfNeeded() async {
         guard isLoggedIn else { return }
         _ = try? await accessToken()
+
+        // The keychain survives app deletion but UserDefaults does not, so a
+        // reinstall restores the session with no cached profile — signed in,
+        // but with no idea who the member is. Re-fetch rather than showing an
+        // account screen with blank fields.
+        if profile == nil, let (fetched, _) = try? await fetchProfile() {
+            profile = fetched
+            cache(fetched)
+        }
     }
 
     /// Builds a request carrying a token that is fresh at the moment of the call.

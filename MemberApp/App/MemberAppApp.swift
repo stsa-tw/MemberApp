@@ -24,6 +24,9 @@ struct MemberAppApp: App {
                     // code back to the in-flight AppAuth request.
                     auth.resume(url)
                 }
+                // onChange does not fire for the initial value, so the launch
+                // case needs its own pass.
+                .task { await auth.refreshIfNeeded() }
                 .onChange(of: scenePhase) { _, phase in
                     // Coming back from the background is where the token has
                     // usually lapsed; renewing here keeps the first tap instant.
