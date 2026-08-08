@@ -8,6 +8,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(Session.self) private var session
     @Environment(AuthManager.self) private var auth
+    @Environment(EventsStore.self) private var events
 
     var body: some View {
         @Bindable var session = session
@@ -40,6 +41,13 @@ struct RootView: View {
         }
         .sheet(isPresented: $session.isShowingMemberCard) {
             MemberCardView()
+        }
+        // Loaded here rather than in EventsView: Home shows the upcoming count
+        // too, and it was reading an empty store until the events tab was first
+        // opened.
+        .task(id: auth.isLoggedIn) {
+            guard auth.isLoggedIn, events.events.isEmpty else { return }
+            await events.load()
         }
     }
 }

@@ -3,6 +3,8 @@ import SwiftUI
 struct AnnouncementDetailView: View {
     let announcement: Announcement
 
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -31,8 +33,10 @@ struct AnnouncementDetailView: View {
                     DetailRow(label: "時間", value: announcement.when)
                     RowSeparator()
                     DetailRow(label: "地點", value: announcement.place)
-                    RowSeparator()
-                    DetailRow(label: "聯絡", value: announcement.contact)
+                    if let contact = announcement.contact {
+                        RowSeparator()
+                        DetailRow(label: "聯絡", value: contact)
+                    }
                 }
                 .background(Color(.systemGroupedBackground))
                 .clipShape(.rect(cornerRadius: Theme.Radius.card))
@@ -45,26 +49,20 @@ struct AnnouncementDetailView: View {
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 10) {
-                Button {
-                    // TODO: save to reading list
-                } label: {
-                    Image(systemName: "bookmark")
-                        .font(.title3)
-                        .frame(width: Theme.Metrics.ctaHeight, height: Theme.Metrics.ctaHeight)
-                        .background(Color(.tertiarySystemFill))
-                        .clipShape(.rect(cornerRadius: Theme.Radius.button))
+            // Only shown when the announcement is about something registrable.
+            // Registration happens on Indico — the API is read-only.
+            if let url = announcement.eventURL {
+                VStack(spacing: 6) {
+                    Button("前往報名") { openURL(url) }
+                        .buttonStyle(.brand)
+                    Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .tint(Theme.Palette.brand)
-
-                Button("我要報名") {
-                    // TODO: event registration
-                }
-                .buttonStyle(.brand)
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.vertical, 10)
+                .background(.bar)
             }
-            .padding(.horizontal, Theme.Metrics.gutter)
-            .padding(.vertical, 10)
-            .background(.bar)
         }
     }
 }
