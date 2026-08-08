@@ -14,7 +14,9 @@ struct WelcomeView: View {
     private let highlights: [Highlight] = [
         .init(symbol: "creditcard",
               title: "電子會員卡",
-              detail: "離線可用，活動與商家皆可出示"),
+              // Not "離線可用": the QR carries a code that dies after 300s and
+              // needs the network to renew, so the card cannot work offline.
+              detail: "活動與合作商家皆可出示"),
         .init(symbol: "bubble.left",
               title: "公告頻道",
               detail: "各校分會與新生訊息，一次收齊"),
