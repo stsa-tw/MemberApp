@@ -2,7 +2,6 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Environment(Session.self) private var session
-    @State private var isSigningUp = false
     @State private var isLoggingIn = false
 
     private struct Highlight: Identifiable {
@@ -63,21 +62,16 @@ struct WelcomeView: View {
 
             Spacer(minLength: 34)
 
-            Button("加入會員") { isSigningUp = true }
+            // No sign-up here: accounts are created in authentik, so the app only
+            // ever authenticates an existing one.
+            Button("登入") { isLoggingIn = true }
                 .buttonStyle(.brand)
-
-            Button("我已經是會員，登入") { isLoggingIn = true }
-                .buttonStyle(.brandPlain)
-                .padding(.top, 6)
         }
         .padding(.horizontal, 28)
         .padding(.top, 96)
         .padding(.bottom, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(.systemBackground))
-        .sheet(isPresented: $isSigningUp) {
-            SignUpView()
-        }
         .sheet(isPresented: $isLoggingIn) {
             LoginView()
         }

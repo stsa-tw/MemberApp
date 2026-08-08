@@ -46,4 +46,24 @@ struct Profile: Codable, Hashable, Identifiable {
     var displayName: String {
         name ?? nickname ?? givenName ?? preferredUsername ?? email ?? sub
     }
+
+    /// Derived from the school email domain — the same signal authentik uses to
+    /// verify student status. There is no school claim, so this is inference,
+    /// not authority: unknown domains return nil rather than a guess.
+    var school: String? {
+        guard let domain = email?.split(separator: "@").last?.lowercased() else { return nil }
+        switch true {
+        case domain.hasSuffix("nus.edu.sg"), domain.hasSuffix("u.nus.edu"): return "NUS"
+        case domain.hasSuffix("ntu.edu.sg"), domain.hasSuffix("e.ntu.edu.sg"): return "NTU"
+        case domain.hasSuffix("smu.edu.sg"): return "SMU"
+        case domain.hasSuffix("sutd.edu.sg"): return "SUTD"
+        default: return nil
+        }
+    }
+
+    /// Drives UI only — see the note on `groups`. Anything that actually matters
+    /// must be re-checked server-side.
+    var isOfficer: Bool {
+        groups.contains("STSA 幹部")
+    }
 }

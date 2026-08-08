@@ -18,10 +18,6 @@ private struct Stub: View {
     }
 }
 
-struct SignUpView: View {
-    var body: some View { Stub(title: "建立會員", note: "兩步驟註冊：基本資料、就讀學校與年級") }
-}
-
 struct ChannelsView: View {
     var body: some View { Stub(title: "頻道", note: "各校分會與新生頻道的推播訂閱開關") }
 }
@@ -40,8 +36,4 @@ struct JobsView: View {
 
 struct ProfileView: View {
     var body: some View { Stub(title: "我的", note: "個人資料、頻道訂閱、Buddy 配對") }
-}
-
-struct MemberCardView: View {
-    var body: some View { Stub(title: "會員卡", note: "QR、卡號、學校與有效期限") }
 }
