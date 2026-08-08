@@ -1161,6 +1161,39 @@
           }
         }
       }
+    },
+    "前往活動": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View event"
+          }
+        }
+      }
+    },
+    "前往活動頁": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open event page"
+          }
+        }
+      }
+    },
+    "將前往 Indico 活動頁。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the event page on Indico."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

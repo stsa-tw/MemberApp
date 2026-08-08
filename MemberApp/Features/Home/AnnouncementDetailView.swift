@@ -4,6 +4,7 @@ struct AnnouncementDetailView: View {
     let announcement: Announcement
 
     @Environment(\.openURL) private var openURL
+    @Environment(EventsStore.self) private var events
     @Environment(Session.self) private var session
 
     var body: some View {
@@ -44,18 +45,8 @@ struct AnnouncementDetailView: View {
                 .padding(.top, 6)
 
                 // Inline rather than pinned — see Theme.Metrics.accessoryClearance.
-                // Only shown when the announcement is about something registrable;
-                // registration happens on Indico, whose API is read-only.
-                if let url = announcement.eventURL {
-                    VStack(spacing: 6) {
-                        Button("前往報名") { openURL(url) }
-                            .buttonStyle(.brand)
-                        Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                eventLink
                     .padding(.top, 20)
-                }
             }
             .padding(20)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
@@ -64,6 +55,35 @@ struct AnnouncementDetailView: View {
         .background(Color(.systemBackground))
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private extension AnnouncementDetailView {
+    /// Prefers pushing the event inside the app; falls back to the web only when
+    /// the event is not in the loaded window or has left the category.
+    @ViewBuilder
+    var eventLink: some View {
+        if let id = announcement.eventID,
+           let event = events.events.first(where: { $0.id == id }) {
+            NavigationLink {
+                EventDetailView(event: event)
+            } label: {
+                Text("前往活動")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: Theme.Metrics.ctaHeight)
+                    .foregroundStyle(.white)
+                    .background(Theme.Palette.brand)
+                    .clipShape(.rect(cornerRadius: Theme.Radius.button))
+            }
+        } else if let url = announcement.eventURL {
+            VStack(spacing: 6) {
+                Button("前往活動頁") { openURL(url) }
+                    .buttonStyle(.brand)
+                Text("將前往 Indico 活動頁。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

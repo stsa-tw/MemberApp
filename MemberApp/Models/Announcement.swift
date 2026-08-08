@@ -12,7 +12,11 @@ struct Announcement: Identifiable, Hashable {
     var place: String
     /// Optional — omitted rather than filled with a made-up name.
     var contact: String?
-    /// Indico event this announcement is about, if any. Drives the CTA.
+    /// Indico event id this announcement is about, if any. Drives the CTA,
+    /// which opens the event inside the app rather than on the web.
+    var eventID: String?
+    /// Fallback for when the event is not in the loaded window, or has been
+    /// removed from the category the app reads.
     var eventURL: URL?
 }
 
@@ -31,6 +35,7 @@ extension Announcement {
               ],
               when: "8月15日（六）13:30–15:30",
               place: "i2Hub, 60A Orchard Road #04-32",
+              eventID: "10",
               eventURL: URL(string: "https://event.stsa.tw/event/10/")),
     ]
 }
