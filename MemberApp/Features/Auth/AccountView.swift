@@ -16,19 +16,20 @@ struct AccountView: View {
                     if !profile.groups.isEmpty { groupsSection(profile) }
                 }
 
-                Section {
-                    Button("登出", role: .destructive) {
-                        auth.logout()
-                    }
-                } footer: {
-                    Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
-                }
-
                 #if DEBUG
                 TokenDiagnostics()
                 #endif
             }
             .navigationTitle("我的")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Label("設定", systemImage: "gearshape")
+                    }
+                }
+            }
         }
     }
 

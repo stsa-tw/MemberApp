@@ -4,9 +4,11 @@ import UIKit
 struct MemberCardView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(MembershipCodeStore.self) private var codes
+    @Environment(AppSettings.self) private var settings
     @Environment(\.dismiss) private var dismiss
 
     @State private var previousBrightness: CGFloat?
+    @State private var isUnlocked = false
     @State private var now = Date()
 
     private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -15,8 +17,12 @@ struct MemberCardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    card
-                    footnote
+                    if isUnlocked {
+                        card
+                        footnote
+                    } else {
+                        lockedState
+                    }
                 }
                 .padding(.horizontal, Theme.Metrics.gutter)
                 .padding(.top, 6)
@@ -30,6 +36,8 @@ struct MemberCardView: View {
             }
         }
         .task {
+            await unlockIfNeeded()
+            guard isUnlocked else { return }
             codes.start(using: auth)
             raiseBrightness()
         }
@@ -38,6 +46,36 @@ struct MemberCardView: View {
             restoreBrightness()
         }
         .onReceive(tick) { now = $0 }
+    }
+
+    // MARK: - Lock
+
+    private var lockedState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "lock.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("需要驗證才能出示會員卡")
+                .font(.headline)
+            Button("使用 \(BiometricGate.biometryName) 解鎖") {
+                Task { await unlockIfNeeded() }
+            }
+            .buttonStyle(.brandPlain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+    }
+
+    private func unlockIfNeeded() async {
+        guard settings.requireBiometricsForCard else {
+            isUnlocked = true
+            return
+        }
+        isUnlocked = await BiometricGate.authenticate(reason: "出示 STSA 電子會員卡")
+        if isUnlocked {
+            codes.start(using: auth)
+            raiseBrightness()
+        }
     }
 
     // MARK: - Card
@@ -107,6 +145,10 @@ struct MemberCardView: View {
                     .interpolation(.none)
                     .resizable()
                     .frame(width: 152, height: 152)
+                    // Always on white, in both appearances: scanners expect
+                    // dark modules on a light field, and the generator's output
+                    // would otherwise sit on a dark card in Dark Mode.
+                    .background(.white)
                     // An expired code still renders; dimming it says so without
                     // yanking the card away mid-scan.
                     .opacity(codes.hasExpired(at: now) ? 0.25 : 1)

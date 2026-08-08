@@ -7,6 +7,7 @@ struct MemberAppApp: App {
     @State private var auth = AuthManager()
     @State private var codes = MembershipCodeStore()
     @State private var events = EventsStore()
+    @State private var settings = AppSettings()
 
     var body: some Scene {
         WindowGroup {
@@ -15,7 +16,9 @@ struct MemberAppApp: App {
                 .environment(auth)
                 .environment(codes)
                 .environment(events)
+                .environment(settings)
                 .tint(Theme.Palette.brand)
+                .preferredColorScheme(settings.appearance.colorScheme)
                 .onOpenURL { url in
                     // tw.stsa.membership://callback — hand the authorization
                     // code back to the in-flight AppAuth request.

@@ -8,6 +8,11 @@
 	     The redirect URI is tw.stsa.membership://callback. AppAuth hands the
 	     authorization code back through this scheme, and MemberAppApp resumes
 	     the flow from .onOpenURL. -->
+	<!-- Required before any LocalAuthentication call: the app terminates on the
+	     first Face ID evaluation without it. Shown in the system prompt. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>用於在出示電子會員卡前確認是你本人。</string>
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
