@@ -21,22 +21,39 @@ where you already work, the plugin is fine as long as caching is handled.
 Dashboard → Workers & Pages → Create → paste `worker.js`. Add a route:
 
 ```
-stsa.tw/oauth/ios-callback*
+app.stsa.tw/oauth/ios-callback*
 ```
 
+A dedicated subdomain rather than a path on `stsa.tw`, because:
+
+- it keeps WordPress, its plugins and its caching entirely out of a request that
+  carries an authorization code
+- `/oauth/…` on the main site could later collide with a page, a rewrite rule or
+  a redirect plugin; a separate host cannot
+- cache and WAF policy can be set for the whole host without touching the site
+- `*.stsa.tw` is already on the certificate, so there is no TLS work
+
+`app.` specifically, so the same host can later serve
+`/.well-known/apple-app-site-association` if universal links are ever needed,
+and an App Store redirect for sharing.
+
 ## Option B — WordPress
+
+Only applies if you serve the bridge from a path on `stsa.tw` instead of the
+subdomain above; WordPress answers for the apex host, not for `app.`.
 
 Copy `wordpress-mu-plugin.php` into `wp-content/mu-plugins/` (create the
 directory if it does not exist). It loads automatically — there is nothing to
 activate, and it survives theme and plugin changes.
 
 It hooks `init` at priority 0, so it answers before WordPress resolves the URL
-and 404s. No page or rewrite rule is needed.
+and 404s. No page or rewrite rule is needed. Change `STSA_BRIDGE_PATH` if you
+use a different path.
 
 ## Verify (either option)
 
 ```bash
-curl -sS -o /dev/null -D - "https://stsa.tw/oauth/ios-callback?code=test&state=abc"
+curl -sS -o /dev/null -D - "https://app.stsa.tw/oauth/ios-callback?code=test&state=abc"
 ```
 
 Expected:
@@ -51,7 +68,7 @@ Then check that injected parameters are dropped — this should return the same
 `Location` as above, with no `next`:
 
 ```bash
-curl -sS -o /dev/null -D - "https://stsa.tw/oauth/ios-callback?code=test&state=abc&next=https://example.com"
+curl -sS -o /dev/null -D - "https://app.stsa.tw/oauth/ios-callback?code=test&state=abc&next=https://example.com"
 ```
 
 ## Caching will bite you if you let it

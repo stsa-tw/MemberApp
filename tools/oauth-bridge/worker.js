@@ -10,7 +10,7 @@
  * worker is registered with Indico instead, and forwards straight to the app.
  * It renders nothing and stores nothing.
  *
- * Deploy at:  https://stsa.tw/oauth/ios-callback
+ * Deploy at:  https://app.stsa.tw/oauth/ios-callback
  * Register that exact URL as the redirect URI on the Indico OAuth application.
  */
 
