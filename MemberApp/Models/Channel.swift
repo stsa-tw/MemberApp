@@ -27,13 +27,13 @@ extension Channel {
               name: "新生資訊", detail: "迎新、接機、住宿與開學前準備",
               school: nil),
         .init(id: "nus", badge: "NUS",
-              name: "NUS 分會", detail: "National University of Singapore",
+              name: "NUS 資訊", detail: "National University of Singapore",
               school: "NUS"),
         .init(id: "ntu", badge: "NTU",
-              name: "NTU 分會", detail: "Nanyang Technological University",
+              name: "NTU 資訊", detail: "Nanyang Technological University",
               school: "NTU"),
         .init(id: "smu", badge: "SMU",
-              name: "SMU 分會", detail: "Singapore Management University",
+              name: "SMU 資訊", detail: "Singapore Management University",
               school: "SMU"),
     ]
 

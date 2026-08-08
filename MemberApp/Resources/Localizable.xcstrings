@@ -66,8 +66,11 @@
       }
     },
     "Code": {},
+    "Nanyang Technological University": {},
+    "National University of Singapore": {},
     "Role": {},
     "School": {},
+    "Singapore Management University": {},
     "Singapore Taiwan Student Association": {},
     "STSA MEMBER 2026": {},
     "STSA 官網": {
@@ -143,6 +146,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Offers"
+          }
+        }
+      }
+    },
+    "優惠網頁": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offers page"
+          }
+        }
+      }
+    },
+    "全體公告": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All members"
           }
         }
       }
@@ -510,6 +535,17 @@
         }
       }
     },
+    "所有會員都會收到的公告": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Announcements every member receives"
+          }
+        }
+      }
+    },
     "折扣碼": {
       "extractionState": "manual",
       "localizations": {
@@ -517,6 +553,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Discount code"
+          }
+        }
+      }
+    },
+    "新生資訊": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freshmen"
           }
         }
       }
@@ -682,6 +729,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Event system"
+          }
+        }
+      }
+    },
+    "活動網站": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Event website"
           }
         }
       }
@@ -939,6 +997,17 @@
         }
       }
     },
+    "迎新、接機、住宿與開學前準備": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientation, airport pickup, housing and getting settled"
+          }
+        }
+      }
+    },
     "連線狀態（DEBUG）": {
       "extractionState": "manual",
       "localizations": {
@@ -946,6 +1015,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Session (DEBUG)"
+          }
+        }
+      }
+    },
+    "選擇你想收到的公告類型。推播通知尚未開放，目前這只會影響 App 內顯示的內容。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which announcements you want. Push notifications are not enabled yet, so for now this only affects what is shown in the app."
           }
         }
       }
@@ -1049,112 +1129,35 @@
         }
       }
     },
-    "活動網站": {
+    "NUS 資訊": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Event website"
+            "value": "NUS updates"
           }
         }
       }
     },
-    "優惠網頁": {
+    "NTU 資訊": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offers page"
+            "value": "NTU updates"
           }
         }
       }
     },
-    "全體公告": {
+    "SMU 資訊": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "All members"
-          }
-        }
-      }
-    },
-    "所有會員都會收到的公告": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Announcements every member receives"
-          }
-        }
-      }
-    },
-    "新生資訊": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Freshmen"
-          }
-        }
-      }
-    },
-    "迎新、接機、住宿與開學前準備": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Orientation, airport pickup, housing and getting settled"
-          }
-        }
-      }
-    },
-    "NUS 分會": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NUS chapter"
-          }
-        }
-      }
-    },
-    "NTU 分會": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NTU chapter"
-          }
-        }
-      }
-    },
-    "SMU 分會": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SMU chapter"
-          }
-        }
-      }
-    },
-    "選擇你想收到的公告類型。推播通知尚未開放，目前這只會影響 App 內顯示的內容。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose which announcements you want. Push notifications are not enabled yet, so for now this only affects what is shown in the app."
+            "value": "SMU updates"
           }
         }
       }
