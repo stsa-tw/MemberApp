@@ -28,6 +28,10 @@ struct EventDetailView: View {
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
+        // The bottom safe area inside a tab does not account for the tab view's
+        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
+        // bar on push fixes that and keeps the primary action uncontested.
+        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             if let url = event.url {
                 VStack(spacing: 6) {

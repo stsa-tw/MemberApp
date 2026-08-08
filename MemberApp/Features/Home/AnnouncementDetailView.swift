@@ -48,6 +48,10 @@ struct AnnouncementDetailView: View {
         .background(Color(.systemBackground))
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)
+        // The bottom safe area inside a tab does not account for the tab view's
+        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
+        // bar on push fixes that and keeps the primary action uncontested.
+        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             // Only shown when the announcement is about something registrable.
             // Registration happens on Indico — the API is read-only.

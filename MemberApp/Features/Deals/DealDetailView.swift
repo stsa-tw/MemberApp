@@ -41,6 +41,10 @@ struct DealDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
+        // The bottom safe area inside a tab does not account for the tab view's
+        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
+        // bar on push fixes that and keeps the primary action uncontested.
+        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 6) {
                 Button("出示會員卡") { session.isShowingMemberCard = true }
