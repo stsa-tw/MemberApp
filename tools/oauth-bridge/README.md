@@ -1,37 +1,82 @@
 # OAuth redirect bridge
 
 Indico only accepts `http(s)` redirect URIs, so `tw.stsa.membership://callback`
-cannot be registered with it directly. This worker is registered instead and
-forwards to the app, preserving the authorization response.
+cannot be registered with it directly. A bridge is registered instead and
+forwards to the app, carrying the authorization response across.
 
-## Deploy
+Two implementations, same behaviour. Deploy **one**.
 
-Cloudflare dashboard → Workers & Pages → Create → paste `worker.js`.
+| | `worker.js` (Cloudflare) | `wordpress-mu-plugin.php` |
+|---|---|---|
+| Runs | At the edge, before WordPress | Inside WordPress |
+| In the request path | Nothing else | WP core, plugins, caching, security plugins |
+| Setup | New Worker + a route | Copy one file |
 
-Then add a route so it serves the callback path:
+Either works. The Worker keeps a credential-carrying request out of WordPress
+entirely, which is why it is the default recommendation — but if WordPress is
+where you already work, the plugin is fine as long as caching is handled.
+
+## Option A — Cloudflare Worker
+
+Dashboard → Workers & Pages → Create → paste `worker.js`. Add a route:
 
 ```
 stsa.tw/oauth/ios-callback*
 ```
 
-Test it — this should answer `302` with a `Location` of
-`tw.stsa.membership://callback?code=test&state=abc`:
+## Option B — WordPress
+
+Copy `wordpress-mu-plugin.php` into `wp-content/mu-plugins/` (create the
+directory if it does not exist). It loads automatically — there is nothing to
+activate, and it survives theme and plugin changes.
+
+It hooks `init` at priority 0, so it answers before WordPress resolves the URL
+and 404s. No page or rewrite rule is needed.
+
+## Verify (either option)
 
 ```bash
 curl -sS -o /dev/null -D - "https://stsa.tw/oauth/ios-callback?code=test&state=abc"
 ```
 
-## Turn off query-string logging on this route
+Expected:
 
-The URL carries an authorization code. PKCE means the code alone is useless —
-the verifier never leaves the phone — but it still should not sit in logs.
+```
+HTTP/2 302
+location: tw.stsa.membership://callback?code=test&state=abc
+cache-control: no-store
+```
 
-In Cloudflare, check that Logpush / Analytics are not retaining full URLs for
-this route, and that no Page Rule adds query strings to the cache key.
+Then check that injected parameters are dropped — this should return the same
+`Location` as above, with no `next`:
+
+```bash
+curl -sS -o /dev/null -D - "https://stsa.tw/oauth/ios-callback?code=test&state=abc&next=https://example.com"
+```
+
+## Caching will bite you if you let it
+
+The response carries a one-time authorization code. If anything caches it, a
+later login can be served someone else's code, or a stale one.
+
+`no-store` is set, but confirm nothing overrides it:
+
+- **Cloudflare**: no Cache Rule or Page Rule forcing cache on this path
+- **WordPress**: exclude `/oauth/ios-callback` in WP Rocket / W3 Total Cache /
+  LiteSpeed, if installed
+- **Host-level**: some managed WordPress hosts cache aggressively at the edge
+  regardless of headers — check for a bypass rule
+
+The Worker sidesteps all of this, since it answers before any of it runs.
 
 ## Do not add a redirect parameter
 
-`APP_CALLBACK` is a constant on purpose. The moment this accepts a `next=` or
-`redirect=` parameter, it becomes an open redirector attached to a live OAuth
-flow — an attacker could have Indico hand an authorization code to a host they
-control.
+The destination is a constant on purpose. The moment either version accepts a
+`next=` or `redirect=` parameter, it becomes an open redirector attached to a
+live OAuth flow — an attacker could have Indico hand an authorization code to a
+host they control.
+
+## Turn off query-string logging on this route
+
+The code passes through the URL. PKCE means it is useless on its own — the
+verifier never leaves the phone — but it should not sit in access logs.
