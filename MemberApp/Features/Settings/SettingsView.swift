@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
@@ -29,6 +30,22 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                // iOS owns per-app language once the bundle ships more than one
+                // localisation. A custom picker would need an app restart to take
+                // effect and would fight the system setting, so this defers to it.
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        openURL(url)
+                    }
+                } label: {
+                    LabeledContent("語言", value: currentLanguage)
+                }
+                .tint(.primary)
+            } footer: {
+                Text("跟隨 iOS 的語言設定。點一下前往「設定 → STSA」切換。")
+            }
+
             Section("關於") {
                 LabeledContent("版本", value: Self.version)
                 Link("STSA 官網", destination: URL(string: "https://stsa.tw")!)
@@ -43,6 +60,14 @@ struct SettingsView: View {
         }
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The localisation actually in use, not the device language — they differ
+    /// once someone overrides it in Settings → STSA.
+    private var currentLanguage: String {
+        let code = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
+        return Locale(identifier: code).localizedString(forIdentifier: code)?
+            .capitalized(with: Locale(identifier: code)) ?? code
     }
 
     private static var version: String {

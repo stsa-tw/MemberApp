@@ -9,13 +9,15 @@ struct HomeView: View {
 
     /// Real count from Indico rather than the mock's fixed "3 場".
     private var upcomingLabel: String {
-        events.upcoming.isEmpty ? "目前沒有活動" : "\(events.upcoming.count) 場即將舉行"
+        events.upcoming.isEmpty
+            ? String(localized: "目前沒有活動")
+            : String(localized: "\(events.upcoming.count) 場即將舉行")
     }
 
     /// Buddy 配對 has no data source yet, so the second shortcut points at the
     /// one thing behind it that does.
     private var dealsLabel: String {
-        "\(Deal.samples.filter { !$0.hasExpired() }.count) 間合作商家"
+        String(localized: "\(Deal.samples.filter { !$0.hasExpired() }.count) 間合作商家")
     }
 
     var body: some View {
@@ -80,9 +82,9 @@ struct HomeView: View {
         let name = auth.profile.map { $0.nickname ?? $0.givenName ?? $0.displayName } ?? ""
         let hour = Calendar.current.component(.hour, from: Date())
         let time = switch hour {
-        case 5..<12: "早安"
-        case 12..<18: "午安"
-        default: "晚安"
+        case 5..<12: String(localized: "早安")
+        case 12..<18: String(localized: "午安")
+        default: String(localized: "晚安")
         }
         return "\(time)，\(name)"
     }

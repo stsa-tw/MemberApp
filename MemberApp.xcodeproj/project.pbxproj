@@ -213,6 +213,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = STSA;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "用於在出示電子會員卡前確認是你本人。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -243,6 +244,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = STSA;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "用於在出示電子會員卡前確認是你本人。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

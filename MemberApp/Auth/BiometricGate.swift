@@ -19,7 +19,7 @@ enum BiometricGate {
         case .faceID: "Face ID"
         case .touchID: "Touch ID"
         case .opticID: "Optic ID"
-        default: "裝置密碼"
+        default: String(localized: "裝置密碼")
         }
     }
 

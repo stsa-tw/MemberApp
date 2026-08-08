@@ -30,10 +30,10 @@ struct IndicoEvent: Identifiable, Hashable {
     /// Small uppercase label above the title on the detail hero.
     var kicker: String {
         switch type {
-        case "conference": "活動"
-        case "meeting": "聚會"
-        case "lecture": "講座"
-        default: "活動"
+        case "conference": String(localized: "活動")
+        case "meeting": String(localized: "聚會")
+        case "lecture": String(localized: "講座")
+        default: String(localized: "活動")
         }
     }
 }

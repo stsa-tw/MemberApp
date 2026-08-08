@@ -71,7 +71,7 @@ struct MemberCardView: View {
             isUnlocked = true
             return
         }
-        isUnlocked = await BiometricGate.authenticate(reason: "出示 STSA 電子會員卡")
+        isUnlocked = await BiometricGate.authenticate(reason: String(localized: "出示 STSA 電子會員卡"))
         if isUnlocked {
             codes.start(using: auth)
             raiseBrightness()
@@ -205,7 +205,7 @@ struct MemberCardView: View {
     private var codeFreshness: String {
         guard let expiresAt = codes.expiresAt else { return "—" }
         let seconds = Int(expiresAt.timeIntervalSince(now))
-        guard seconds > 0 else { return "已過期" }
+        guard seconds > 0 else { return String(localized: "已過期") }
         return "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
     }
 
