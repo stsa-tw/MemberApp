@@ -52,9 +52,6 @@ struct DealDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
-        // The accessory floats over this page's own primary action.
-        .onAppear { session.hidesCardAccessory = true }
-        .onDisappear { session.hidesCardAccessory = false }
     }
 
     private var header: some View {

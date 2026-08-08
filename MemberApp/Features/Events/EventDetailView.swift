@@ -51,9 +51,6 @@ struct EventDetailView: View {
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
-        // The accessory floats over this page's own primary action.
-        .onAppear { session.hidesCardAccessory = true }
-        .onDisappear { session.hidesCardAccessory = false }
     }
 
     private var hero: some View {

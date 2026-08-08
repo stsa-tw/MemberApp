@@ -64,9 +64,6 @@ struct AnnouncementDetailView: View {
         .background(Color(.systemBackground))
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)
-        // The accessory floats over this page's own primary action.
-        .onAppear { session.hidesCardAccessory = true }
-        .onDisappear { session.hidesCardAccessory = false }
     }
 }
 
