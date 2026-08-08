@@ -43,11 +43,24 @@ final class AppSettings {
         didSet { defaults.set(requireBiometricsForCard, forKey: Keys.biometrics) }
     }
 
+    /// Channels the member follows, by `Channel.id`. `nil` means never chosen,
+    /// which lets the first read seed from their school rather than assuming
+    /// they deliberately unfollowed everything.
+    private(set) var subscribedChannels: Set<String>?
+
+    func setSubscribed(_ subscribed: Bool, channel: Channel, defaultingTo seed: Set<String>) {
+        var ids = subscribedChannels ?? seed
+        if subscribed { ids.insert(channel.id) } else { ids.remove(channel.id) }
+        subscribedChannels = ids
+        defaults.set(Array(ids), forKey: Keys.channels)
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
         static let appearance = "settings.appearance"
         static let biometrics = "settings.requireBiometricsForCard"
+        static let channels = "settings.subscribedChannels"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -59,5 +72,6 @@ final class AppSettings {
         requireBiometricsForCard = defaults.object(forKey: Keys.biometrics) == nil
             ? true
             : defaults.bool(forKey: Keys.biometrics)
+        subscribedChannels = (defaults.array(forKey: Keys.channels) as? [String]).map(Set.init)
     }
 }

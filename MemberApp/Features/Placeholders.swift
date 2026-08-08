@@ -18,9 +18,6 @@ private struct Stub: View {
     }
 }
 
-struct ChannelsView: View {
-    var body: some View { Stub(title: "頻道", note: "各校分會與新生頻道的推播訂閱開關") }
-}
 
 
 

@@ -1070,6 +1070,94 @@
           }
         }
       }
+    },
+    "全體公告": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All members"
+          }
+        }
+      }
+    },
+    "所有會員都會收到的公告": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Announcements every member receives"
+          }
+        }
+      }
+    },
+    "新生資訊": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freshmen"
+          }
+        }
+      }
+    },
+    "迎新、接機、住宿與開學前準備": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientation, airport pickup, housing and getting settled"
+          }
+        }
+      }
+    },
+    "NUS 分會": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NUS chapter"
+          }
+        }
+      }
+    },
+    "NTU 分會": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NTU chapter"
+          }
+        }
+      }
+    },
+    "SMU 分會": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMU chapter"
+          }
+        }
+      }
+    },
+    "選擇你想收到的公告類型。推播通知尚未開放，目前這只會影響 App 內顯示的內容。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which announcements you want. Push notifications are not enabled yet, so for now this only affects what is shown in the app."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
