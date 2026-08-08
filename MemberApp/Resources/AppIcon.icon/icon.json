@@ -1,0 +1,33 @@
+{
+  "fill" : "system-light",
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "favicon-removebg-preview (1) (1).png",
+          "name" : "favicon-removebg-preview (1) (1)",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              -27.5
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "iOS"
+    ]
+  }
+}
