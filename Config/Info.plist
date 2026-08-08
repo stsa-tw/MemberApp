@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Everything else is generated (GENERATE_INFOPLIST_FILE / INFOPLIST_KEY_*).
+	     This file exists only for keys the build settings cannot express.
+
+	     The redirect URI is tw.stsa.membership://callback. AppAuth hands the
+	     authorization code back through this scheme, and MemberAppApp resumes
+	     the flow from .onOpenURL. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>tw.stsa.membership.oidc</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tw.stsa.membership</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

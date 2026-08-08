@@ -3,6 +3,7 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(Session.self) private var session
     @State private var isSigningUp = false
+    @State private var isLoggingIn = false
 
     private struct Highlight: Identifiable {
         let id = UUID()
@@ -65,7 +66,7 @@ struct WelcomeView: View {
             Button("加入會員") { isSigningUp = true }
                 .buttonStyle(.brand)
 
-            Button("我已經是會員，登入") { session.signIn() }
+            Button("我已經是會員，登入") { isLoggingIn = true }
                 .buttonStyle(.brandPlain)
                 .padding(.top, 6)
         }
@@ -77,9 +78,14 @@ struct WelcomeView: View {
         .sheet(isPresented: $isSigningUp) {
             SignUpView()
         }
+        .sheet(isPresented: $isLoggingIn) {
+            LoginView()
+        }
     }
 }
 
 #Preview {
-    WelcomeView().environment(Session())
+    WelcomeView()
+        .environment(Session())
+        .environment(AuthManager())
 }
