@@ -56,13 +56,14 @@ struct DealDetailView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
-            Text(deal.mark)
-                .font(.title.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(Theme.Palette.inkCard)
-                .clipShape(.rect(cornerRadius: 15))
+        VStack(alignment: .leading, spacing: 12) {
+            Image(deal.logo)
+                .resizable()
+                .scaledToFit()
+                .padding(12)
+                .frame(maxWidth: 220, maxHeight: 76, alignment: .leading)
+                .background(.white)
+                .clipShape(.rect(cornerRadius: 14))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(deal.brand)

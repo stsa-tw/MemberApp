@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// A partner offer for STSA members.
 ///
@@ -7,8 +8,9 @@ import Foundation
 /// information partnership, not a discount. So `code` is optional and belongs
 /// to the deal rather than to the member.
 struct Deal: Identifiable, Hashable {
-    /// Single character shown in the dark square, standing in for a logo.
-    let mark: String
+    /// Partner logo, from stsa.tw's own uploads. These are horizontal lockups,
+    /// so they are letterboxed rather than cropped to a square.
+    let logo: ImageResource
     var brand: String
     var brandEnglish: String?
     /// Short headline, e.g. "85 折". Nil when the offer is not a discount.
@@ -38,7 +40,7 @@ struct Deal: Identifiable, Hashable {
 
 extension Deal {
     static let samples: [Deal] = [
-        .init(mark: "鳥",
+        .init(logo: .bluebirdLogo,
               brand: "青鳥旅行",
               brandEnglish: "Bluebird Travel",
               headline: "85 折",
@@ -51,7 +53,7 @@ extension Deal {
               code: "15OFF4STSA",
               expires: DateComponents(year: 2026, month: 6, day: 30)),
 
-        .init(mark: "良",
+        .init(logo: .finetableLogo,
               brand: "良人食堂",
               brandEnglish: "Finetable",
               headline: "9 折",
@@ -64,7 +66,7 @@ extension Deal {
               ],
               code: "ONLYFORSTSA"),
 
-        .init(mark: "滙",
+        .init(logo: .hsbcLogo,
               brand: "HSBC 滙豐 Premier",
               brandEnglish: "全球留學理財好夥伴",
               summary: "為留學生與家庭提供全球金融服務，出發前即可開立海外帳戶，抵達後立即啟用。",

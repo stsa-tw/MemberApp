@@ -58,12 +58,15 @@ private struct DealRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(deal.mark)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 46, height: 46)
-                .background(Theme.Palette.inkCard)
-                .clipShape(.rect(cornerRadius: 12))
+            // Always on white: the logos are dark-on-transparent and would
+            // disappear against the grouped background in Dark Mode.
+            Image(deal.logo)
+                .resizable()
+                .scaledToFit()
+                .padding(6)
+                .frame(width: 72, height: 44)
+                .background(.white)
+                .clipShape(.rect(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(deal.brand)
