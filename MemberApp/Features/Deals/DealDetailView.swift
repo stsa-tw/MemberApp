@@ -21,6 +21,17 @@ struct DealDetailView: View {
                         .padding(.top, 14)
                 }
 
+                // Inline rather than pinned — see Theme.Metrics.accessoryClearance.
+                VStack(spacing: 6) {
+                    Button("出示會員卡") { session.isShowingMemberCard = true }
+                        .buttonStyle(.brand)
+                    Text("合作商家需確認 STSA 會員身分。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.top, 16)
+
                 if !deal.terms.isEmpty {
                     GroupedCardHeader("使用條件")
                         .padding(.top, 20)
@@ -37,26 +48,13 @@ struct DealDetailView: View {
                 }
             }
             .padding(.top, 18)
-            .padding(.bottom, 20)
+            .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
-        // The bottom safe area inside a tab does not account for the tab view's
-        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
-        // bar on push fixes that and keeps the primary action uncontested.
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 6) {
-                Button("出示會員卡") { session.isShowingMemberCard = true }
-                    .buttonStyle(.brand)
-                Text("合作商家需確認 STSA 會員身分。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, Theme.Metrics.gutter)
-            .padding(.vertical, 10)
-            .background(.bar)
-        }
+        // The accessory floats over this page's own primary action.
+        .onAppear { session.hidesCardAccessory = true }
+        .onDisappear { session.hidesCardAccessory = false }
     }
 
     private var header: some View {

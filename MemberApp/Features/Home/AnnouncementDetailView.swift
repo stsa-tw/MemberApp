@@ -4,6 +4,7 @@ struct AnnouncementDetailView: View {
     let announcement: Announcement
 
     @Environment(\.openURL) private var openURL
+    @Environment(Session.self) private var session
 
     var body: some View {
         ScrollView {
@@ -41,33 +42,31 @@ struct AnnouncementDetailView: View {
                 .background(Color(.systemGroupedBackground))
                 .clipShape(.rect(cornerRadius: Theme.Radius.card))
                 .padding(.top, 6)
+
+                // Inline rather than pinned — see Theme.Metrics.accessoryClearance.
+                // Only shown when the announcement is about something registrable;
+                // registration happens on Indico, whose API is read-only.
+                if let url = announcement.eventURL {
+                    VStack(spacing: 6) {
+                        Button("前往報名") { openURL(url) }
+                            .buttonStyle(.brand)
+                        Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 20)
+                }
             }
             .padding(20)
+            .padding(.bottom, Theme.Metrics.accessoryClearance)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(.systemBackground))
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)
-        // The bottom safe area inside a tab does not account for the tab view's
-        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
-        // bar on push fixes that and keeps the primary action uncontested.
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom) {
-            // Only shown when the announcement is about something registrable.
-            // Registration happens on Indico — the API is read-only.
-            if let url = announcement.eventURL {
-                VStack(spacing: 6) {
-                    Button("前往報名") { openURL(url) }
-                        .buttonStyle(.brand)
-                    Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, Theme.Metrics.gutter)
-                .padding(.vertical, 10)
-                .background(.bar)
-            }
-        }
+        // The accessory floats over this page's own primary action.
+        .onAppear { session.hidesCardAccessory = true }
+        .onDisappear { session.hidesCardAccessory = false }
     }
 }
 

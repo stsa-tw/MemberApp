@@ -4,6 +4,7 @@ struct EventDetailView: View {
     let event: IndicoEvent
 
     @Environment(\.openURL) private var openURL
+    @Environment(Session.self) private var session
 
     var body: some View {
         ScrollView {
@@ -13,45 +14,46 @@ struct EventDetailView: View {
                     .padding(.horizontal, Theme.Metrics.gutter)
                     .padding(.top, 16)
 
+                // Inline, directly under the key facts, rather than pinned to
+                // the bottom — see Theme.Metrics.accessoryClearance. This also
+                // puts the action next to the time and place instead of at the
+                // end of a long description.
+                if let url = event.url {
+                    VStack(spacing: 6) {
+                        Button(event.isUpcoming ? "前往報名" : "查看活動頁") {
+                            openURL(url)
+                        }
+                        .buttonStyle(.brand)
+
+                        // Indico's HTTP API is read-only, so registration cannot
+                        // happen in-app. Opening Indico is not a downgrade: it
+                        // signs in through the same authentik.
+                        Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, Theme.Metrics.gutter)
+                    .padding(.top, 16)
+                }
+
                 if !event.summary.isEmpty {
                     Text(event.summary)
                         .font(.callout)
                         .lineSpacing(4)
                         .padding(.horizontal, 20)
-                        .padding(.top, 18)
+                        .padding(.top, 22)
                 }
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
         .background(Color(.systemGroupedBackground))
         // Deliberately not ignoring the top safe area: the hero sits below the
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
-        // The bottom safe area inside a tab does not account for the tab view's
-        // accessory, so a pinned safeAreaInset lands underneath it. Hiding the
-        // bar on push fixes that and keeps the primary action uncontested.
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom) {
-            if let url = event.url {
-                VStack(spacing: 6) {
-                    Button(event.isUpcoming ? "前往報名" : "查看活動頁") {
-                        openURL(url)
-                    }
-                    .buttonStyle(.brand)
-
-                    // Indico's HTTP API is read-only, so registration cannot happen
-                    // in-app. Opening Indico is not a downgrade: it signs in through
-                    // the same authentik, so the session usually carries over.
-                    Text("報名在 Indico 上完成，使用同一個 STSA 帳號。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, Theme.Metrics.gutter)
-                .padding(.vertical, 10)
-                .background(.bar)
-            }
-        }
+        // The accessory floats over this page's own primary action.
+        .onAppear { session.hidesCardAccessory = true }
+        .onDisappear { session.hidesCardAccessory = false }
     }
 
     private var hero: some View {

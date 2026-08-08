@@ -12,6 +12,10 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var session = session
+        // Read here, in body, so @Observable registers the dependency. Reading
+        // it inside the accessory closure does not — the closure runs outside
+        // body evaluation, and the accessory never updates.
+        let showsAccessory = !session.hidesCardAccessory
 
         Group {
             if auth.isLoggedIn {
@@ -33,7 +37,9 @@ struct RootView: View {
                     }
                 }
                 .tabViewBottomAccessory {
-                    MemberCardAccessory()
+                    if showsAccessory {
+                        MemberCardAccessory()
+                    }
                 }
             } else {
                 WelcomeView()

@@ -44,6 +44,14 @@ extension Theme {
         static let ctaHeight: CGFloat = 50
         /// Horizontal inset for grouped list containers.
         static let gutter: CGFloat = 16
+
+        /// Extra space below the last element of a scrolling detail screen.
+        ///
+        /// A tab's bottom safe area accounts for the tab bar but *not* for
+        /// `tabViewBottomAccessory`, and there is no public API for its height.
+        /// Anything pinned with `safeAreaInset` ends up underneath the 會員卡
+        /// pill, so detail screens scroll their content clear of it instead.
+        static let accessoryClearance: CGFloat = 72
     }
 }
 
