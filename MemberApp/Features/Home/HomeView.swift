@@ -3,8 +3,14 @@ import SwiftUI
 struct HomeView: View {
     @Environment(Session.self) private var session
     @Environment(AuthManager.self) private var auth
+    @Environment(EventsStore.self) private var events
 
     private let announcements = Announcement.samples
+
+    /// Real count from Indico rather than the mock's fixed "3 場".
+    private var upcomingLabel: String {
+        events.upcoming.isEmpty ? "目前沒有活動" : "\(events.upcoming.count) 場即將舉行"
+    }
 
     var body: some View {
         NavigationStack {
@@ -15,7 +21,7 @@ struct HomeView: View {
                     HStack(spacing: 10) {
                         ShortcutTile(symbol: "calendar",
                                      title: "活動報名",
-                                     detail: "3 場即將舉行") {
+                                     detail: upcomingLabel) {
                             session.selectedTab = .events
                         }
                         ShortcutTile(symbol: "person.2.fill",

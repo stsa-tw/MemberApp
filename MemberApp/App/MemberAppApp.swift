@@ -6,6 +6,7 @@ struct MemberAppApp: App {
     @State private var session = Session()
     @State private var auth = AuthManager()
     @State private var codes = MembershipCodeStore()
+    @State private var events = EventsStore()
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +14,7 @@ struct MemberAppApp: App {
                 .environment(session)
                 .environment(auth)
                 .environment(codes)
+                .environment(events)
                 .tint(Theme.Palette.brand)
                 .onOpenURL { url in
                     // tw.stsa.membership://callback — hand the authorization

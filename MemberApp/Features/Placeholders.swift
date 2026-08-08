@@ -22,9 +22,6 @@ struct ChannelsView: View {
     var body: some View { Stub(title: "頻道", note: "各校分會與新生頻道的推播訂閱開關") }
 }
 
-struct EventsView: View {
-    var body: some View { Stub(title: "活動", note: "活動列表、詳情與票券") }
-}
 
 struct DealsView: View {
     var body: some View { Stub(title: "會員優惠", note: "合作商家、折扣碼詳情與出示畫面") }
