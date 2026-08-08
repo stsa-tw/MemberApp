@@ -105,9 +105,18 @@ struct AccountView: View {
             }
             if let expiry = snapshot.accessTokenExpiry {
                 LabeledContent("剩餘") {
-                    Text(remaining(until: expiry))
-                        .monospacedDigit()
-                        .foregroundStyle(expiry <= now ? .red : .secondary)
+                    // An expired access token is the normal resting state — it is
+                    // renewed on the next request, not on a timer. Showing it in
+                    // red made it read as a failure.
+                    if expiry <= now {
+                        Text("已過期，下次使用時自動更新")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(remaining(until: expiry))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
