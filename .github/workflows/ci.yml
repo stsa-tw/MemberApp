@@ -1,0 +1,40 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # The deployment target is iOS 26, so the runner has to carry the iOS 26 SDK.
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Printed so a failure caused by an image bump is obvious in the log
+      # rather than looking like a code problem.
+      - name: Show toolchain
+        run: xcodebuild -version
+
+      # Running tests needs a real simulator, so unlike a build-only check it
+      # cannot use `generic/platform=iOS Simulator`. Picking whichever iPhone
+      # the image happens to ship beats pinning a model that a future image
+      # may drop. Signing is off because CI has no certificate.
+      - name: Test
+        run: |
+          DEVICE=$(xcrun simctl list devices available \
+            | grep -m1 -oE '^ +iPhone [^(]+' | sed 's/^ *//; s/ *$//')
+          echo "Using simulator: $DEVICE"
+          xcodebuild test \
+            -project MemberApp.xcodeproj \
+            -scheme MemberApp \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=$DEVICE" \
+            CODE_SIGNING_ALLOWED=NO

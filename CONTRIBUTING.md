@@ -26,15 +26,21 @@ incidental churn from opening the project.
 
 ## Before you open a PR
 
-There is no test target and no CI. That puts the burden on the build and on
-running the thing:
+CI builds and runs the tests on every push and PR — see
+[.github/workflows/ci.yml](.github/workflows/ci.yml). The same thing locally:
 
 ```bash
-xcodebuild -project MemberApp.xcodeproj -scheme MemberApp \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild test -project MemberApp.xcodeproj -scheme MemberApp \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-Then run it and exercise what you touched. If you changed anything in the auth
+`MemberAppTests/` covers the pure logic only — claim decoding, the school
+lookup, channel seeding, deal expiry, Indico's date and HTML parsing, and the
+UserDefaults defaulting. Nothing there touches the network, the Keychain or a
+view, so a green run says the logic holds, not that the app works. That part is
+still on you:
+
+Run it and exercise what you touched. If you changed anything in the auth
 or member-card path, check all of:
 
 - fresh sign-in (delete the app first — the Keychain survives deletion, so
