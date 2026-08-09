@@ -28,7 +28,7 @@ import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedBackground
+import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.Announcement
 
 @Composable
@@ -83,7 +83,7 @@ fun AnnouncementDetailScreen(navController: NavHostController, index: Int) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(Theme.Radius.card))
-                    .background(MaterialTheme.colorScheme.groupedBackground),
+                    .background(MaterialTheme.colorScheme.sectionContainer),
             ) {
                 DetailRow(stringResource(R.string.label_time), announcement.whenText)
                 RowSeparator()

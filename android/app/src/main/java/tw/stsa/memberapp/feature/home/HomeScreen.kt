@@ -44,13 +44,12 @@ import tw.stsa.memberapp.app.Deals
 import tw.stsa.memberapp.app.Events
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
-import tw.stsa.memberapp.designsystem.DisclosureChevron
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedCard
+import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.Announcement
 import tw.stsa.memberapp.model.Deal
 import java.time.LocalTime
@@ -136,12 +135,12 @@ fun HomeScreen(navController: NavHostController) {
             }
 
             Column {
-                GroupedCardHeader(stringResource(R.string.announcements)) {
+                SectionHeader(stringResource(R.string.announcements)) {
                     TextButton(onClick = { navController.navigate(Channels) }) {
                         Text(stringResource(R.string.channels))
                     }
                 }
-                GroupedCard {
+                SectionCard {
                     announcements.forEachIndexed { index, announcement ->
                         // The mock rules edge-to-edge inside the card rather than
                         // insetting past the date column.
@@ -211,7 +210,7 @@ private fun ShortcutTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Theme.Radius.button))
-            .background(MaterialTheme.colorScheme.groupedCard)
+            .background(MaterialTheme.colorScheme.sectionContainer)
             .clickable(onClick = onClick)
             .padding(14.dp),
     ) {
@@ -261,8 +260,6 @@ private fun AnnouncementRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-
-        DisclosureChevron()
     }
 }
 

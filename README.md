@@ -203,13 +203,16 @@ android/app/src/main/
 ├── java/tw/stsa/memberapp/
 │   ├── MemberApplication, MainActivity   Composition root and the one Activity
 │   ├── app/            AppContainer (DI), AppSettings (SharedPreferences),
-│   │                   Routes (navigation graph), RootScreen (auth gate + tabs)
+│   │                   Routes (navigation graph), RootScreen (auth gate + tabs),
+│   │                   NightMode (publishes the appearance setting to the platform)
 │   ├── auth/           AuthConfiguration, AuthManager, Profile, TokenStore, BiometricGate
 │   ├── designsystem/   Theme (tokens, M3 scheme), Components, ScreenScaffold
 │   ├── model/          IndicoEvent, Deal, Announcement, Channel
 │   ├── net/            Http — three GETs, no client library
 │   └── feature/        One package per flow, mirroring ios/MemberApp/Features/
-└── res/                values (zh-Hant) + values-en, brand assets, adaptive icon
+└── res/                values (zh-Hant) + values-en, brand assets, adaptive icon,
+                        shortcuts.xml, resources.properties (names the default locale
+                        for the generated localeConfig)
 
 tools/oauth-bridge/     Standalone OAuth redirect bridge — not part of either app
 ```
@@ -243,18 +246,35 @@ colour scheme, and only the brand rose is ours. Likewise the type ramp — the
 standard iOS one there, Material's type scale here — so both get the reader's
 font-size setting for free.
 
-The Material scheme is written out from the brand rose rather than produced by
-`dynamicColorScheme()`. The member card is an identity document and the rose is
-what identifies it, so it does not get repainted to match somebody's wallpaper.
+On Android the greys are *neutral*. Seeding the whole surface ramp from the
+brand hue tinted every page pink, which reads as a discoloured screen rather
+than as branding; the rose earns its place on a button, a section header or the
+card, and nowhere else. The page is plain white (plain `#121212` in dark) and
+the sections are the faintly raised containers on top of it — the opposite way
+up from iOS, where a tinted page carries white cards, and the way round Material
+stacks them.
 
-Two places where the platform had no equivalent:
+The scheme is written out rather than produced by `dynamicColorScheme()`. The
+member card is an identity document and the rose is what identifies it, so it
+does not get repainted to match somebody's wallpaper.
+
+Where the platforms diverge:
 
 - iOS puts the 會員卡 button beside the tab bar with `tabViewBottomAccessory`.
   Material has no such slot, and rebuilding one by hand would be a bar that is
   not a bar, so Android uses an extended FAB — always on screen across the tabs,
-  one tap, out of the way on screens with their own primary action.
+  one tap, and it shrinks to its icon as the page scrolls.
 - iOS presents the card as a sheet; Android makes it a navigation destination,
-  which is what you want for something held up to a scanner.
+  which is what you want for something held up to a scanner. A launcher shortcut
+  goes straight to it, still behind the biometric gate.
+- The five destinations are a `NavigationSuiteScaffold`, not a hardcoded
+  `NavigationBar`: Android runs on tablets, foldables and landscape phones,
+  where they belong in a rail down the side.
+- Lists whose length the app does not control — Events, and Offers once it has a
+  backend — are `LazyColumn`s of edge-to-edge rows. The inset grouped card is
+  kept for the short, fixed lists it suits, which is Settings and Account.
+- No disclosure chevrons. Android says "this responds to a tap" with the ripple;
+  a chevron on every row is iOS's grammar, not this platform's.
 
 > [!NOTE]
 > The brand colour is the muted rose in `AccentColor.colorset`, not the

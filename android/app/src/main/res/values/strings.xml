@@ -6,10 +6,11 @@
     both apps. When a string changes here, change it there too.
 -->
 <resources>
+    <string name="app_name" translatable="false">STSA</string>
 
     <!-- Shell -->
+    <string name="back">返回</string>
     <string name="shortcut_member_card_long">出示 STSA 會員卡</string>
-    <string name="app_name" translatable="false">STSA</string>
 
     <!-- Tabs -->
     <string name="tab_home">首頁</string>
@@ -60,7 +61,6 @@
 
     <!-- Member card -->
     <string name="member_card">會員卡</string>
-    <string name="done">完成</string>
     <string name="card_locked">需要驗證才能出示會員卡</string>
     <string name="unlock_with">使用 %1$s 解鎖</string>
     <string name="card_auth_reason">出示 STSA 電子會員卡</string>

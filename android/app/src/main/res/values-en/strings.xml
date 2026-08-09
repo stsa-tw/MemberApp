@@ -6,9 +6,10 @@
     features — are new here.
 -->
 <resources>
-
     <!-- Shell -->
+    <string name="back">Back</string>
     <string name="shortcut_member_card_long">Show STSA member card</string>
+
     <!-- Tabs -->
     <string name="tab_home">Home</string>
     <string name="tab_events">Events</string>
@@ -59,7 +60,6 @@
 
     <!-- Member card -->
     <string name="member_card">Member card</string>
-    <string name="done">Done</string>
     <string name="card_locked">Authentication required to show your card</string>
     <string name="unlock_with">Unlock with %1$s</string>
     <string name="card_auth_reason">Show your STSA member card</string>

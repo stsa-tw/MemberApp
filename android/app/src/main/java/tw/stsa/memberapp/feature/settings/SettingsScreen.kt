@@ -33,10 +33,10 @@ import tw.stsa.memberapp.app.About
 import tw.stsa.memberapp.app.AppSettings
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.auth.BiometricGate
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
-import tw.stsa.memberapp.designsystem.GroupedFooter
-import tw.stsa.memberapp.designsystem.GroupedRow
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
+import tw.stsa.memberapp.designsystem.SectionFooter
+import tw.stsa.memberapp.designsystem.SectionRow
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -61,8 +61,8 @@ fun SettingsScreen(navController: NavHostController) {
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             Column {
-                GroupedCardHeader(stringResource(R.string.appearance))
-                GroupedCard {
+                SectionHeader(stringResource(R.string.appearance))
+                SectionCard {
                     SingleChoiceSegmentedButtonRow(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -86,29 +86,29 @@ fun SettingsScreen(navController: NavHostController) {
 
             if (BiometricGate.isAvailable(context)) {
                 Column {
-                    GroupedCardHeader(stringResource(R.string.security))
-                    GroupedCard {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = Theme.Metrics.gutter,
-                                    vertical = 10.dp,
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.require_auth_for_card),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Switch(
-                                checked = settings.requireBiometricsForCard,
-                                onCheckedChange = { settings.requireBiometricsForCard = it },
-                            )
-                        }
+                    SectionHeader(stringResource(R.string.security))
+                    SectionCard {
+                        // The whole row toggles, not just the switch: a 48dp
+                        // target across the width is what Material asks for, and
+                        // aiming at the thumb is not something anyone should
+                        // have to do.
+                        SectionRow(
+                            label = stringResource(R.string.require_auth_for_card),
+                            onClick = {
+                                settings.requireBiometricsForCard =
+                                    !settings.requireBiometricsForCard
+                            },
+                            trailing = {
+                                Switch(
+                                    checked = settings.requireBiometricsForCard,
+                                    onCheckedChange = {
+                                        settings.requireBiometricsForCard = it
+                                    },
+                                )
+                            },
+                        )
                     }
-                    GroupedFooter(
+                    SectionFooter(
                         stringResource(
                             R.string.require_auth_for_card_footer,
                             BiometricGate.biometryName(context),
@@ -118,39 +118,39 @@ fun SettingsScreen(navController: NavHostController) {
             }
 
             Column {
-                GroupedCard {
+                SectionCard {
                     // Android owns per-app language from 13 onward. A custom
                     // picker would fight that setting and need a restart to take
                     // effect, so this defers to it — the same call the iOS side
                     // makes with openSettingsURLString.
-                    GroupedRow(
+                    SectionRow(
                         label = stringResource(R.string.language),
                         value = currentLanguage(),
                         onClick = { context.startActivity(languageSettingsIntent(context)) },
                     )
                 }
-                GroupedFooter(stringResource(R.string.language_footer))
+                SectionFooter(stringResource(R.string.language_footer))
             }
 
             Column {
-                GroupedCardHeader(stringResource(R.string.about))
-                GroupedCard {
-                    GroupedRow(
+                SectionHeader(stringResource(R.string.about))
+                SectionCard {
+                    SectionRow(
                         label = stringResource(R.string.about_stsa),
                         onClick = { navController.navigate(About) },
                     )
                     RowSeparator()
-                    GroupedRow(
+                    SectionRow(
                         label = stringResource(R.string.version),
                         value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     )
                     RowSeparator()
-                    GroupedRow(
+                    SectionRow(
                         label = stringResource(R.string.stsa_website),
                         onClick = { uriHandler.openUri("https://stsa.tw") },
                     )
                     RowSeparator()
-                    GroupedRow(
+                    SectionRow(
                         label = stringResource(R.string.event_system),
                         onClick = { uriHandler.openUri("https://event.stsa.tw") },
                     )
@@ -158,7 +158,7 @@ fun SettingsScreen(navController: NavHostController) {
             }
 
             Column {
-                GroupedCard {
+                SectionCard {
                     TextButton(
                         onClick = {
                             auth.logout()
@@ -174,7 +174,7 @@ fun SettingsScreen(navController: NavHostController) {
                         )
                     }
                 }
-                GroupedFooter(stringResource(R.string.sign_out_footer))
+                SectionFooter(stringResource(R.string.sign_out_footer))
             }
         }
     }

@@ -8,6 +8,7 @@
     <!-- The iOS icon fills with system-light, so the mark keeps a white ground
          rather than being cropped out of a transparent one. -->
     <color name="ic_launcher_background">#FFFFFF</color>
-    <!-- Painted for the frame between window creation and Compose's first draw. -->
-    <color name="window_background">#FFF8F7</color>
+    <!-- Painted for the frame between window creation and Compose's first draw.
+         Matches the light scheme's surface in designsystem/Theme.kt. -->
+    <color name="window_background">#FFFFFF</color>
 </resources>

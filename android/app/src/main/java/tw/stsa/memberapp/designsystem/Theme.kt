@@ -66,62 +66,67 @@ object Theme {
 }
 
 /**
- * Semantic surfaces for the grouped-list look both apps use — a tinted page with
- * lighter cards sitting on it.
+ * The page itself: plain white in light, plain near-black in dark.
  *
- * `surface`/`surfaceContainer` cannot be used directly for this: Material 3 makes
- * containers *lighter* than the surface in dark mode and *darker* in light mode,
- * so either pairing inverts on one of the two. `surfaceContainer` under
- * `surfaceBright` holds the card above the page in both.
+ * This is [ColorScheme.surface] rather than a tinted container because the
+ * sections are what carry the tone now — a grey page under a white card is the
+ * iOS grouped-table arrangement, and Material stacks it the other way up.
  */
-val ColorScheme.groupedBackground: Color get() = surfaceContainer
+val ColorScheme.pageBackground: Color get() = surface
 
-/** The card that sits on [groupedBackground] — iOS's `secondarySystemGroupedBackground`. */
-val ColorScheme.groupedCard: Color get() = surfaceBright
+/** The subtly raised container a section of rows sits in, on top of [pageBackground]. */
+val ColorScheme.sectionContainer: Color get() = surfaceContainerLow
 
-// Tonal palettes generated from [Theme.Brand] — L* 62, chroma 35, hue 34°.
+// Accent roles are generated from [Theme.Brand] — L* 62, chroma 35, hue 34°.
 // Written out rather than produced by dynamicColorScheme(): the member card is
 // an identity document and the rose is the thing that identifies it, so it does
 // not get repainted to match somebody's wallpaper.
 //
-// The error roles keep Material's own red on purpose. A rose primary and a rose
-// error would be the same colour saying two different things.
+// Everything structural — page, containers, text, hairlines — is neutral grey on
+// purpose. Carrying the brand hue through the surface ramp tinted every screen
+// pink for no gain: a member reads the rose as "STSA" when it marks a button or
+// the card, and as a discoloured screen when it is the background.
+//
+// The error roles keep Material's own red. A rose primary and a rose error would
+// be the same colour saying two different things.
 private val LightScheme = lightColorScheme(
     primary = Color(0xFF91493F),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDAD4),
     onPrimaryContainer = Color(0xFF3B0900),
-    secondary = Color(0xFF785650),
+    // Drives the navigation bar's selected-item pill, which is why it stays rose
+    // while the surfaces around it do not.
+    secondary = Color(0xFF775652),
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFFFDAD4),
-    onSecondaryContainer = Color(0xFF2F140F),
-    tertiary = Color(0xFF695E37),
+    onSecondaryContainer = Color(0xFF2C1512),
+    tertiary = Color(0xFF6B5E2F),
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFF1E2B5),
+    tertiaryContainer = Color(0xFFF4E2A7),
     onTertiaryContainer = Color(0xFF221B00),
     error = Color(0xFFBA1A1A),
     onError = Color(0xFFFFFFFF),
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF410002),
-    background = Color(0xFFFFF8F7),
-    onBackground = Color(0xFF241917),
-    surface = Color(0xFFFFF8F7),
-    onSurface = Color(0xFF241917),
-    surfaceVariant = Color(0xFFF7DDD8),
-    onSurfaceVariant = Color(0xFF56423E),
-    outline = Color(0xFF89726E),
-    outlineVariant = Color(0xFFDAC1BC),
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF1B1B1E),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF1B1B1E),
+    surfaceVariant = Color(0xFFE3E2E6),
+    onSurfaceVariant = Color(0xFF5C5C60),
+    outline = Color(0xFF76767A),
+    outlineVariant = Color(0xFFDCDCE0),
     scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFF392E2C),
-    inverseOnSurface = Color(0xFFFDEDEA),
+    inverseSurface = Color(0xFF303033),
+    inverseOnSurface = Color(0xFFF3F3F6),
     inversePrimary = Color(0xFFFFB4A7),
-    surfaceDim = Color(0xFFE6D7D4),
-    surfaceBright = Color(0xFFFFF8F7),
+    surfaceDim = Color(0xFFDCDCE0),
+    surfaceBright = Color(0xFFFFFFFF),
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFFEF1EE),
-    surfaceContainer = Color(0xFFFBEAE7),
-    surfaceContainerHigh = Color(0xFFF5E5E2),
-    surfaceContainerHighest = Color(0xFFEFDFDC),
+    surfaceContainerLow = Color(0xFFF6F6F8),
+    surfaceContainer = Color(0xFFF1F1F4),
+    surfaceContainerHigh = Color(0xFFEBEBEE),
+    surfaceContainerHighest = Color(0xFFE5E5E9),
 )
 
 private val DarkScheme = darkColorScheme(
@@ -129,37 +134,37 @@ private val DarkScheme = darkColorScheme(
     onPrimary = Color(0xFF5B1A15),
     primaryContainer = Color(0xFF763129),
     onPrimaryContainer = Color(0xFFFFDAD4),
-    secondary = Color(0xFFE5BDB6),
-    onSecondary = Color(0xFF462924),
-    secondaryContainer = Color(0xFF5F3F39),
+    secondary = Color(0xFFE7BDB6),
+    onSecondary = Color(0xFF442925),
+    secondaryContainer = Color(0xFF5D3F3B),
     onSecondaryContainer = Color(0xFFFFDAD4),
-    tertiary = Color(0xFFD4C69A),
-    onTertiary = Color(0xFF38300B),
-    tertiaryContainer = Color(0xFF504621),
-    onTertiaryContainer = Color(0xFFF1E2B5),
+    tertiary = Color(0xFFD7C68D),
+    onTertiary = Color(0xFF3A3005),
+    tertiaryContainer = Color(0xFF52471A),
+    onTertiaryContainer = Color(0xFFF4E2A7),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF1C100E),
-    onBackground = Color(0xFFEFDFDC),
-    surface = Color(0xFF1C100E),
-    onSurface = Color(0xFFEFDFDC),
-    surfaceVariant = Color(0xFF56423E),
-    onSurfaceVariant = Color(0xFFDAC1BC),
-    outline = Color(0xFFA38B87),
-    outlineVariant = Color(0xFF56423E),
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE4E2E6),
+    surface = Color(0xFF121212),
+    onSurface = Color(0xFFE4E2E6),
+    surfaceVariant = Color(0xFF454549),
+    onSurfaceVariant = Color(0xFFC6C5CA),
+    outline = Color(0xFF909094),
+    outlineVariant = Color(0xFF454549),
     scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFFEFDFDC),
-    inverseOnSurface = Color(0xFF392E2C),
+    inverseSurface = Color(0xFFE4E2E6),
+    inverseOnSurface = Color(0xFF303033),
     inversePrimary = Color(0xFF91493F),
-    surfaceDim = Color(0xFF1C100E),
-    surfaceBright = Color(0xFF433634),
-    surfaceContainerLowest = Color(0xFF190A07),
-    surfaceContainerLow = Color(0xFF241917),
-    surfaceContainer = Color(0xFF281D1B),
-    surfaceContainerHigh = Color(0xFF332725),
-    surfaceContainerHighest = Color(0xFF3E3230),
+    surfaceDim = Color(0xFF121212),
+    surfaceBright = Color(0xFF38383B),
+    surfaceContainerLowest = Color(0xFF0D0D0F),
+    surfaceContainerLow = Color(0xFF1B1B1E),
+    surfaceContainer = Color(0xFF1F1F22),
+    surfaceContainerHigh = Color(0xFF2A2A2D),
+    surfaceContainerHighest = Color(0xFF353538),
 )
 
 @Composable
