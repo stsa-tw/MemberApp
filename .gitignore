@@ -21,3 +21,6 @@ Packages/
 ## Fastlane / CI
 fastlane/report.xml
 fastlane/screenshots/
+
+## VS Code (buildServer.json holds machine-specific DerivedData paths)
+buildServer.json
