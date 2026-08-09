@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptive rather than a bare vector: launchers mask and shade shortcut icons
+    the same way they do app icons, and a glyph with no ground of its own comes
+    out invisible on the ones that draw a light backdrop.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_shortcut_card_foreground" />
+</adaptive-icon>

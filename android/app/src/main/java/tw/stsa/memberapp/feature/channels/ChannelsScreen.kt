@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.LocalAppContainer
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
-import tw.stsa.memberapp.designsystem.GroupedFooter
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
+import tw.stsa.memberapp.designsystem.SectionFooter
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -56,8 +56,8 @@ fun ChannelsScreen(navController: NavHostController) {
                 .verticalScroll(rememberScrollState())
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
         ) {
-            GroupedCardHeader(stringResource(R.string.channels))
-            GroupedCard {
+            SectionHeader(stringResource(R.string.channels))
+            SectionCard {
                 Channel.all.forEachIndexed { index, channel ->
                     if (index > 0) RowSeparator(inset = 70.dp)
                     ChannelRow(
@@ -68,7 +68,7 @@ fun ChannelsScreen(navController: NavHostController) {
                 }
             }
             // Says what it does today rather than implying push works.
-            GroupedFooter(stringResource(R.string.channels_footer))
+            SectionFooter(stringResource(R.string.channels_footer))
         }
     }
 }

@@ -44,13 +44,13 @@ import tw.stsa.memberapp.app.Deals
 import tw.stsa.memberapp.app.Events
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
-import tw.stsa.memberapp.designsystem.DisclosureChevron
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
+import tw.stsa.memberapp.app.openTab
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedCard
+import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.Announcement
 import tw.stsa.memberapp.model.Deal
 import java.time.LocalTime
@@ -124,24 +124,27 @@ fun HomeScreen(navController: NavHostController) {
                     titleRes = R.string.home_shortcut_events,
                     detail = upcomingLabel,
                     modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Events) },
+                    // openTab, not navigate: these two are tab destinations, and
+                    // pushing one on top of Home leaves a back stack the tab bar
+                    // cannot get out of. See openTab.
+                    onClick = { navController.openTab(Events) },
                 )
                 ShortcutTile(
                     icon = Icons.Filled.LocalOffer,
                     titleRes = R.string.home_shortcut_deals,
                     detail = dealsLabel,
                     modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Deals) },
+                    onClick = { navController.openTab(Deals) },
                 )
             }
 
             Column {
-                GroupedCardHeader(stringResource(R.string.announcements)) {
+                SectionHeader(stringResource(R.string.announcements)) {
                     TextButton(onClick = { navController.navigate(Channels) }) {
                         Text(stringResource(R.string.channels))
                     }
                 }
-                GroupedCard {
+                SectionCard {
                     announcements.forEachIndexed { index, announcement ->
                         // The mock rules edge-to-edge inside the card rather than
                         // insetting past the date column.
@@ -211,7 +214,7 @@ private fun ShortcutTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Theme.Radius.button))
-            .background(MaterialTheme.colorScheme.groupedCard)
+            .background(MaterialTheme.colorScheme.sectionContainer)
             .clickable(onClick = onClick)
             .padding(14.dp),
     ) {
@@ -261,8 +264,6 @@ private fun AnnouncementRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-
-        DisclosureChevron()
     }
 }
 

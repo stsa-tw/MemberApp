@@ -34,9 +34,9 @@ import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.Settings
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
-import tw.stsa.memberapp.designsystem.GroupedFooter
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
+import tw.stsa.memberapp.designsystem.SectionFooter
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -75,8 +75,8 @@ fun AccountScreen(navController: NavHostController) {
         ) {
             if (profile != null) {
                 Column {
-                    GroupedCardHeader(stringResource(R.string.identity))
-                    GroupedCard {
+                    SectionHeader(stringResource(R.string.identity))
+                    SectionCard {
                         LabeledRow(stringResource(R.string.name), profile.displayName)
                         profile.email?.let { email ->
                             RowSeparator()
@@ -103,8 +103,8 @@ fun AccountScreen(navController: NavHostController) {
                 // Profile.groups.
                 if (profile.groups.isNotEmpty()) {
                     Column {
-                        GroupedCardHeader(stringResource(R.string.groups))
-                        GroupedCard {
+                        SectionHeader(stringResource(R.string.groups))
+                        SectionCard {
                             profile.groups.forEachIndexed { index, group ->
                                 if (index > 0) RowSeparator()
                                 Text(
@@ -175,8 +175,8 @@ private fun TokenDiagnostics() {
     }
 
     Column {
-        GroupedCardHeader(stringResource(R.string.diagnostics_header))
-        GroupedCard {
+        SectionHeader(stringResource(R.string.diagnostics_header))
+        SectionCard {
             LabeledRow("sub") {
                 SelectionContainer {
                     Text(
@@ -209,7 +209,7 @@ private fun TokenDiagnostics() {
                 LabeledRow(stringResource(R.string.diagnostics_scopes), scopes)
             }
         }
-        GroupedFooter(stringResource(R.string.diagnostics_footer))
+        SectionFooter(stringResource(R.string.diagnostics_footer))
     }
 }
 

@@ -2,13 +2,14 @@ package tw.stsa.memberapp.feature.deals
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -38,12 +39,12 @@ import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.MemberCard
 import tw.stsa.memberapp.designsystem.BrandButton
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedCard
+import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.Deal
 
 @Composable
@@ -95,8 +96,8 @@ fun DealDetailScreen(navController: NavHostController, brand: String) {
 
             if (deal.terms.isNotEmpty()) {
                 Spacer(Modifier.size(20.dp))
-                GroupedCardHeader(stringResource(R.string.deal_terms))
-                GroupedCard {
+                SectionHeader(stringResource(R.string.deal_terms))
+                SectionCard {
                     deal.terms.forEachIndexed { index, term ->
                         if (index > 0) RowSeparator()
                         Text(
@@ -113,23 +114,36 @@ fun DealDetailScreen(navController: NavHostController, brand: String) {
     }
 }
 
+/**
+ * The mark and the name, side by side.
+ *
+ * Stacked, the logo sat alone on a line it could not fill — a small mark with a
+ * band of empty page beside it and the brand name pushed a long way down. The
+ * plate is bordered for the same reason as the one in the list: on a white page
+ * a white tile has no edge of its own.
+ */
 @Composable
 private fun Header(deal: Deal) {
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Theme.Metrics.gutter),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(deal.logo),
-            contentDescription = deal.brand,
+            contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .sizeIn(maxWidth = 220.dp, maxHeight = 76.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(width = 108.dp, height = 76.dp)
+                .clip(shape)
                 .background(Color.White)
-                .padding(12.dp),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                .padding(10.dp),
         )
-        Column {
+        Column(Modifier.weight(1f)) {
             Text(
                 text = deal.brand,
                 style = MaterialTheme.typography.headlineSmall,
@@ -153,7 +167,7 @@ private fun SummaryCard(deal: Deal) {
             .padding(horizontal = Theme.Metrics.gutter)
             .fillMaxWidth()
             .clip(RoundedCornerShape(Theme.Radius.card))
-            .background(MaterialTheme.colorScheme.groupedCard)
+            .background(MaterialTheme.colorScheme.sectionContainer)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -187,7 +201,7 @@ private fun CodeCard(deal: Deal, code: String) {
             .padding(horizontal = Theme.Metrics.gutter)
             .fillMaxWidth()
             .clip(RoundedCornerShape(corner))
-            .background(MaterialTheme.colorScheme.groupedCard)
+            .background(MaterialTheme.colorScheme.sectionContainer)
             .drawBehind {
                 drawRoundRect(
                     color = accent.copy(alpha = if (expired) 1f else 0.5f),

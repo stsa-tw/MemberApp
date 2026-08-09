@@ -2,16 +2,22 @@ package tw.stsa.memberapp.feature.deals
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.Icon
@@ -28,23 +34,29 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.DealDetail
-import tw.stsa.memberapp.designsystem.DisclosureChevron
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
-import tw.stsa.memberapp.designsystem.GroupedFooter
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
+import tw.stsa.memberapp.designsystem.SectionHeader
+import tw.stsa.memberapp.designsystem.SectionIntro
 import tw.stsa.memberapp.designsystem.Theme
 import tw.stsa.memberapp.model.Deal
 
 private const val DEALS_WEBSITE = "https://stsa.tw/discount/"
 
+/**
+ * The offers tab.
+ *
+ * Lazy and edge to edge for the same reasons as the events tab: the partner list
+ * is hardcoded today but is meant to come from a backend, and a list that grows
+ * should not have to be rewritten to keep scrolling smoothly when it does.
+ */
 @Composable
 fun DealsScreen(navController: NavHostController) {
     val uriHandler = LocalUriHandler.current
@@ -66,21 +78,26 @@ fun DealsScreen(navController: NavHostController) {
             }
         },
     ) { padding ->
-        Column(
+        // Resolved out here: the LazyColumn's content block is a LazyListScope,
+        // not a composition, so it cannot read resources itself.
+        val partnersTitle = stringResource(R.string.deals_partners)
+        val partnersFootnote = stringResource(R.string.deals_footnote)
+        val expiredTitle = stringResource(R.string.deals_expired)
+
+        LazyColumn(
             modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(top = 6.dp, bottom = Theme.Metrics.fabClearance),
         ) {
-            Section(
-                title = stringResource(R.string.deals_partners),
+            section(
+                title = partnersTitle,
                 deals = active,
-                footnote = stringResource(R.string.deals_footnote),
+                footnote = partnersFootnote,
                 onSelect = { navController.navigate(DealDetail(it.id)) },
             )
-            Section(
-                title = stringResource(R.string.deals_expired),
+            section(
+                title = expiredTitle,
                 deals = expired,
                 footnote = null,
                 onSelect = { navController.navigate(DealDetail(it.id)) },
@@ -89,23 +106,26 @@ fun DealsScreen(navController: NavHostController) {
     }
 }
 
-@Composable
-private fun Section(
+private fun LazyListScope.section(
     title: String,
     deals: List<Deal>,
     footnote: String?,
     onSelect: (Deal) -> Unit,
 ) {
     if (deals.isEmpty()) return
-    Column {
-        GroupedCardHeader(title)
-        GroupedCard {
-            deals.forEachIndexed { index, deal ->
-                if (index > 0) RowSeparator(inset = 0.dp)
-                DealRow(deal = deal, onClick = { onSelect(deal) })
-            }
+
+    item(key = "header-$title") {
+        Spacer(Modifier.size(20.dp))
+        // Aligned to the rows' own gutter — this list runs edge to edge, so the
+        // header has no card inset to clear.
+        SectionHeader(title, inset = Theme.Metrics.gutter)
+        if (footnote != null) {
+            SectionIntro(footnote, inset = Theme.Metrics.gutter)
         }
-        if (footnote != null) GroupedFooter(footnote)
+    }
+    items(deals, key = { it.id }) { deal ->
+        DealRow(deal = deal, onClick = { onSelect(deal) })
+        if (deal.id != deals.last().id) RowSeparator(inset = Theme.Metrics.gutter)
     }
 }
 
@@ -114,11 +134,15 @@ private fun DealRow(deal: Deal, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .alpha(if (deal.hasExpired()) 0.5f else 1f)
-            .padding(horizontal = Theme.Metrics.gutter, vertical = 11.dp),
+            // A floor rather than fixed padding: the rows carry one, two or
+            // three lines of text depending on the offer, and without it the
+            // list steps up and down the page.
+            .defaultMinSize(minHeight = 76.dp)
+            .padding(horizontal = Theme.Metrics.gutter, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         PartnerLogo(deal)
 
@@ -143,26 +167,31 @@ private fun DealRow(deal: Deal, onClick: () -> Unit) {
                 )
             }
         }
-
-        DisclosureChevron()
     }
 }
 
 /**
  * Always on white: the logos are dark-on-transparent and would disappear
- * against the grouped background in dark mode.
+ * against the page in dark mode.
+ *
+ * The plate is drawn rather than implied. In light mode the page is now white
+ * too, so a white tile with no edge is not a tile — the marks looked like they
+ * had been dropped loose into the row, and the ones with pale artwork
+ * (良人食堂, 青鳥旅行) worst of all.
  */
 @Composable
 fun PartnerLogo(deal: Deal, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(10.dp)
     Image(
         painter = painterResource(deal.logo),
         contentDescription = deal.brand,
         contentScale = ContentScale.Fit,
         modifier = modifier
-            .size(width = 72.dp, height = 44.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .size(width = 76.dp, height = 52.dp)
+            .clip(shape)
             .background(Color.White)
-            .padding(6.dp),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .padding(7.dp),
     )
 }
 

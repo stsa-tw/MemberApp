@@ -4,31 +4,40 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,11 +46,9 @@ import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.EventDetail
 import tw.stsa.memberapp.app.LocalAppContainer
-import tw.stsa.memberapp.designsystem.DisclosureChevron
-import tw.stsa.memberapp.designsystem.GroupedCard
-import tw.stsa.memberapp.designsystem.GroupedCardHeader
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
+import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.Theme
 import tw.stsa.memberapp.feature.home.DateBlock
 import tw.stsa.memberapp.model.IndicoEvent
@@ -51,17 +58,43 @@ import java.util.Locale
 
 private const val EVENTS_WEBSITE = "https://event.stsa.tw"
 
+/**
+ * The events tab.
+ *
+ * A `LazyColumn` rather than a scrolling `Column`: the Indico export is asked for
+ * up to 200 entries, and composing every one of them to show the eight on screen
+ * is work the reader pays for in dropped frames on the way in.
+ *
+ * The rows run edge to edge rather than sitting in an inset card. For a list
+ * whose length the app does not control, that is both the Material arrangement
+ * and the one that does not spend a gutter on each side of every row.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsScreen(navController: NavHostController) {
     val store = LocalAppContainer.current.events
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { if (store.events.isEmpty()) store.load() }
+
+    // A failed refresh must not throw away events that are already on screen:
+    // the list loaded earlier is still the best answer available. So that error
+    // goes to a snackbar rather than replacing the screen. The empty case is
+    // different — there the error is all there is to show — and it still gets
+    // the full explanation below.
+    val errorMessage = store.errorMessage
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null && store.events.isNotEmpty()) {
+            snackbarHostState.showSnackbar(errorMessage)
+        }
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.events),
         large = true,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         actions = {
             // The app shows a read-only slice of Indico; the full site has
             // registration, attachments and past material.
@@ -73,62 +106,76 @@ fun EventsScreen(navController: NavHostController) {
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
-        ) {
-            val upcoming = store.upcoming()
-            val past = store.past()
+        val upcoming = store.upcoming()
+        val past = store.past()
+        // Resolved out here: the LazyColumn's content block is a LazyListScope,
+        // not a composition, so it cannot read resources itself.
+        val upcomingTitle = stringResource(R.string.events_upcoming)
+        val pastTitle = stringResource(R.string.events_past)
 
-            if (upcoming.isNotEmpty()) {
-                Section(
-                    title = stringResource(R.string.events_upcoming),
-                    events = upcoming,
-                    highlightFirst = true,
-                    onSelect = { navController.navigate(EventDetail(it.id)) },
-                )
-            }
-            if (past.isNotEmpty()) {
-                Section(
-                    title = stringResource(R.string.events_past),
-                    events = past,
-                    highlightFirst = false,
-                    onSelect = { navController.navigate(EventDetail(it.id)) },
-                )
-            }
-            if (store.events.isEmpty()) {
-                EmptyState(
-                    isLoading = store.isLoading,
-                    message = store.errorMessage,
-                    onRetry = { scope.launch { store.load() } },
-                )
+        PullToRefreshBox(
+            // Only once there is a list to pull on. During the very first load
+            // the centred spinner below is the affordance, and running both
+            // reads as two separate things loading.
+            isRefreshing = store.isLoading && store.events.isNotEmpty(),
+            onRefresh = { scope.launch { store.load() } },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 6.dp, bottom = Theme.Metrics.fabClearance),
+            ) {
+                if (upcoming.isNotEmpty()) {
+                    section(
+                        title = upcomingTitle,
+                        events = upcoming,
+                        highlightFirst = true,
+                        onSelect = { navController.navigate(EventDetail(it.id)) },
+                    )
+                }
+                if (past.isNotEmpty()) {
+                    section(
+                        title = pastTitle,
+                        events = past,
+                        highlightFirst = false,
+                        onSelect = { navController.navigate(EventDetail(it.id)) },
+                    )
+                }
+                if (store.events.isEmpty()) {
+                    item {
+                        EmptyState(
+                            isLoading = store.isLoading,
+                            message = store.errorMessage,
+                            onRetry = { scope.launch { store.load() } },
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-@Composable
-private fun Section(
+private fun LazyListScope.section(
     title: String,
     events: List<IndicoEvent>,
     highlightFirst: Boolean,
     onSelect: (IndicoEvent) -> Unit,
 ) {
-    Column {
-        GroupedCardHeader(title)
-        GroupedCard {
-            events.forEachIndexed { index, event ->
-                if (index > 0) RowSeparator(inset = 0.dp)
-                EventRow(
-                    event = event,
-                    isNext = highlightFirst && index == 0,
-                    onClick = { onSelect(event) },
-                )
-            }
-        }
+    item(key = "header-$title") {
+        Spacer(Modifier.size(16.dp))
+        SectionHeader(title, inset = Theme.Metrics.gutter)
+    }
+    // Keyed on the Indico id, so scroll position survives a refresh that
+    // reorders the list.
+    items(events, key = { it.id }) { event ->
+        EventRow(
+            event = event,
+            isNext = highlightFirst && event.id == events.first().id,
+            onClick = { onSelect(event) },
+        )
+        if (event.id != events.last().id) RowSeparator(inset = Theme.Metrics.gutter)
     }
 }
 
@@ -137,7 +184,7 @@ private fun EventRow(event: IndicoEvent, isNext: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = Theme.Metrics.gutter, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -173,8 +220,6 @@ private fun EventRow(event: IndicoEvent, isNext: Boolean, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-
-        DisclosureChevron()
     }
 }
 

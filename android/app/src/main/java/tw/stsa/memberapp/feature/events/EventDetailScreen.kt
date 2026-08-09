@@ -33,7 +33,7 @@ import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedCard
+import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.IndicoEvent
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -156,7 +156,7 @@ private fun InfoCard(event: IndicoEvent) {
             .padding(horizontal = Theme.Metrics.gutter)
             .fillMaxWidth()
             .clip(RoundedCornerShape(Theme.Radius.card))
-            .background(MaterialTheme.colorScheme.groupedCard),
+            .background(MaterialTheme.colorScheme.sectionContainer),
     ) {
         InfoRow(stringResource(R.string.label_time), schedule(event))
         event.place?.let {

@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.designsystem.BrandSectionTitle
-import tw.stsa.memberapp.designsystem.GroupedCard
+import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -81,7 +81,7 @@ fun AboutScreen(navController: NavHostController) {
             Paragraph(R.string.about_purpose_3)
 
             SectionTitle(R.string.about_goals)
-            GroupedCard {
+            SectionCard {
                 goals.forEachIndexed { index, goal ->
                     if (index > 0) RowSeparator(inset = 0.dp)
                     Row(

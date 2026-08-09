@@ -2,5 +2,5 @@
 <resources>
     <!-- Matches the dark scheme's background in designsystem/Theme.kt, so the
          launch frame does not flash white on the way into a dark app. -->
-    <color name="window_background">#1C100E</color>
+    <color name="window_background">#121212</color>
 </resources>

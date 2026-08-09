@@ -1,5 +1,6 @@
 package tw.stsa.memberapp.feature.card
 
+import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -57,7 +59,7 @@ import tw.stsa.memberapp.auth.BiometricGate
 import tw.stsa.memberapp.designsystem.BrandTextButton
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.groupedCard
+import tw.stsa.memberapp.designsystem.sectionContainer
 import java.time.Instant
 import kotlin.math.max
 
@@ -71,6 +73,7 @@ fun MemberCardScreen(navController: NavHostController) {
     val settings = container.settings
 
     val activity = LocalActivity.current as? FragmentActivity
+    val view = LocalView.current
     val scope = rememberCoroutineScope()
     // Resolved in the composition rather than from a Context inside the
     // coroutine, so the prompt follows the app's language like every other
@@ -81,6 +84,7 @@ fun MemberCardScreen(navController: NavHostController) {
     var now by remember { mutableStateOf(Instant.now()) }
 
     suspend fun unlockIfNeeded() {
+        val gated = settings.requireBiometricsForCard && activity != null
         isUnlocked = when {
             !settings.requireBiometricsForCard -> true
             // No FragmentActivity means no BiometricPrompt to show. Falling
@@ -89,7 +93,13 @@ fun MemberCardScreen(navController: NavHostController) {
             activity == null -> true
             else -> BiometricGate.authenticate(activity, authReason)
         }
-        if (isUnlocked) codes.start(auth)
+        if (isUnlocked) {
+            // Only when something was actually unlocked. The card is about to
+            // fill the screen and raise the backlight, and the confirm tick is
+            // what the platform gives every other successful authentication.
+            if (gated) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            codes.start(auth)
+        }
     }
 
     LaunchedEffect(Unit) { unlockIfNeeded() }
@@ -122,14 +132,12 @@ fun MemberCardScreen(navController: NavHostController) {
         }
     }
 
+    // No "Done" action beside the back arrow. Two controls that pop the same
+    // screen is an iOS sheet's grammar; here the arrow and the system back
+    // gesture are already the way out.
     ScreenScaffold(
         title = stringResource(R.string.member_card),
         onBack = { navController.popBackStack() },
-        actions = {
-            TextButton(onClick = { navController.popBackStack() }) {
-                Text(stringResource(R.string.done))
-            }
-        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -192,7 +200,7 @@ private fun Card(now: Instant) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Theme.Radius.memberCard))
-            .background(MaterialTheme.colorScheme.groupedCard)
+            .background(MaterialTheme.colorScheme.sectionContainer)
             .padding(20.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
