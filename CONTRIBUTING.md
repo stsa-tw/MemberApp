@@ -12,17 +12,17 @@ sign-in works.
 ```bash
 git clone <this repo>
 cd MemberApp
-open MemberApp.xcodeproj
+open ios/MemberApp.xcodeproj
 ```
 
 Xcode resolves AppAuth on first open. `DEVELOPMENT_TEAM` is set in the project;
 change it locally for your own signing rather than committing a different value.
 
-Adding a file needs no Xcode step — `MemberApp/` is a file-system synchronized
-group, so anything under it joins the target automatically. That means
-`MemberApp.xcodeproj/project.pbxproj` should rarely change; if it shows up in a
-diff, check it is a deliberate build-setting or dependency change and not
-incidental churn from opening the project.
+Adding a file needs no Xcode step — `ios/MemberApp/` is a file-system
+synchronized group, so anything under it joins the target automatically. That
+means `ios/MemberApp.xcodeproj/project.pbxproj` should rarely change; if it
+shows up in a diff, check it is a deliberate build-setting or dependency change
+and not incidental churn from opening the project.
 
 ## Before you open a PR
 
@@ -30,11 +30,11 @@ CI builds and runs the tests on every push and PR — see
 [.github/workflows/ci.yml](.github/workflows/ci.yml). The same thing locally:
 
 ```bash
-xcodebuild test -project MemberApp.xcodeproj -scheme MemberApp \
+xcodebuild test -project ios/MemberApp.xcodeproj -scheme MemberApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-`MemberAppTests/` covers the pure logic only — claim decoding, the school
+`ios/MemberAppTests/` covers the pure logic only — claim decoding, the school
 lookup, channel seeding, deal expiry, Indico's date and HTML parsing, and the
 UserDefaults defaulting. Nothing there touches the network, the Keychain or a
 view, so a green run says the logic holds, not that the app works. That part is
@@ -126,7 +126,7 @@ These are not stylistic. Do not change them without discussing it first.
 Changing an endpoint, scope or client ID has consequences beyond this repo —
 MembershipAPI pins `iss` and `aud`, so a "cleanup" there produces 401s at
 `get_code`. The reasoning is written down in
-[AuthConfiguration.swift](MemberApp/Auth/AuthConfiguration.swift); read it before
+[AuthConfiguration.swift](ios/MemberApp/Auth/AuthConfiguration.swift); read it before
 editing that file.
 
 ## Commits

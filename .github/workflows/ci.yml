@@ -33,7 +33,7 @@ jobs:
             | grep -m1 -oE '^ +iPhone [^(]+' | sed 's/^ *//; s/ *$//')
           echo "Using simulator: $DEVICE"
           xcodebuild test \
-            -project MemberApp.xcodeproj \
+            -project ios/MemberApp.xcodeproj \
             -scheme MemberApp \
             -configuration Debug \
             -destination "platform=iOS Simulator,name=$DEVICE" \

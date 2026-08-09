@@ -22,13 +22,13 @@ and the app has since diverged from it wherever the real data disagreed.
 ## Running
 
 ```bash
-open MemberApp.xcodeproj
+open ios/MemberApp.xcodeproj
 ```
 
 Pick an iPhone simulator and run. Or from the command line:
 
 ```bash
-xcodebuild -project MemberApp.xcodeproj -scheme MemberApp \
+xcodebuild -project ios/MemberApp.xcodeproj -scheme MemberApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
@@ -51,7 +51,7 @@ The app is a client for three services it does not contain:
 
 OIDC authorization code + PKCE against the authentik tenant, driven by AppAuth.
 The details that are easy to get wrong are documented at
-[AuthConfiguration.swift](MemberApp/Auth/AuthConfiguration.swift); the short
+[AuthConfiguration.swift](ios/MemberApp/Auth/AuthConfiguration.swift); the short
 version:
 
 - The client is the **`membership`** provider — the same one the web card uses —
@@ -65,13 +65,13 @@ version:
   the session dies with the 5-minute access token.
 
 Redirect URI is `tw.stsa.membership://callback`, registered in
-[Config/Info.plist](Config/Info.plist) and resumed from `.onOpenURL` in
-[MemberAppApp.swift](MemberApp/App/MemberAppApp.swift).
+[Config/Info.plist](ios/Config/Info.plist) and resumed from `.onOpenURL` in
+[MemberAppApp.swift](ios/MemberApp/App/MemberAppApp.swift).
 
 ### Token handling
 
 Access tokens live five minutes, so **nothing ever holds one**.
-[`AuthManager.accessToken()`](MemberApp/Auth/AuthManager.swift) goes through
+[`AuthManager.accessToken()`](ios/MemberApp/Auth/AuthManager.swift) goes through
 `OIDAuthState.performAction(freshTokens:)` on every call, which returns the
 cached token while it is valid and silently redeems the refresh token when it is
 not. Use `authorizedRequest(for:)` to build outbound requests rather than
@@ -92,12 +92,13 @@ preferences are not credentials and live in UserDefaults, keyed on `sub`.
 | 活動 Events + detail | Done | Indico category export |
 | 優惠 Deals + detail | Done | three hardcoded real partner offers |
 | 我的 Account | Done | userinfo claims |
-| 設定 Settings | Done | UserDefaults |
+| 設定 Settings + 關於總會 | Done | UserDefaults, stsa.tw/about transcribed |
+| 頻道 Channels | Done | UserDefaults — display preference, no push backend |
 | 職缺 Jobs | Stub | none yet |
-| 頻道 Channels | Stub | none yet |
 
-Stubs live in [Features/Placeholders.swift](MemberApp/Features/Placeholders.swift).
-Delete each one as its real screen lands.
+The one remaining stub lives in
+[Features/Placeholders.swift](ios/MemberApp/Features/Placeholders.swift).
+Delete it as its real screen lands.
 
 ### Member card
 
@@ -116,34 +117,37 @@ is in 設定.
 ### Events
 
 The Indico category export answers anonymously, so
-[EventsStore](MemberApp/Features/Events/EventsStore.swift) deliberately sends no
+[EventsStore](ios/MemberApp/Features/Events/EventsStore.swift) deliberately sends no
 credentials — requiring a token would only make the tab fail for no gain.
 Registration happens on Indico itself. Indico splits timestamps into
 date/time/tz rather than emitting ISO 8601, and descriptions arrive as HTML;
-both are handled in [IndicoEvent](MemberApp/Models/IndicoEvent.swift).
+both are handled in [IndicoEvent](ios/MemberApp/Models/IndicoEvent.swift).
 
 ## Layout
 
 ```
-MemberApp/
-├── App/            MemberAppApp (composition root), RootView (auth gate + tabs),
-│                   Session (navigation state), AppSettings (UserDefaults)
-├── Auth/           AuthConfiguration, AuthManager, Profile, Keychain, BiometricGate
-├── DesignSystem/   Theme (tokens, BrandButtonStyle), GroupedCard
-├── Models/         IndicoEvent, Deal, Announcement
-├── Features/       One folder per flow
-│   ├── Onboarding/ Welcome
-│   ├── Home/       Home, Announcement Detail
-│   ├── Card/       Member Card, MembershipCodeStore, QRCode
-│   ├── Deals/      Deals, Deal Detail
-│   ├── Events/     Events, Event Detail, EventsStore
-│   ├── Auth/       Account
-│   ├── Settings/   Settings
-│   └── Placeholders.swift   Jobs, Channels
-└── Resources/      Assets.xcassets — AppIcon, AccentColor, STSA + partner logos
+ios/
+├── MemberApp/
+│   ├── App/            MemberAppApp (composition root), RootView (auth gate + tabs),
+│   │                   Session (navigation state), AppSettings (UserDefaults)
+│   ├── Auth/           AuthConfiguration, AuthManager, Profile, Keychain, BiometricGate
+│   ├── DesignSystem/   Theme (tokens, BrandButtonStyle), GroupedCard
+│   ├── Models/         IndicoEvent, Deal, Announcement, Channel
+│   ├── Features/       One folder per flow
+│   │   ├── Onboarding/ Welcome
+│   │   ├── Home/       Home, Announcement Detail
+│   │   ├── Card/       Member Card, MembershipCodeStore, QRCode
+│   │   ├── Deals/      Deals, Deal Detail
+│   │   ├── Events/     Events, Event Detail, EventsStore
+│   │   ├── Channels/   Channels
+│   │   ├── Auth/       Account
+│   │   ├── Settings/   Settings, About
+│   │   └── Placeholders.swift   Jobs
+│   └── Resources/      Assets.xcassets — AppIcon, AccentColor, STSA + partner logos
+├── MemberAppTests/     Pure-logic tests
+└── Config/             Info.plist (only the keys build settings cannot express)
 
-Config/             Info.plist (only the keys build settings cannot express)
-tools/oauth-bridge/ Standalone OAuth redirect bridge — not part of the app target
+tools/oauth-bridge/     Standalone OAuth redirect bridge — not part of the app target
 ```
 
 Observable state is created once in `MemberAppApp` and injected via
@@ -152,7 +156,7 @@ Observable state is created once in `MemberAppApp` and injected via
 `AuthManager.isLoggedIn` is the single gate, which is what fixed a successful
 login leaving the app on the welcome screen.
 
-`MemberApp/` is a **file-system synchronized group**: any file added to the
+`ios/MemberApp/` is a **file-system synchronized group**: any file added to the
 folder is picked up by the target automatically. Create Swift files from the
 command line or Finder and Xcode includes them — no target-membership step.
 
