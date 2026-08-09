@@ -47,6 +47,11 @@ struct SettingsView: View {
             }
 
             Section("關於") {
+                NavigationLink {
+                    AboutView()
+                } label: {
+                    Text("關於總會")
+                }
                 LabeledContent("版本", value: Self.version)
                 Link("STSA 官網", destination: URL(string: "https://stsa.tw")!)
                 Link("活動系統", destination: URL(string: "https://event.stsa.tw")!)
