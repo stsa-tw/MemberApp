@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Deliberately thin. Everything visible is drawn by Compose against the scheme
+    in designsystem/Theme.kt; this theme only has to own the window before the
+    first frame, which is why it carries a background and nothing else.
+-->
+<resources>
+    <style name="Theme.MemberApp" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowBackground">@color/window_background</item>
+        <!-- enableEdgeToEdge() takes over the system bars once the activity is
+             up; these keep the pre-Compose frame from painting an opaque bar
+             the app then draws under. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

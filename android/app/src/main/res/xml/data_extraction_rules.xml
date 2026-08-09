@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The iOS Keychain item is written kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    — excluded from backups and from device migration. This is the Android half
+    of that promise.
+
+    android:allowBackup="false" alone is not enough: from Android 12 it only
+    governs cloud backup, and device-to-device transfer is a separate channel
+    that stays on unless it is excluded here. The refresh token is bound to a
+    Keystore key that does not leave the device anyway, so a transferred copy
+    would arrive undecryptable — better to not send it at all than to restore
+    someone onto a new phone with a session that silently cannot be read.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

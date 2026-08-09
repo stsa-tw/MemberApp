@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Traditional Chinese is the source language, matching the iOS target's
+    developmentRegion. The English in values-en/ is the same copy that is already
+    in ios/MemberApp/Resources/Localizable.xcstrings — translated once, used by
+    both apps. When a string changes here, change it there too.
+-->
+<resources>
+    <string name="app_name" translatable="false">STSA</string>
+
+    <!-- Tabs -->
+    <string name="tab_home">首頁</string>
+    <string name="tab_events">活動</string>
+    <string name="tab_deals">優惠</string>
+    <string name="tab_jobs">職缺</string>
+    <string name="tab_account">我的</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">歡迎加入 STSA</string>
+    <string name="welcome_subtitle" translatable="false">Singapore Taiwan Student Association</string>
+    <string name="welcome_highlight_card_title">電子會員卡</string>
+    <string name="welcome_highlight_card_detail">活動與合作商家皆可出示</string>
+    <string name="welcome_highlight_channels_title">公告頻道</string>
+    <string name="welcome_highlight_channels_detail">各校分會與新生訊息，一次收齊</string>
+    <string name="welcome_highlight_deals_title">會員優惠與職缺</string>
+    <string name="welcome_highlight_deals_detail">合作商家折扣碼、在星實習機會</string>
+    <string name="sign_in">登入</string>
+    <string name="sign_in_failed">登入失敗</string>
+    <string name="ok">好</string>
+
+    <!-- Home -->
+    <string name="greeting_morning">早安</string>
+    <string name="greeting_afternoon">午安</string>
+    <string name="greeting_evening">晚安</string>
+    <string name="greeting_format">%1$s，%2$s</string>
+    <string name="home_shortcut_events">活動報名</string>
+    <string name="home_shortcut_deals">會員優惠</string>
+    <plurals name="events_upcoming_count">
+        <item quantity="other">%1$d 場即將舉行</item>
+    </plurals>
+    <plurals name="deals_partner_count">
+        <item quantity="other">%1$d 間合作商家</item>
+    </plurals>
+    <string name="no_events">目前沒有活動</string>
+    <string name="announcements">公告</string>
+    <string name="channels">頻道</string>
+
+    <!-- Announcement detail -->
+    <string name="announcement">公告</string>
+    <string name="label_time">時間</string>
+    <string name="label_venue">地點</string>
+    <string name="label_contact">聯絡</string>
+    <string name="label_address">地址</string>
+    <string name="open_event">前往活動</string>
+    <string name="open_event_page">前往活動頁</string>
+    <string name="opens_indico_event_page">將前往 Indico 活動頁。</string>
+
+    <!-- Member card -->
+    <string name="member_card">會員卡</string>
+    <string name="done">完成</string>
+    <string name="card_locked">需要驗證才能出示會員卡</string>
+    <string name="unlock_with">使用 %1$s 解鎖</string>
+    <string name="card_auth_reason">出示 STSA 電子會員卡</string>
+    <string name="card_qr_description">會員卡 QR code</string>
+    <string name="card_field_school" translatable="false">School</string>
+    <string name="card_field_role" translatable="false">Role</string>
+    <string name="card_field_code" translatable="false">Code</string>
+    <string name="card_member_year" translatable="false">STSA MEMBER 2026</string>
+    <string name="officer">幹部</string>
+    <string name="expired">已過期</string>
+    <string name="retry">重試</string>
+    <string name="card_footnote">出示此卡以參加會員活動、領取新生包，或在合作商家享有折扣。畫面會自動調亮以便掃描。</string>
+
+    <!-- Events -->
+    <string name="events">活動</string>
+    <string name="events_upcoming">即將舉行</string>
+    <string name="events_past">已結束</string>
+    <string name="events_website">活動網站</string>
+    <string name="events_load_failed">讀不到活動</string>
+    <string name="events_empty_detail">新的活動公布後會出現在這裡。</string>
+    <string name="event_register">前往報名</string>
+    <string name="event_view_page">查看活動頁</string>
+    <string name="event_registration_note">報名在 Indico 上完成，使用同一個 STSA 帳號。</string>
+    <string name="event_kicker_conference">活動</string>
+    <string name="event_kicker_meeting">聚會</string>
+    <string name="event_kicker_lecture">講座</string>
+
+    <!-- Deals -->
+    <string name="member_deals">會員優惠</string>
+    <string name="deals_partners">合作商家</string>
+    <string name="deals_expired">已過期</string>
+    <string name="deals_page">優惠網頁</string>
+    <string name="deals_footnote">出示電子會員卡即可享有以下合作品牌的專屬禮遇。</string>
+    <string name="deal_terms">使用條件</string>
+    <string name="deal_code">折扣碼</string>
+    <string name="deal_visit_website">前往官網</string>
+    <string name="deal_opens_partner_site">將前往合作商家網站。</string>
+    <string name="deal_show_card">出示會員卡</string>
+    <string name="deal_show_card_note">合作商家需確認 STSA 會員身分。</string>
+    <string name="deal_valid_until">有效期限 %1$s</string>
+    <string name="deal_expired_on">此折扣碼已於 %1$s 到期。</string>
+    <string name="deal_expiry_label">至 %1$d/%2$d/%3$d</string>
+
+    <!-- Channels -->
+    <string name="channels_footer">選擇你想收到的公告類型。推播通知尚未開放，目前這只會影響 App 內顯示的內容。</string>
+    <string name="channel_all">全體公告</string>
+    <string name="channel_all_detail">所有會員都會收到的公告</string>
+    <string name="channel_freshmen">新生資訊</string>
+    <string name="channel_freshmen_detail">迎新、接機、住宿與開學前準備</string>
+    <string name="channel_nus">NUS 資訊</string>
+    <string name="channel_nus_detail" translatable="false">National University of Singapore</string>
+    <string name="channel_ntu">NTU 資訊</string>
+    <string name="channel_ntu_detail" translatable="false">Nanyang Technological University</string>
+    <string name="channel_smu">SMU 資訊</string>
+    <string name="channel_smu_detail" translatable="false">Singapore Management University</string>
+
+    <!-- Account -->
+    <string name="account">我的</string>
+    <string name="identity">身分</string>
+    <string name="name">姓名</string>
+    <string name="email">信箱</string>
+    <string name="school">學校</string>
+    <string name="verified">已驗證</string>
+    <string name="groups">身分組</string>
+    <string name="diagnostics_header">連線狀態（DEBUG）</string>
+    <string name="diagnostics_footer">token 只在有請求時更新，不是定時更新，所以閒置時顯示已過期是正常的。</string>
+    <string name="diagnostics_refresh_token" translatable="false">Refresh token</string>
+    <string name="diagnostics_present">已取得</string>
+    <string name="diagnostics_absent">無</string>
+    <string name="diagnostics_access_token_expiry">Access token 到期</string>
+    <string name="diagnostics_expired_renews">已過期，下次使用時自動更新</string>
+    <string name="diagnostics_remaining">%1$d 分 %2$d 秒後</string>
+    <string name="diagnostics_scopes" translatable="false">Scopes</string>
+
+    <!-- Settings -->
+    <string name="settings">設定</string>
+    <string name="appearance">外觀</string>
+    <string name="theme_system">跟隨系統</string>
+    <string name="theme_light">淺色</string>
+    <string name="theme_dark">深色</string>
+    <string name="security">安全性</string>
+    <string name="require_auth_for_card">開啟會員卡需驗證</string>
+    <string name="require_auth_for_card_footer">開啟後，出示會員卡前需通過 %1$s。會員卡是身分憑證，這可以避免手機在解鎖狀態下被他人取用。</string>
+    <string name="language">語言</string>
+    <string name="language_footer">跟隨系統的語言設定。點一下前往「設定 → STSA → 語言」切換。</string>
+    <string name="about">關於</string>
+    <string name="about_stsa">關於總會</string>
+    <string name="version">版本</string>
+    <string name="stsa_website">STSA 官網</string>
+    <string name="event_system">活動系統</string>
+    <string name="sign_out">登出</string>
+    <string name="sign_out_footer">登出只會清除這支手機上的憑證。因為登入與瀏覽器共用工作階段，下次登入可能不需要重新輸入密碼。</string>
+
+    <!-- Biometry -->
+    <string name="biometry_fingerprint">指紋</string>
+    <string name="biometry_face">臉部辨識</string>
+    <string name="biometry_device_credential">裝置密碼</string>
+
+    <!-- About -->
+    <string name="about_org_name">新加坡台灣學生總會</string>
+    <string name="about_org_english" translatable="false">Singapore Taiwan Student Association</string>
+    <string name="about_purpose">成立宗旨</string>
+    <string name="about_purpose_1">全世界各地的大學都有台灣學生會（TSA）。在各個國家，TSA 能夠從當地台北辦事處得到第一手的資源，台灣留學生則可透過 TSA 獲得許多協助，更快熟悉陌生環境，並建立彼此互助的管道。我們希望把 TSA 的制度帶進新加坡，但因當地政策，學校無法成立以「國家」或「族群」為交流目的的學生會或社團。</string>
+    <string name="about_purpose_2">因此我們成立新加坡台灣學生總會，主要目的是串聯在新加坡的異鄉遊子對家鄉的情感，舉辦各類活動增進台灣學生間的交流、凝聚台灣精神，同時在當地推廣台灣的美食與文化，並歡迎來自世界各地的學生。</string>
+    <string name="about_purpose_3">Logo 以世學聯兩大主色為起點：象徵美麗海島的海洋藍台灣黑熊，承載著遊子對土地的連結；深紅的獅頭則代表新加坡，也象徵台灣留學生在海外奮鬥的精神。</string>
+    <string name="about_goals">總會目標</string>
+    <string name="about_goal_1">創建並維持新加坡的台灣留學生聯絡網，促進交流、串聯家鄉情感、凝聚台灣精神。</string>
+    <string name="about_goal_2">幫助準留學生適應新加坡的生活環境與文化差異。</string>
+    <string name="about_goal_3">推廣台灣文化與知識，讓外國學生更加了解台灣。</string>
+    <string name="about_wwtsa">世界台灣學生會聯合總會</string>
+    <string name="about_wwtsa_body">STSA 隸屬世學聯（WWTSA）旗下支分會。世學聯為世界性學生組織，服務全球海外台灣留學生與各地 TSA，並為台灣社會貢獻諸多公益。以促進良性競爭、人才回流為願景，增加與世界接軌的機會。</string>
+    <string name="about_wwtsa_link">世學聯官網</string>
+    <string name="about_milestones">大事記</string>
+    <string name="milestone_founded">新加坡台灣學生總會成立</string>
+    <string name="milestone_founded_detail">STSA 於新加坡正式成立</string>
+    <string name="milestone_sea">放眼東南亞</string>
+    <string name="milestone_sea_detail">與世學聯、馬來西亞、泰國學生會共同主辦</string>
+    <string name="milestone_bloomberg">Bloomberg 企業參訪</string>
+    <string name="milestone_careers">職涯分享會</string>
+    <string name="milestone_careers_taipei_office">駐新加坡台北代表處</string>
+    <string name="milestone_umc">聯電 Office 參訪</string>
+    <string name="milestone_careers_partners">青商會、國泰銀行、DBS</string>
+    <string name="milestone_uob">UOB 企業參訪</string>
+    <string name="milestone_orientation">新生迎新</string>
+    <string name="milestone_wbc" translatable="false">WBC Watch Party</string>
+    <string name="milestone_hsbc">HSBC Financial Literacy 講座</string>
+
+    <!-- Jobs (stub) -->
+    <string name="jobs_title">職缺與實習</string>
+    <string name="jobs_note">分段篩選、職缺列表與詳情</string>
+
+    <!-- Errors -->
+    <string name="error_not_authenticated">尚未登入。</string>
+    <string name="error_no_userinfo_endpoint">discovery 文件沒有提供 userinfo endpoint。</string>
+    <string name="error_userinfo_failed">userinfo 回應 HTTP %1$d：%2$s</string>
+    <string name="error_token_unavailable">授權伺服器沒有回傳 access token。</string>
+    <string name="error_code_401">登入已失效，請重新登入。(401 %1$s)</string>
+    <string name="error_code_403">帳號缺少必要的授權範圍。(403 %1$s)</string>
+    <string name="error_code_server">伺服器錯誤 %1$d。%2$s</string>
+    <string name="error_indico_http">Indico 回應 HTTP %1$d。</string>
+</resources>

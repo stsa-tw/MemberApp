@@ -1,0 +1,9 @@
+*.iml
+.gradle/
+build/
+# Holds sdk.dir, an absolute path to whichever machine ran the build.
+local.properties
+.idea/
+.cxx/
+captures/
+.kotlin/
