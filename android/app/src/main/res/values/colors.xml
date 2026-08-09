@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Only the colours the resource system needs before Compose is running. The
+    palette itself lives in designsystem/Theme.kt, next to the tokens it belongs
+    to, the same way ios/MemberApp/DesignSystem/Theme.swift holds it.
+-->
+<resources>
+    <!-- The iOS icon fills with system-light, so the mark keeps a white ground
+         rather than being cropped out of a transparent one. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Painted for the frame between window creation and Compose's first draw. -->
+    <color name="window_background">#FFF8F7</color>
+</resources>

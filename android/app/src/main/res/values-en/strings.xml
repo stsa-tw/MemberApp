@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copy carried over from ios/MemberApp/Resources/Localizable.xcstrings so the
+    two apps say the same thing in English. Strings with no counterpart there —
+    the error messages, the biometry names, and the two footers that named iOS
+    features — are new here.
+-->
+<resources>
+    <!-- Tabs -->
+    <string name="tab_home">Home</string>
+    <string name="tab_events">Events</string>
+    <string name="tab_deals">Offers</string>
+    <string name="tab_jobs">Jobs</string>
+    <string name="tab_account">Account</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Welcome to STSA</string>
+    <string name="welcome_highlight_card_title">Digital member card</string>
+    <string name="welcome_highlight_card_detail">Show it at events and partner merchants</string>
+    <string name="welcome_highlight_channels_title">Announcement channels</string>
+    <string name="welcome_highlight_channels_detail">Campus and freshman updates in one place</string>
+    <string name="welcome_highlight_deals_title">Offers and jobs</string>
+    <string name="welcome_highlight_deals_detail">Partner discounts and internships in Singapore</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_in_failed">Sign-in failed</string>
+    <string name="ok">OK</string>
+
+    <!-- Home -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_format">%1$s, %2$s</string>
+    <string name="home_shortcut_events">Events</string>
+    <string name="home_shortcut_deals">Member offers</string>
+    <plurals name="events_upcoming_count">
+        <item quantity="one">%1$d upcoming</item>
+        <item quantity="other">%1$d upcoming</item>
+    </plurals>
+    <plurals name="deals_partner_count">
+        <item quantity="one">%1$d partner</item>
+        <item quantity="other">%1$d partners</item>
+    </plurals>
+    <string name="no_events">No events</string>
+    <string name="announcements">Announcements</string>
+    <string name="channels">Channels</string>
+
+    <!-- Announcement detail -->
+    <string name="announcement">Announcement</string>
+    <string name="label_time">Time</string>
+    <string name="label_venue">Venue</string>
+    <string name="label_contact">Contact</string>
+    <string name="label_address">Address</string>
+    <string name="open_event">View event</string>
+    <string name="open_event_page">Open event page</string>
+    <string name="opens_indico_event_page">Opens the event page on Indico.</string>
+
+    <!-- Member card -->
+    <string name="member_card">Member card</string>
+    <string name="done">Done</string>
+    <string name="card_locked">Authentication required to show your card</string>
+    <string name="unlock_with">Unlock with %1$s</string>
+    <string name="card_auth_reason">Show your STSA member card</string>
+    <string name="card_qr_description">Member card QR code</string>
+    <string name="officer">Officer</string>
+    <string name="expired">Expired</string>
+    <string name="retry">Retry</string>
+    <string name="card_footnote">Show this card at member events, to collect your welcome pack, or for partner discounts. The screen brightens automatically so it scans.</string>
+
+    <!-- Events -->
+    <string name="events">Events</string>
+    <string name="events_upcoming">Upcoming</string>
+    <string name="events_past">Past</string>
+    <string name="events_website">Event website</string>
+    <string name="events_load_failed">Couldn’t load events</string>
+    <string name="events_empty_detail">New events appear here once announced.</string>
+    <string name="event_register">Register</string>
+    <string name="event_view_page">View event page</string>
+    <string name="event_registration_note">Registration happens on Indico, using the same STSA account.</string>
+    <string name="event_kicker_conference">Event</string>
+    <string name="event_kicker_meeting">Meetup</string>
+    <string name="event_kicker_lecture">Talk</string>
+
+    <!-- Deals -->
+    <string name="member_deals">Member offers</string>
+    <string name="deals_partners">Partners</string>
+    <string name="deals_expired">Expired</string>
+    <string name="deals_page">Offers page</string>
+    <string name="deals_footnote">Show your member card to claim these partner offers.</string>
+    <string name="deal_terms">Terms</string>
+    <string name="deal_code">Discount code</string>
+    <string name="deal_visit_website">Visit website</string>
+    <string name="deal_opens_partner_site">Opens the partner’s website.</string>
+    <string name="deal_show_card">Show member card</string>
+    <string name="deal_show_card_note">Partners need to confirm your STSA membership.</string>
+    <string name="deal_valid_until">Valid until %1$s</string>
+    <string name="deal_expired_on">This code expired on %1$s.</string>
+    <string name="deal_expiry_label">until %1$d/%2$d/%3$d</string>
+
+    <!-- Channels -->
+    <string name="channels_footer">Choose which announcements you want. Push notifications are not enabled yet, so for now this only affects what is shown in the app.</string>
+    <string name="channel_all">All members</string>
+    <string name="channel_all_detail">Announcements every member receives</string>
+    <string name="channel_freshmen">Freshmen</string>
+    <string name="channel_freshmen_detail">Orientation, airport pickup, housing and getting settled</string>
+    <string name="channel_nus">NUS updates</string>
+    <string name="channel_ntu">NTU updates</string>
+    <string name="channel_smu">SMU updates</string>
+
+    <!-- Account -->
+    <string name="account">Account</string>
+    <string name="identity">Identity</string>
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+    <string name="school">School</string>
+    <string name="verified">Verified</string>
+    <string name="groups">Groups</string>
+    <string name="diagnostics_header">Session (DEBUG)</string>
+    <string name="diagnostics_footer">Tokens refresh on request rather than on a timer, so an expired one while idle is normal.</string>
+    <string name="diagnostics_present">Present</string>
+    <string name="diagnostics_absent">None</string>
+    <string name="diagnostics_access_token_expiry">Access token expires</string>
+    <string name="diagnostics_expired_renews">Expired — renews on next use</string>
+    <string name="diagnostics_remaining">in %1$dm %2$ds</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="security">Security</string>
+    <string name="require_auth_for_card">Require authentication for card</string>
+    <string name="require_auth_for_card_footer">When on, showing the card requires %1$s. The card is an identity credential, so this covers a phone handed over while already unlocked.</string>
+    <string name="language">Language</string>
+    <string name="language_footer">Follows the system language setting. Tap to open Settings → STSA → Language to change it.</string>
+    <string name="about">About</string>
+    <string name="about_stsa">About STSA</string>
+    <string name="version">Version</string>
+    <string name="stsa_website">STSA website</string>
+    <string name="event_system">Event system</string>
+    <string name="sign_out">Sign out</string>
+    <string name="sign_out_footer">Signing out only clears credentials on this phone. Because sign-in shares a session with the browser, you may not need to enter your password again next time.</string>
+
+    <!-- Biometry -->
+    <string name="biometry_fingerprint">your fingerprint</string>
+    <string name="biometry_face">face unlock</string>
+    <string name="biometry_device_credential">your screen lock</string>
+
+    <!-- About -->
+    <string name="about_org_name">Singapore Taiwan Student Association</string>
+    <string name="about_purpose">Why we exist</string>
+    <string name="about_purpose_1">Universities around the world have Taiwanese Student Associations. In most countries a TSA works directly with the local Taipei Representative Office, giving Taiwanese students a first point of contact, a faster route to settling in, and a network to lean on. We wanted to bring that to Singapore — but local policy prevents universities from recognising student societies formed around a nationality or ethnicity.</string>
+    <string name="about_purpose_2">So we founded the Singapore Taiwanese Student Association instead: to connect Taiwanese students far from home, run events that bring them together, and share Taiwanese food and culture in Singapore — with students from anywhere welcome to join us.</string>
+    <string name="about_purpose_3">The logo takes WWTSA\'s two colours as its starting point: an ocean-blue Formosan black bear for the island itself and the tie students keep to it, and a deep red lion\'s head for Singapore and the determination of studying far from home.</string>
+    <string name="about_goals">Our goals</string>
+    <string name="about_goal_1">Build and sustain a network for Taiwanese students in Singapore.</string>
+    <string name="about_goal_2">Help students settle into life and culture in Singapore.</string>
+    <string name="about_goal_3">Share Taiwanese culture with students from everywhere else.</string>
+    <string name="about_wwtsa">WWTSA</string>
+    <string name="about_wwtsa_body">STSA is a chapter of the World Wide Taiwanese Student Association, a global body serving Taiwanese students overseas and the TSAs they belong to, with a wider public-service mission back home.</string>
+    <string name="about_wwtsa_link">WWTSA website</string>
+    <string name="about_milestones">Milestones</string>
+    <string name="milestone_founded">STSA founded</string>
+    <string name="milestone_founded_detail">Formally established in Singapore</string>
+    <string name="milestone_sea">Southeast Asia forum</string>
+    <string name="milestone_sea_detail">Co-hosted with WWTSA and the Malaysian and Thai associations</string>
+    <string name="milestone_bloomberg">Bloomberg office visit</string>
+    <string name="milestone_careers">Careers talk</string>
+    <string name="milestone_careers_taipei_office">Taipei Representative Office in Singapore</string>
+    <string name="milestone_umc">UMC office visit</string>
+    <string name="milestone_careers_partners">JCI, Cathay United Bank, DBS</string>
+    <string name="milestone_uob">UOB office visit</string>
+    <string name="milestone_orientation">Freshman orientation</string>
+    <string name="milestone_hsbc">HSBC Financial Literacy talk</string>
+
+    <!-- Jobs (stub) -->
+    <string name="jobs_title">Jobs and internships</string>
+    <string name="jobs_note">Filters, listings and detail</string>
+
+    <!-- Errors -->
+    <string name="error_not_authenticated">Not signed in.</string>
+    <string name="error_no_userinfo_endpoint">The discovery document did not advertise a userinfo endpoint.</string>
+    <string name="error_userinfo_failed">userinfo returned HTTP %1$d: %2$s</string>
+    <string name="error_token_unavailable">The authorization server did not return an access token.</string>
+    <string name="error_code_401">Your session has expired — please sign in again. (401 %1$s)</string>
+    <string name="error_code_403">This account is missing a required scope. (403 %1$s)</string>
+    <string name="error_code_server">Server error %1$d. %2$s</string>
+    <string name="error_indico_http">Indico returned HTTP %1$d.</string>
+</resources>

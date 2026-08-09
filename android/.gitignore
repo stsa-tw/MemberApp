@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+build/
+# Holds sdk.dir, an absolute path to whichever machine ran the build.
+local.properties
+# Upload-key path and passwords. The keystore itself lives outside the repo;
+# these patterns are here so a stray copy cannot be committed either.
+keystore.properties
+*.jks
+*.keystore
+.idea/
+.cxx/
+captures/
+.kotlin/

@@ -1,0 +1,207 @@
+package tw.stsa.memberapp.feature.settings
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings as AndroidSettings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import tw.stsa.memberapp.BuildConfig
+import tw.stsa.memberapp.R
+import tw.stsa.memberapp.app.About
+import tw.stsa.memberapp.app.AppSettings
+import tw.stsa.memberapp.app.LocalAppContainer
+import tw.stsa.memberapp.auth.BiometricGate
+import tw.stsa.memberapp.designsystem.GroupedCard
+import tw.stsa.memberapp.designsystem.GroupedCardHeader
+import tw.stsa.memberapp.designsystem.GroupedFooter
+import tw.stsa.memberapp.designsystem.GroupedRow
+import tw.stsa.memberapp.designsystem.RowSeparator
+import tw.stsa.memberapp.designsystem.ScreenScaffold
+import tw.stsa.memberapp.designsystem.Theme
+
+@Composable
+fun SettingsScreen(navController: NavHostController) {
+    val container = LocalAppContainer.current
+    val settings = container.settings
+    val auth = container.auth
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+
+    ScreenScaffold(
+        title = stringResource(R.string.settings),
+        onBack = { navController.popBackStack() },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
+        ) {
+            Column {
+                GroupedCardHeader(stringResource(R.string.appearance))
+                GroupedCard {
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Theme.Metrics.gutter),
+                    ) {
+                        AppSettings.Appearance.entries.forEachIndexed { index, appearance ->
+                            SegmentedButton(
+                                selected = settings.appearance == appearance,
+                                onClick = { settings.appearance = appearance },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = AppSettings.Appearance.entries.size,
+                                ),
+                            ) {
+                                Text(stringResource(appearance.labelRes))
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (BiometricGate.isAvailable(context)) {
+                Column {
+                    GroupedCardHeader(stringResource(R.string.security))
+                    GroupedCard {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = Theme.Metrics.gutter,
+                                    vertical = 10.dp,
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.require_auth_for_card),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(
+                                checked = settings.requireBiometricsForCard,
+                                onCheckedChange = { settings.requireBiometricsForCard = it },
+                            )
+                        }
+                    }
+                    GroupedFooter(
+                        stringResource(
+                            R.string.require_auth_for_card_footer,
+                            BiometricGate.biometryName(context),
+                        )
+                    )
+                }
+            }
+
+            Column {
+                GroupedCard {
+                    // Android owns per-app language from 13 onward. A custom
+                    // picker would fight that setting and need a restart to take
+                    // effect, so this defers to it — the same call the iOS side
+                    // makes with openSettingsURLString.
+                    GroupedRow(
+                        label = stringResource(R.string.language),
+                        value = currentLanguage(),
+                        onClick = { context.startActivity(languageSettingsIntent(context)) },
+                    )
+                }
+                GroupedFooter(stringResource(R.string.language_footer))
+            }
+
+            Column {
+                GroupedCardHeader(stringResource(R.string.about))
+                GroupedCard {
+                    GroupedRow(
+                        label = stringResource(R.string.about_stsa),
+                        onClick = { navController.navigate(About) },
+                    )
+                    RowSeparator()
+                    GroupedRow(
+                        label = stringResource(R.string.version),
+                        value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    )
+                    RowSeparator()
+                    GroupedRow(
+                        label = stringResource(R.string.stsa_website),
+                        onClick = { uriHandler.openUri("https://stsa.tw") },
+                    )
+                    RowSeparator()
+                    GroupedRow(
+                        label = stringResource(R.string.event_system),
+                        onClick = { uriHandler.openUri("https://event.stsa.tw") },
+                    )
+                }
+            }
+
+            Column {
+                GroupedCard {
+                    TextButton(
+                        onClick = {
+                            auth.logout()
+                            // The graph is inside the signed-in branch of
+                            // RootScreen, so it goes away with the session; there
+                            // is nothing to pop.
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.sign_out),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                GroupedFooter(stringResource(R.string.sign_out_footer))
+            }
+        }
+    }
+}
+
+/**
+ * The localisation actually in use, not the device language — they differ once
+ * someone overrides it in the system's per-app language screen.
+ */
+@Composable
+private fun currentLanguage(): String {
+    // LocalConfiguration rather than LocalContext.resources: the composition
+    // reads it as state, so switching the app's language redraws this row
+    // instead of leaving the old name behind.
+    val locale = LocalConfiguration.current.locales[0]
+    return locale.getDisplayLanguage(locale)
+        .replaceFirstChar { it.uppercase(locale) }
+}
+
+private fun languageSettingsIntent(context: android.content.Context): Intent {
+    val target = Uri.fromParts("package", context.packageName, null)
+    // ACTION_APP_LOCALE_SETTINGS only exists from 13. Below that the app detail
+    // page is the closest thing that leads somewhere useful.
+    val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        AndroidSettings.ACTION_APP_LOCALE_SETTINGS
+    } else {
+        AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS
+    }
+    return Intent(action, target)
+}
