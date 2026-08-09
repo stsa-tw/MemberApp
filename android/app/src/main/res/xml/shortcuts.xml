@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Long-press the launcher icon → show the member card.
+
+    Static rather than dynamic: the card is the one thing every member opens the
+    app for, it is always there, and a static shortcut needs no code to publish
+    and survives the app never having been launched.
+
+    The gate still applies — MainActivity routes this to MemberCardScreen, which
+    asks for the fingerprint before it draws anything. The shortcut is a faster
+    way in, not a way around.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="member-card"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_card"
+        android:shortcutShortLabel="@string/member_card"
+        android:shortcutLongLabel="@string/shortcut_member_card_long">
+        <intent
+            android:action="tw.stsa.memberapp.action.SHOW_CARD"
+            android:targetPackage="tw.stsa.memberapp"
+            android:targetClass="tw.stsa.memberapp.MainActivity" />
+    </shortcut>
+</shortcuts>

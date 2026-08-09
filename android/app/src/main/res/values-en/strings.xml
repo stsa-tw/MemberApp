@@ -6,6 +6,9 @@
     features — are new here.
 -->
 <resources>
+
+    <!-- Shell -->
+    <string name="shortcut_member_card_long">Show STSA member card</string>
     <!-- Tabs -->
     <string name="tab_home">Home</string>
     <string name="tab_events">Events</string>

@@ -95,10 +95,15 @@ private val tabs = listOf(
  * hand would be a bar that is not a bar. The equivalent that already exists is
  * an extended FAB, which shrinks to its icon as the page scrolls the way every
  * other Material app's does.
+ *
+ * [showCardRequest] is the launcher shortcut asking for the card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RootScreen() {
+fun RootScreen(
+    showCardRequest: Boolean = false,
+    onCardRequestHandled: () -> Unit = {},
+) {
     val container = LocalAppContainer.current
     val auth = container.auth
 
@@ -121,6 +126,16 @@ fun RootScreen() {
     // opened.
     LaunchedEffect(auth.isLoggedIn) {
         if (auth.isLoggedIn && container.events.events.isEmpty()) container.events.load()
+    }
+
+    // The shortcut can only be honoured once there is a session to show a card
+    // for; keyed on both so a cold start behind the sign-in screen still lands
+    // on the card the moment sign-in completes.
+    LaunchedEffect(showCardRequest, auth.isLoggedIn) {
+        if (showCardRequest && auth.isLoggedIn) {
+            navController.navigate(MemberCard) { launchSingleTop = true }
+            onCardRequestHandled()
+        }
     }
 
     // Standard Material behaviour: the extended FAB gives its label back to the

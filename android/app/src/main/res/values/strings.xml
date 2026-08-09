@@ -6,6 +6,9 @@
     both apps. When a string changes here, change it there too.
 -->
 <resources>
+
+    <!-- Shell -->
+    <string name="shortcut_member_card_long">出示 STSA 會員卡</string>
     <string name="app_name" translatable="false">STSA</string>
 
     <!-- Tabs -->
