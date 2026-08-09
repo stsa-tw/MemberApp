@@ -44,6 +44,7 @@ import tw.stsa.memberapp.app.Deals
 import tw.stsa.memberapp.app.Events
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
+import tw.stsa.memberapp.app.openTab
 import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.RowSeparator
@@ -123,14 +124,17 @@ fun HomeScreen(navController: NavHostController) {
                     titleRes = R.string.home_shortcut_events,
                     detail = upcomingLabel,
                     modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Events) },
+                    // openTab, not navigate: these two are tab destinations, and
+                    // pushing one on top of Home leaves a back stack the tab bar
+                    // cannot get out of. See openTab.
+                    onClick = { navController.openTab(Events) },
                 )
                 ShortcutTile(
                     icon = Icons.Filled.LocalOffer,
                     titleRes = R.string.home_shortcut_deals,
                     detail = dealsLabel,
                     modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate(Deals) },
+                    onClick = { navController.openTab(Deals) },
                 )
             }
 
