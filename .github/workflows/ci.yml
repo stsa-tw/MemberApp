@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ios:
     # The deployment target is iOS 26, so the runner has to carry the iOS 26 SDK.
     runs-on: macos-26
 
@@ -38,3 +38,35 @@ jobs:
             -configuration Debug \
             -destination "platform=iOS Simulator,name=$DEVICE" \
             CODE_SIGNING_ALLOWED=NO
+
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # gradle-wrapper.jar is a binary committed to the repository, and a
+      # wrapper jar runs as part of every build. This checks it against the
+      # published checksums rather than trusting whatever is in the tree.
+      - uses: gradle/actions/wrapper-validation@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # These three are what a reviewer would otherwise run by hand: the logic
+      # tests, the lint rules that fail on error, and proof that it assembles.
+      - name: Test
+        run: ./gradlew testDebugUnitTest
+
+      - name: Lint
+        run: ./gradlew lintDebug
+
+      - name: Assemble
+        run: ./gradlew assembleDebug
