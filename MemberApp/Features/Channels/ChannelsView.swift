@@ -37,12 +37,19 @@ struct ChannelsView: View {
             set: { settings.setSubscribed($0, channel: channel, defaultingTo: defaults) }
         )) {
             HStack(spacing: 12) {
-                Text(channel.badge)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(Theme.Palette.inkCard)
-                    .clipShape(.circle)
+                Group {
+                    if let symbol = channel.symbol {
+                        Image(systemName: symbol)
+                            .font(.system(size: 17, weight: .semibold))
+                    } else {
+                        Text(channel.badge)
+                            .font(.caption.weight(.bold))
+                    }
+                }
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(channel.tint)
+                .clipShape(.circle)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(channel.name)
