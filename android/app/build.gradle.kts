@@ -82,6 +82,18 @@ android {
         buildConfig = true
     }
 
+    androidResources {
+        // Generates res/xml/_generated_res_locale_config.xml from the values-*
+        // folders and wires android:localeConfig into the merged manifest.
+        //
+        // Without it the app does not appear in Settings → System → Languages at
+        // all, and the Language row in SettingsScreen fires an
+        // ACTION_APP_LOCALE_SETTINGS intent that nothing resolves. The locale of
+        // the unqualified values/ folder cannot be inferred, so it is declared in
+        // src/main/res/resources.properties.
+        generateLocaleConfig = true
+    }
+
     testOptions {
         unitTests {
             // Robolectric needs the merged resources to stand up a Context for

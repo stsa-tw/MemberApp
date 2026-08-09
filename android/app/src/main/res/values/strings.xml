@@ -146,6 +146,7 @@
     <string name="require_auth_for_card_footer">開啟後，出示會員卡前需通過 %1$s。會員卡是身分憑證，這可以避免手機在解鎖狀態下被他人取用。</string>
     <string name="language">語言</string>
     <string name="language_footer">跟隨系統的語言設定。點一下前往「設定 → STSA → 語言」切換。</string>
+    <string name="language_settings_unavailable">這支裝置沒有 App 語言設定頁。</string>
     <string name="about">關於</string>
     <string name="about_stsa">關於總會</string>
     <string name="version">版本</string>

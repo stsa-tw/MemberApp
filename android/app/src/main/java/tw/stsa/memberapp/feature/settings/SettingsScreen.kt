@@ -1,5 +1,7 @@
 package tw.stsa.memberapp.feature.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -15,10 +17,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -27,6 +33,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.About
@@ -48,10 +55,14 @@ fun SettingsScreen(navController: NavHostController) {
     val auth = container.auth
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val languageUnavailable = stringResource(R.string.language_settings_unavailable)
 
     ScreenScaffold(
         title = stringResource(R.string.settings),
         onBack = { navController.popBackStack() },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -126,7 +137,15 @@ fun SettingsScreen(navController: NavHostController) {
                     SectionRow(
                         label = stringResource(R.string.language),
                         value = currentLanguage(),
-                        onClick = { context.startActivity(languageSettingsIntent(context)) },
+                        onClick = {
+                            // Guarded: the per-app language screen is not on
+                            // every build of Android, and an unresolved
+                            // startActivity is an ActivityNotFoundException, not
+                            // a no-op.
+                            if (!context.openLanguageSettings()) {
+                                scope.launch { snackbarHostState.showSnackbar(languageUnavailable) }
+                            }
+                        },
                     )
                 }
                 SectionFooter(stringResource(R.string.language_footer))
@@ -194,14 +213,33 @@ private fun currentLanguage(): String {
         .replaceFirstChar { it.uppercase(locale) }
 }
 
-private fun languageSettingsIntent(context: android.content.Context): Intent {
-    val target = Uri.fromParts("package", context.packageName, null)
+/**
+ * Opens the system's per-app language screen, falling back to the app's detail
+ * page. Returns false when neither resolves.
+ *
+ * The app has to be listed in Settings → System → Languages for the first of
+ * these to lead anywhere, and it is only listed because `generateLocaleConfig`
+ * in build.gradle.kts declares which languages it ships. Without that the intent
+ * resolves to nothing and this row used to take the app down with it.
+ */
+private fun Context.openLanguageSettings(): Boolean {
+    val target = Uri.fromParts("package", packageName, null)
     // ACTION_APP_LOCALE_SETTINGS only exists from 13. Below that the app detail
     // page is the closest thing that leads somewhere useful.
-    val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        AndroidSettings.ACTION_APP_LOCALE_SETTINGS
-    } else {
-        AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS
+    val actions = buildList {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(AndroidSettings.ACTION_APP_LOCALE_SETTINGS)
+        }
+        add(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
     }
-    return Intent(action, target)
+
+    for (action in actions) {
+        try {
+            startActivity(Intent(action, target))
+            return true
+        } catch (_: ActivityNotFoundException) {
+            // Try the next one down.
+        }
+    }
+    return false
 }

@@ -136,6 +136,7 @@
     <string name="require_auth_for_card_footer">When on, showing the card requires %1$s. The card is an identity credential, so this covers a phone handed over while already unlocked.</string>
     <string name="language">Language</string>
     <string name="language_footer">Follows the system language setting. Tap to open Settings → STSA → Language to change it.</string>
+    <string name="language_settings_unavailable">This device has no per-app language screen.</string>
     <string name="about">About</string>
     <string name="about_stsa">About STSA</string>
     <string name="version">Version</string>
