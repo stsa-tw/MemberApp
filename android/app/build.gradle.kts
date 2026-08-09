@@ -1,9 +1,20 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// Upload-key location and passwords, git-ignored, and absent on any machine that
+// has no business signing a release — CI included. Read it here rather than from
+// the environment so a local release build needs no shell setup, and leave the
+// release build unsigned when it is missing instead of failing: CI runs
+// assembleDebug, and a signing block pointing at a keystore that is not there
+// breaks configuration for every task, not just the one that would sign.
+val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }?.let {
+    Properties().apply { it.inputStream().use(::load) }
 }
 
 android {
@@ -32,8 +43,25 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "tw.stsa.membership"
     }
 
+    signingConfigs {
+        keystoreProperties?.let { props ->
+            create("upload") {
+                storeFile = rootProject.file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Only when the properties file supplied one. Google re-signs with
+            // the app signing key it holds, so this is the upload key: it proves
+            // who is pushing the bundle, and is not the identity the installed
+            // app carries.
+            signingConfig = signingConfigs.findByName("upload")
+
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

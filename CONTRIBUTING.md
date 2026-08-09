@@ -72,6 +72,37 @@ or member-card path, check all of:
 Android lint runs as part of CI and fails the build on errors, so run
 `./gradlew lintDebug` before pushing rather than finding out there.
 
+## Releasing the Android app
+
+`./gradlew bundleRelease` produces the `.aab` Play Console wants, in
+`app/build/outputs/bundle/release/`. It is signed only if
+`android/keystore.properties` exists — that file is git-ignored and per-machine,
+and names the upload keystore, which lives outside the repo:
+
+```properties
+storeFile=/absolute/path/to/stsa-upload.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+Without it the release build still assembles, unsigned, which is what lets CI
+run without the key. The signing block is deliberately quiet about a missing
+file rather than failing: a `signingConfig` pointing at a keystore that is not
+there breaks configuration for *every* task, `assembleDebug` included.
+
+This is the **upload key**, not the app signing key. Play App Signing re-signs
+with a key Google holds, so a lost upload key is a support ticket rather than a
+dead app — but it is still the credential that authenticates a release. It and
+its passwords move between maintainers out of band, never through the repo and
+never in a shared drive alongside a copy of the keystore.
+
+`versionCode` in [app/build.gradle.kts](android/app/build.gradle.kts) must
+increase on every upload; Play rejects a repeat. And test a release build, not
+just debug, before shipping one: R8 runs only there, and the keep rules in
+`proguard-rules.pro` exist because without them the app decodes userinfo and the
+Indico export into nothing.
+
 ## Code conventions
 
 Match the surrounding code — it is consistent, so this is not hard.
