@@ -4,11 +4,13 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.app.AppContainer
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.RootScreen
+import tw.stsa.memberapp.app.applyAppearance
 import tw.stsa.memberapp.designsystem.MemberAppTheme
 
 /**
@@ -25,9 +27,16 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Before setContent: this is the value the *next* cold start's window
+        // frame is painted from. See applyAppearance.
+        applyAppearance(container.settings.appearance)
+
         setContent {
+            val appearance = container.settings.appearance
+            LaunchedEffect(appearance) { applyAppearance(appearance) }
+
             CompositionLocalProvider(LocalAppContainer provides container) {
-                MemberAppTheme(container.settings.appearance) {
+                MemberAppTheme(appearance) {
                     RootScreen()
                 }
             }
