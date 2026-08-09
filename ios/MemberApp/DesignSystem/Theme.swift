@@ -6,19 +6,20 @@ import SwiftUI
 /// semantic colours (`rgba(60,60,67,.6)` is `.secondaryLabel`, `#f2f2f7` is
 /// `systemGroupedBackground`, `rgba(118,118,128,.12)` is `tertiarySystemFill`).
 /// Using the semantic colours instead of the hex values is what makes the app
-/// adapt to Dark Mode and Increase Contrast for free — only the brand red is ours.
+/// adapt to Dark Mode and Increase Contrast for free — only the brand rose is ours.
 enum Theme {}
 
 // MARK: - Colour
 
 extension Theme {
     enum Palette {
-        /// STSA brand red — the app's tint. `#EC3013`
+        /// STSA brand rose — the app's tint.
+        ///
+        /// `AccentColor.colorset` holds it in **display-P3** (`#C68578` read as
+        /// hex), which is `#D18175` in sRGB. That sRGB value is what the Android
+        /// scheme is seeded with; the prototype's `#EC3013` is a different, more
+        /// saturated red that the shipped asset never used.
         static let brand = Color("AccentColor")
-        /// Pressed / hover variant used on the marketing surfaces. `#AE1800`
-        static let brandDeep = Color(red: 0.682, green: 0.094, blue: 0.000)
-        /// Badge foreground on a 10% brand wash. `#C0290F`
-        static let brandInk = Color(red: 0.753, green: 0.161, blue: 0.059)
 
         /// Near-black surface behind the member card and deal marks. `#1C1C1E`
         static let inkCard = Color(red: 0.110, green: 0.110, blue: 0.118)
@@ -57,7 +58,7 @@ extension Theme {
 
 // MARK: - Primary call to action
 
-/// The full-width red button that anchors Welcome, Sign Up, Deal Detail, etc.
+/// The full-width brand button that anchors Welcome, Sign Up, Deal Detail, etc.
 struct BrandButtonStyle: ButtonStyle {
     var prominent: Bool = true
 

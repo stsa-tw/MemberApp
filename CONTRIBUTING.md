@@ -90,7 +90,7 @@ Both platforms:
   string added to `Localizable.xcstrings` belongs in `values/` and `values-en/`
   too, and the other way round.
 - The design system owns the greys. `Theme` holds only what is genuinely ours —
-  the brand red, the radii, the CTA metrics. Reach for a hex value only when the
+  the brand rose, the radii, the CTA metrics. Reach for a hex value only when the
   platform has no equivalent.
 
 iOS:

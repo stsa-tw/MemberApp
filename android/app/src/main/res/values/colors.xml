@@ -9,5 +9,5 @@
          rather than being cropped out of a transparent one. -->
     <color name="ic_launcher_background">#FFFFFF</color>
     <!-- Painted for the frame between window creation and Compose's first draw. -->
-    <color name="window_background">#FFF8F6</color>
+    <color name="window_background">#FFF8F7</color>
 </resources>

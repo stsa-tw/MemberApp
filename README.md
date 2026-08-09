@@ -239,12 +239,12 @@ The prototype's greys are literal transcriptions of Apple's semantic colours
 `rgba(118,118,128,.12)` → `tertiarySystemFill`). Those are used as semantic
 colours on iOS rather than hardcoded hex, so Dark Mode and Increase Contrast
 work. Android does the same thing with Material 3 roles: the greys come from the
-colour scheme, and only the brand red is ours. Likewise the type ramp — the
+colour scheme, and only the brand rose is ours. Likewise the type ramp — the
 standard iOS one there, Material's type scale here — so both get the reader's
 font-size setting for free.
 
-The Material scheme is written out from the brand red rather than produced by
-`dynamicColorScheme()`. The member card is an identity document and the red is
+The Material scheme is written out from the brand rose rather than produced by
+`dynamicColorScheme()`. The member card is an identity document and the rose is
 what identifies it, so it does not get repainted to match somebody's wallpaper.
 
 Two places where the platform had no equivalent:
@@ -257,10 +257,13 @@ Two places where the platform had no equivalent:
   which is what you want for something held up to a scanner.
 
 > [!NOTE]
-> `AccentColor.colorset` currently holds `#C68578`, a muted rose, while its own
-> comment, this README, `brandDeep` and `brandInk` all describe the brand red as
-> `#EC3013`. The Android scheme is built from `#EC3013`. Whichever is right,
-> they disagree today.
+> The brand colour is the muted rose in `AccentColor.colorset`, not the
+> `#EC3013` red the prototype used and the old comments described — the asset is
+> what ships, so the asset wins. Note that it stores **display-P3** components;
+> read as plain hex they say `#C68578`, but the same colour in sRGB, which is
+> what `Color(0xFF…)` means on Android, is `#D18175`. That sRGB value is the
+> seed the Material scheme is generated from. Using the literal `#C68578` would
+> leave Android visibly flatter than iOS rather than matching it.
 
 UI strings are Traditional Chinese, with English alongside: the source language
 is zh-Hant on both platforms.
