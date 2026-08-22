@@ -55,10 +55,12 @@ struct DealsView: View {
                     }
                 }
                 if let footnote {
+                    // Footers line up with the header above the card, the same
+                    // way section footers do in a grouped list.
                     Text(footnote)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, Theme.Metrics.gutter)
                         .padding(.top, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

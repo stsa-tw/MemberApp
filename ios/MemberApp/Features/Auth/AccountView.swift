@@ -3,23 +3,27 @@ import SwiftUI
 /// The 我的 tab — what a member actually needs to see about their account.
 ///
 /// Only reachable behind the auth gate, so there is no sign-in branch; that
-/// lives on `WelcomeView`. Token plumbing is diagnostic, not member-facing, so
-/// it is confined to a debug-only section at the bottom.
+/// lives on `WelcomeView`.
+///
+/// Built from `GroupedCard` rather than `List` like the other three tabs. A
+/// `List` insets its section headers to line up with the row text, which under
+/// a large title leaves the header standing 16pt right of both the title and
+/// the card — the one thing this screen is not free to restyle.
 struct AccountView: View {
     @Environment(AuthManager.self) private var auth
 
     var body: some View {
         NavigationStack {
-            List {
-                if let profile = auth.profile {
-                    identitySection(profile)
-                    if !profile.groups.isEmpty { groupsSection(profile) }
+            ScrollView {
+                VStack(spacing: 22) {
+                    if let profile = auth.profile {
+                        identitySection(profile)
+                        if profile.isOfficer { officerSection }
+                    }
                 }
-
-                #if DEBUG
-                TokenDiagnostics()
-                #endif
+                .padding(.top, 6)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("我的")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -34,102 +38,78 @@ struct AccountView: View {
     }
 
     private func identitySection(_ profile: Profile) -> some View {
-        Section("身分") {
-            LabeledContent("姓名", value: profile.displayName)
-            if let email = profile.email {
-                LabeledContent("信箱") {
-                    HStack(spacing: 6) {
-                        Text(email)
-                        if profile.emailVerified == true {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(.green)
-                                .accessibilityLabel("已驗證")
+        VStack(spacing: 0) {
+            GroupedCardHeader("身分")
+            GroupedCard {
+                row("姓名") { Text(profile.displayName) }
+
+                if let email = profile.email {
+                    RowSeparator()
+                    row("信箱") {
+                        HStack(spacing: 6) {
+                            Text(email)
+                            if profile.emailVerified == true {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(.green)
+                                    .accessibilityLabel("已驗證")
+                            }
                         }
                     }
                 }
-            }
-            if let school = profile.school {
-                LabeledContent("學校", value: school)
-            }
-        }
-    }
 
-    /// Shown because members care which departments they are in. Note that these
-    /// drive display only — see the comment on `Profile.groups`.
-    private func groupsSection(_ profile: Profile) -> some View {
-        Section("身分組") {
-            ForEach(profile.groups, id: \.self) { group in
-                Text(group)
-            }
-        }
-    }
-}
-
-// MARK: - Debug only
-
-#if DEBUG
-/// Session plumbing, for checking that silent refresh is working. Never built
-/// into a release, so it is free to expose `sub` and token timings.
-private struct TokenDiagnostics: View {
-    @Environment(AuthManager.self) private var auth
-
-    @State private var snapshot = AuthManager.TokenSnapshot(
-        hasRefreshToken: false, accessTokenExpiry: nil, scopesGranted: nil
-    )
-    @State private var now = Date()
-
-    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    var body: some View {
-        Section {
-            LabeledContent("sub") {
-                Text(auth.profile?.sub ?? "—")
-                    .font(.caption.monospaced())
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
-            }
-            LabeledContent("Refresh token", value: snapshot.hasRefreshToken ? String(localized: "已取得") : String(localized: "無"))
-            LabeledContent("Access token 到期") {
-                if let expiry = snapshot.accessTokenExpiry {
-                    if expiry <= now {
-                        Text("已過期，下次使用時自動更新")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text(remaining(until: expiry))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("—")
+                if let school = profile.school {
+                    RowSeparator()
+                    row("學校") { Text(school) }
                 }
             }
-            if let scopes = snapshot.scopesGranted {
-                LabeledContent("Scopes", value: scopes)
-                    .font(.footnote)
-            }
-        } header: {
-            Text("連線狀態（DEBUG）")
-        } footer: {
-            Text("token 只在有請求時更新，不是定時更新，所以閒置時顯示已過期是正常的。")
-        }
-        .task {
-            await auth.refreshIfNeeded()
-            snapshot = auth.snapshot()
-        }
-        .onReceive(tick) { moment in
-            now = moment
-            snapshot = auth.snapshot()
         }
     }
 
-    private func remaining(until expiry: Date) -> String {
-        let seconds = Int(expiry.timeIntervalSince(now))
-        return "\(seconds / 60) 分 \(seconds % 60) 秒後"
+    /// The scanner, for the people who work the door.
+    ///
+    /// `isOfficer` reads a self-reported claim, so this hides a row rather than
+    /// guarding anything — and `/validate_code` is open to begin with. Making it
+    /// a real boundary is a MembershipAPI change, not one that can happen here.
+    private var officerSection: some View {
+        VStack(spacing: 0) {
+            GroupedCardHeader("幹部")
+            GroupedCard {
+                NavigationLink {
+                    ScanView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .foregroundStyle(Theme.Palette.brand)
+                        Text("掃描會員卡")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        DisclosureChevron()
+                    }
+                    .padding(.horizontal, Theme.Metrics.gutter)
+                    .padding(.vertical, 11)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Label left, value right — what `LabeledContent` gave us inside a `List`.
+    private func row<Value: View>(
+        _ label: LocalizedStringKey,
+        @ViewBuilder value: () -> Value
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(label)
+            Spacer(minLength: 0)
+            value()
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, Theme.Metrics.gutter)
+        .padding(.vertical, 11)
     }
 }
-#endif
 
 #Preview {
     AccountView().environment(AuthManager())
