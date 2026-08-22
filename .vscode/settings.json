@@ -1,6 +1,6 @@
 {
   // Hover popups
-  "editor.hover.enabled": true,
+  "editor.hover.enabled": "on",
   "editor.hover.delay": 300,
   "editor.hover.sticky": true,
   "editor.parameterHints.enabled": true,

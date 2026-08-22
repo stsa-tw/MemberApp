@@ -21,6 +21,9 @@
         }
       }
     },
+    "%lld 人已報名這場活動。" : {
+
+    },
     "%lld 分 %lld 秒後" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -152,9 +155,6 @@
         }
       }
     },
-    "STSA MEMBER 2026" : {
-
-    },
     "STSA 官網" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -245,6 +245,20 @@
           }
         }
       }
+    },
+    "伺服器回應無法解讀(%lld)。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server's response could not be read (%lld)."
+          }
+        }
+      }
+    },
+    "你的報名" : {
+
     },
     "使用 %@ 解鎖" : {
       "extractionState" : "manual",
@@ -341,6 +355,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Announcement channels"
+          }
+        }
+      }
+    },
+    "再掃一次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan again"
           }
         }
       }
@@ -444,6 +469,17 @@
         }
       }
     },
+    "前往設定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        }
+      }
+    },
     "創建並維持新加坡的台灣留學生聯絡網，促進交流、串聯家鄉情感、凝聚台灣精神。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -532,6 +568,9 @@
         }
       }
     },
+    "否" : {
+
+    },
     "因此我們成立新加坡台灣學生總會，主要目的是串聯在新加坡的異鄉遊子對家鄉的情感，舉辦各類活動增進台灣學生間的交流、凝聚台灣精神，同時在當地推廣台灣的美食與文化，並歡迎來自世界各地的學生。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -539,6 +578,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "So we founded the Singapore Taiwanese Student Association instead: to connect Taiwanese students far from home, run events that bring them together, and share Taiwanese food and culture in Singapore — with students from anywhere welcome to join us."
+          }
+        }
+      }
+    },
+    "在「設定」中允許 STSA 使用相機,就可以掃描會員卡。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow STSA to use the camera in Settings to scan member cards."
           }
         }
       }
@@ -564,6 +614,9 @@
           }
         }
       }
+    },
+    "報到" : {
+
     },
     "報名在 Indico 上完成，使用同一個 STSA 帳號。" : {
       "extractionState" : "manual",
@@ -675,6 +728,28 @@
         }
       }
     },
+    "將會員卡上的 QR code 對準框內。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point the frame at the QR code on the member card."
+          }
+        }
+      }
+    },
+    "對準會員卡上的 QR code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point the frame at the QR code on the member card"
+          }
+        }
+      }
+    },
     "已取得" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -682,6 +757,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Present"
+          }
+        }
+      }
+    },
+    "已報名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered"
           }
         }
       }
@@ -696,6 +782,9 @@
           }
         }
       }
+    },
+    "已經報到過" : {
+
     },
     "已過期" : {
       "extractionState" : "manual",
@@ -726,6 +815,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verified"
+          }
+        }
+      }
+    },
+    "帳號" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
           }
         }
       }
@@ -792,6 +892,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Discount code"
+          }
+        }
+      }
+    },
+    "掃描只會確認會員身分,不會留下紀錄。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning only confirms membership. Nothing is recorded."
+          }
+        }
+      }
+    },
+    "掃描會員卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan member card"
           }
         }
       }
@@ -884,6 +1006,12 @@
         }
       }
     },
+    "是" : {
+
+    },
+    "是會員，但沒有報名這場活動" : {
+
+    },
     "時間" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -950,6 +1078,28 @@
         }
       }
     },
+    "會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links your Indico account, used only to read your own registrations and tickets."
+          }
+        }
+      }
+    },
+    "有效會員碼" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valid membership code"
+          }
+        }
+      }
+    },
     "有效期限 %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -957,6 +1107,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Valid until %@"
+          }
+        }
+      }
+    },
+    "查看我的票券" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show my ticket"
           }
         }
       }
@@ -972,6 +1133,17 @@
         }
       }
     },
+    "查看票券" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show ticket"
+          }
+        }
+      }
+    },
     "歡迎加入 STSA" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -983,6 +1155,9 @@
         }
       }
     },
+    "正在讀取報名名單…" : {
+
+    },
     "此折扣碼已於 %@ 到期。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -993,6 +1168,9 @@
           }
         }
       }
+    },
+    "沒有你報名過的活動。" : {
+
     },
     "活動" : {
       "extractionState" : "manual",
@@ -1049,6 +1227,9 @@
         }
       }
     },
+    "活動頁" : {
+
+    },
     "深色" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1078,6 +1259,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "None"
+          }
+        }
+      }
+    },
+    "無效或已過期的會員碼" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid or expired membership code"
+          }
+        }
+      }
+    },
+    "無法取得票券，稍後再試。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not fetch the ticket. Try again later."
+          }
+        }
+      }
+    },
+    "無法驗證會員碼" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not validate the membership code"
           }
         }
       }
@@ -1115,6 +1329,28 @@
         }
       }
     },
+    "登入已失效，請重新登入。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session has expired — please sign in again."
+          }
+        }
+      }
+    },
+    "登入會一併連結你的 Indico 帳號，用來顯示你的報名與票券。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in also links your Indico account, used to show your registrations and tickets."
+          }
+        }
+      }
+    },
     "登出" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1144,6 +1380,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No events"
+          }
+        }
+      }
+    },
+    "相機取景框" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera viewfinder"
           }
         }
       }
@@ -1268,6 +1515,9 @@
           }
         }
       }
+    },
+    "請對方重新開啟會員卡再掃一次。" : {
+
     },
     "講座" : {
       "extractionState" : "manual",
@@ -1441,6 +1691,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Digital member card"
+          }
+        }
+      }
+    },
+    "需要相機權限才能掃描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is required to scan"
           }
         }
       }

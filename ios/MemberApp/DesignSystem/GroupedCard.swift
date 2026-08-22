@@ -19,6 +19,12 @@ struct GroupedCard<Content: View>: View {
 }
 
 /// Section label above a `GroupedCard` — uppercase, tracked, secondary.
+///
+/// Inset to the same gutter as the card beneath it and the large navigation
+/// title above it, so a screen has one left edge rather than three. Apple's own
+/// inset-grouped lists indent the header past the card to line it up with the
+/// row *text* instead; that reads as a zigzag under a large title, which is why
+/// this does not copy it.
 struct GroupedCardHeader<Trailing: View>: View {
     let title: LocalizedStringKey
     @ViewBuilder var trailing: Trailing
@@ -38,8 +44,36 @@ struct GroupedCardHeader<Trailing: View>: View {
             Spacer()
             trailing
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, Theme.Metrics.gutter)
         .padding(.bottom, 7)
+    }
+}
+
+/// A `GroupedCardHeader` that opens and closes what sits under it.
+///
+/// The whole row is the target, not just the chevron: a plain-styled button only
+/// hit-tests its drawn content, so the `Spacer` between title and chevron would
+/// otherwise swallow taps aimed at the obvious place.
+struct DisclosureCardHeader: View {
+    let title: LocalizedStringKey
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.22)) { isExpanded.toggle() }
+        } label: {
+            HStack {
+                GroupedCardHeader(title)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .padding(.trailing, Theme.Metrics.gutter)
+                    .padding(.bottom, 7)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 }
 

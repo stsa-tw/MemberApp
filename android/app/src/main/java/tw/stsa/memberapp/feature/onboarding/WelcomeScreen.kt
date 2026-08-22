@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
@@ -71,7 +73,9 @@ private val highlights = listOf(
 
 @Composable
 fun WelcomeScreen() {
-    val auth = LocalAppContainer.current.auth
+    val container = LocalAppContainer.current
+    val auth = container.auth
+    val indico = container.indico
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -85,6 +89,8 @@ fun WelcomeScreen() {
                 // Dismissing the sign-in tab is a choice, not a failure.
                 if (!AuthManager.isUserCancellation(error)) errorMessage = error.message
             }
+            // The Indico link is chained on in RootScreen, not here: a successful
+            // sign-in swaps this screen away immediately.
         }
     }
 
@@ -146,7 +152,7 @@ fun WelcomeScreen() {
         // sign-up either: accounts are created in authentik, so the app only
         // ever authenticates an existing one.
         BrandButton(
-            enabled = !auth.isBusy,
+            enabled = !auth.isBusy && !indico.isBusy,
             onClick = {
                 scope.launch {
                     try {
@@ -158,7 +164,7 @@ fun WelcomeScreen() {
                 }
             },
         ) {
-            if (auth.isBusy) {
+            if (auth.isBusy || indico.isBusy) {
                 Box(contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
@@ -169,6 +175,20 @@ fun WelcomeScreen() {
                 Text(stringResource(R.string.sign_in))
             }
         }
+
+        Spacer(Modifier.size(8.dp))
+
+        // Indico's application is registered as trusted, so it shows no consent
+        // screen of its own. Nothing else in the flow will tell the member their
+        // Indico account is being connected, so this line has to — before it
+        // happens, not after.
+        Text(
+            text = stringResource(R.string.sign_in_links_indico),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 
     errorMessage?.let { message ->

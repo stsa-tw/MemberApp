@@ -2,7 +2,11 @@ import SwiftUI
 
 struct EventsView: View {
     @Environment(EventsStore.self) private var store
+    @Environment(IndicoAuthManager.self) private var indico
+    @Environment(TicketStore.self) private var tickets
     @Environment(\.openURL) private var openURL
+
+    @State private var isShowingPast = false
 
     var body: some View {
         NavigationStack {
@@ -12,7 +16,7 @@ struct EventsView: View {
                         section("即將舉行", events: store.upcoming, highlightFirst: true)
                     }
                     if !store.past.isEmpty {
-                        section("已結束", events: store.past, highlightFirst: false)
+                        pastSection
                     }
                     if store.events.isEmpty {
                         emptyState
@@ -35,7 +39,75 @@ struct EventsView: View {
             }
             .refreshable { await store.load() }
             .task { if store.events.isEmpty { await store.load() } }
+            // Only the upcoming ones, and only once each: every probe makes
+            // Indico generate a ticket. "Upcoming" is a handful by nature, so
+            // this is a few requests, not a sweep of the whole calendar.
+            .task(id: TicketProbe(linked: indico.isLinked, eventIDs: store.upcoming.map(\.id))) {
+                guard indico.isLinked else { return }
+                for event in store.upcoming {
+                    await tickets.loadIfNeeded(eventID: event.id, using: indico)
+                }
+            }
         }
+    }
+
+    /// Collapsed by default, and once open it lists only the events this member
+    /// actually registered for — the archive is long and almost none of it is
+    /// theirs.
+    ///
+    /// Nothing is probed until it is opened. Asking Indico whether a ticket
+    /// exists makes it generate one, so doing it for every past event on every
+    /// launch would be a pile of work for a section most people never open.
+    @ViewBuilder
+    private var pastSection: some View {
+        VStack(spacing: 0) {
+            DisclosureCardHeader(title: "已結束", isExpanded: $isShowingPast)
+
+            if isShowingPast {
+                if attended.isEmpty && isProbingPast {
+                    ProgressView()
+                        .padding(.vertical, 18)
+                } else if attended.isEmpty {
+                    Text("沒有你報名過的活動。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Theme.Metrics.gutter)
+                        .padding(.vertical, 6)
+                } else {
+                    GroupedCard {
+                        ForEach(Array(attended.enumerated()), id: \.element.id) { index, event in
+                            if index > 0 { RowSeparator(inset: 0) }
+                            NavigationLink {
+                                EventDetailView(event: event)
+                            } label: {
+                                EventRow(event: event, isNext: false, isRegistered: true)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .task(id: TicketProbe(linked: indico.isLinked, eventIDs: isShowingPast ? store.past.map(\.id) : [])) {
+            guard isShowingPast else { return }
+            for event in store.past {
+                // Settled history: if the answer is already known, it is the
+                // answer — opening the archive should not make Indico render a
+                // PDF for every row.
+                if tickets.hydrate(eventID: event.id) { continue }
+                guard indico.isLinked else { continue }
+                await tickets.loadIfNeeded(eventID: event.id, using: indico)
+            }
+        }
+    }
+
+    private var attended: [IndicoEvent] {
+        store.past.filter { tickets.holdsTicket(for: $0.id) }
+    }
+
+    private var isProbingPast: Bool {
+        store.past.contains { !tickets.isSettled(for: $0.id) }
     }
 
     private func section(_ title: LocalizedStringKey, events: [IndicoEvent], highlightFirst: Bool) -> some View {
@@ -47,7 +119,11 @@ struct EventsView: View {
                     NavigationLink {
                         EventDetailView(event: event)
                     } label: {
-                        EventRow(event: event, isNext: highlightFirst && index == 0)
+                        EventRow(
+                            event: event,
+                            isNext: highlightFirst && index == 0,
+                            isRegistered: tickets.holdsTicket(for: event.id)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -76,9 +152,17 @@ struct EventsView: View {
     }
 }
 
+/// Re-runs the ticket probe when the link is established or the upcoming set
+/// changes, and not on every redraw.
+private struct TicketProbe: Equatable {
+    let linked: Bool
+    let eventIDs: [String]
+}
+
 private struct EventRow: View {
     let event: IndicoEvent
     let isNext: Bool
+    let isRegistered: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -105,6 +189,11 @@ private struct EventRow: View {
                     // Admissions"); two lines keeps the rows an even height.
                     .lineLimit(2)
                     .truncationMode(.tail)
+                if isRegistered {
+                    Text("已報名")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.brand)
+                }
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)

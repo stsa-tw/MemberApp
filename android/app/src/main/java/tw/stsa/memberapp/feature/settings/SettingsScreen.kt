@@ -181,6 +181,11 @@ fun SettingsScreen(navController: NavHostController) {
                     TextButton(
                         onClick = {
                             auth.logout()
+                            // The Indico link and any ticket held in memory
+                            // belong to whoever was signed in, so they go with
+                            // the session.
+                            container.indico.unlink()
+                            container.tickets.clear()
                             // The graph is inside the signed-in branch of
                             // RootScreen, so it goes away with the session; there
                             // is nothing to pop.

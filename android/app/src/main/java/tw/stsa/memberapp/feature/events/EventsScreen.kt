@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +32,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,12 +77,40 @@ private const val EVENTS_WEBSITE = "https://event.stsa.tw"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsScreen(navController: NavHostController) {
-    val store = LocalAppContainer.current.events
+    val container = LocalAppContainer.current
+    val store = container.events
+    val indico = container.indico
+    val tickets = container.tickets
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var isShowingPast by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { if (store.events.isEmpty()) store.load() }
+
+    // Only the upcoming ones, and only once each: every probe makes Indico
+    // generate a ticket. "Upcoming" is a handful by nature, so this is a few
+    // requests, not a sweep of the whole calendar.
+    val upcomingIds = store.upcoming().map { it.id }
+    LaunchedEffect(indico.isLinked, upcomingIds) {
+        if (!indico.isLinked) return@LaunchedEffect
+        upcomingIds.forEach { tickets.loadIfNeeded(it, indico) }
+    }
+
+    // The archive is only probed once it is opened. Asking Indico whether a
+    // ticket exists makes it generate one, so doing it for every past event on
+    // every launch would be a pile of work for a section most people never open.
+    val pastIds = store.past().map { it.id }
+    LaunchedEffect(isShowingPast, indico.isLinked, pastIds) {
+        if (!isShowingPast) return@LaunchedEffect
+        pastIds.forEach { id ->
+            // Settled history: if the answer is already known, it is the answer —
+            // opening the archive should not make Indico render a PDF per row.
+            if (tickets.hydrate(id)) return@forEach
+            if (!indico.isLinked) return@forEach
+            tickets.loadIfNeeded(id, indico)
+        }
+    }
 
     // A failed refresh must not throw away events that are already on screen:
     // the list loaded earlier is still the best answer available. So that error
@@ -132,16 +165,76 @@ fun EventsScreen(navController: NavHostController) {
                         title = upcomingTitle,
                         events = upcoming,
                         highlightFirst = true,
+                        isRegistered = { tickets.holdsTicket(it) },
                         onSelect = { navController.navigate(EventDetail(it.id)) },
                     )
                 }
                 if (past.isNotEmpty()) {
-                    section(
-                        title = pastTitle,
-                        events = past,
-                        highlightFirst = false,
-                        onSelect = { navController.navigate(EventDetail(it.id)) },
-                    )
+                    // Collapsed by default, and once open it lists only the
+                    // events this member actually registered for — the archive is
+                    // long and almost none of it is theirs.
+                    item(key = "past-header") {
+                        Spacer(Modifier.size(16.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(role = Role.Button) { isShowingPast = !isShowingPast }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            SectionHeader(pastTitle, inset = Theme.Metrics.gutter)
+                            Spacer(Modifier.weight(1f))
+                            Icon(
+                                imageVector = if (isShowingPast) {
+                                    Icons.Filled.ExpandLess
+                                } else {
+                                    Icons.Filled.ExpandMore
+                                },
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = Theme.Metrics.gutter),
+                            )
+                        }
+                    }
+
+                    if (isShowingPast) {
+                        val attended = past.filter { tickets.holdsTicket(it.id) }
+                        val probing = past.any { !tickets.isSettled(it.id) }
+                        when {
+                            attended.isNotEmpty() -> items(attended, key = { it.id }) { event ->
+                                EventRow(
+                                    event = event,
+                                    isNext = false,
+                                    isRegistered = true,
+                                    onClick = { navController.navigate(EventDetail(event.id)) },
+                                )
+                                if (event.id != attended.last().id) {
+                                    RowSeparator(inset = Theme.Metrics.gutter)
+                                }
+                            }
+
+                            probing -> item(key = "past-loading") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 18.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) { CircularProgressIndicator(Modifier.size(22.dp)) }
+                            }
+
+                            else -> item(key = "past-none") {
+                                Text(
+                                    text = stringResource(R.string.events_past_none),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(
+                                        horizontal = Theme.Metrics.gutter,
+                                        vertical = 6.dp,
+                                    ),
+                                )
+                            }
+                        }
+                    }
                 }
                 if (store.events.isEmpty()) {
                     item {
@@ -161,6 +254,7 @@ private fun LazyListScope.section(
     title: String,
     events: List<IndicoEvent>,
     highlightFirst: Boolean,
+    isRegistered: (String) -> Boolean,
     onSelect: (IndicoEvent) -> Unit,
 ) {
     item(key = "header-$title") {
@@ -173,6 +267,7 @@ private fun LazyListScope.section(
         EventRow(
             event = event,
             isNext = highlightFirst && event.id == events.first().id,
+            isRegistered = isRegistered(event.id),
             onClick = { onSelect(event) },
         )
         if (event.id != events.last().id) RowSeparator(inset = Theme.Metrics.gutter)
@@ -180,7 +275,12 @@ private fun LazyListScope.section(
 }
 
 @Composable
-private fun EventRow(event: IndicoEvent, isNext: Boolean, onClick: () -> Unit) {
+private fun EventRow(
+    event: IndicoEvent,
+    isNext: Boolean,
+    isRegistered: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -208,6 +308,13 @@ private fun EventRow(event: IndicoEvent, isNext: Boolean, onClick: () -> Unit) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (isRegistered) {
+                Text(
+                    text = stringResource(R.string.event_registered),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Text(
                 // Time stays in the reader's locale — only the date block is fixed.
                 text = listOfNotNull(

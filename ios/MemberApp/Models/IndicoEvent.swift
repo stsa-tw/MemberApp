@@ -38,6 +38,39 @@ struct IndicoEvent: Identifiable, Hashable {
     }
 }
 
+// MARK: - Title
+
+extension String {
+    /// Drops decorative emoji, and the whitespace they leave behind.
+    ///
+    /// Organisers type them into Indico titles freely (🧋, 🌕🔥), which reads fine
+    /// on a web page with one event per screen and badly in a list of dense
+    /// two-line rows, where they are the loudest thing in the column and carry no
+    /// information the title does not already give.
+    ///
+    /// Deliberately not `isEmoji` alone: that property is true for plain digits,
+    /// `#` and `*`, so a title like "2026 STSA" would lose its year. The pairing
+    /// below is the standard test — a multi-scalar cluster whose base is emoji,
+    /// or a single scalar that *presents* as emoji.
+    var withoutEmoji: String {
+        let stripped = filter { character in
+            guard let first = character.unicodeScalars.first else { return true }
+            let isEmoji = character.unicodeScalars.count > 1
+                ? first.properties.isEmoji
+                : first.properties.isEmojiPresentation
+            return !isEmoji
+        }
+
+        let tidied = stripped
+            .replacingOccurrences(of: " +", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: " ([｜|·,、])", with: "$1", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+
+        // A title that was nothing but emoji is still better than no title.
+        return tidied.isEmpty ? self : tidied
+    }
+}
+
 // MARK: - Decoding
 
 extension IndicoEvent: Decodable {
@@ -72,7 +105,7 @@ extension IndicoEvent: Decodable {
             id = String(try container.decode(Int.self, forKey: .id))
         }
 
-        title = try container.decode(String.self, forKey: .title)
+        title = try container.decode(String.self, forKey: .title).withoutEmoji
 
         let startMoment = try container.decode(IndicoMoment.self, forKey: .startDate)
         let endMoment = try container.decode(IndicoMoment.self, forKey: .endDate)
@@ -97,6 +130,31 @@ extension IndicoEvent: Decodable {
 // MARK: - HTML flattening
 
 private extension String {
+    var decodingNumericEntities: String {
+        guard let regex = try? NSRegularExpression(pattern: "&#(x?)([0-9A-Fa-f]+);") else { return self }
+
+        var result = ""
+        var last = startIndex
+        for match in regex.matches(in: self, range: NSRange(startIndex..., in: self)) {
+            guard let whole = Range(match.range, in: self),
+                  let flagRange = Range(match.range(at: 1), in: self),
+                  let digitsRange = Range(match.range(at: 2), in: self)
+            else { continue }
+
+            let radix = self[flagRange].isEmpty ? 10 : 16
+            guard let value = UInt32(self[digitsRange], radix: radix),
+                  let scalar = Unicode.Scalar(value)
+            else { continue }
+
+            result += self[last..<whole.lowerBound]
+            result.unicodeScalars.append(scalar)
+            last = whole.upperBound
+        }
+        return result + self[last...]
+    }
+}
+
+private extension String {
     var plainTextFromHTML: String {
         var text = self
         // Block-level tags become paragraph breaks before everything else is dropped.
@@ -109,6 +167,13 @@ private extension String {
         for (entity, character) in entities {
             text = text.replacingOccurrences(of: entity, with: character)
         }
+
+        // Numeric entities, which Indico and the CDN in front of it both emit —
+        // `&#160;` for a non-breaking space is the common one.
+        text = text.decodingNumericEntities
+        // &nbsp; already maps to a plain space above; its numeric spelling
+        // should not behave differently just because it arrived as &#160;.
+        text = text.replacingOccurrences(of: "\u{00A0}", with: " ")
 
         // Collapse the runs of blank lines that dropping tags leaves behind.
         text = text.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)

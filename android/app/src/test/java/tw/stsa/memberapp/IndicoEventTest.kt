@@ -11,6 +11,7 @@ import java.time.ZoneId
 
 private fun makeEvent(
     id: String = "10",
+    title: String = "工作坊",
     location: String? = "i2Hub",
     room: String? = "#04-32",
     description: String? = null,
@@ -18,7 +19,7 @@ private fun makeEvent(
 ): IndicoEvent {
     val fields = buildList {
         add(""""id": $id""")
-        add(""""title": "工作坊"""")
+        add(""""title": "$title"""")
         add(""""startDate": {"date": "2026-08-15", "time": "13:30:00", "tz": "Asia/Singapore"}""")
         add(""""endDate": {"date": "2026-08-15", "time": "15:30:00", "tz": "Asia/Singapore"}""")
         if (location != null) add(""""location": "$location"""")
@@ -184,5 +185,66 @@ class IndicoEventPlaceTest {
     @Test
     fun `is null when neither field is present`() {
         assertNull(makeEvent(location = null, room = null).place)
+    }
+}
+
+/**
+ * Organisers decorate Indico titles freely, and the app strips that at decode
+ * time so every screen gets the same clean string.
+ *
+ * The digit cases are the ones that matter. iOS has to dodge
+ * `Unicode.Scalar.Properties.isEmoji`, which is true for plain digits and for
+ * `#`/`*`; this side tests the general category instead, and these pin that it
+ * reaches the same answer.
+ */
+class IndicoEventTitleTest {
+
+    private fun title(raw: String): String = makeEvent(title = raw).title
+
+    @Test
+    fun `drops a trailing emoji`() {
+        assertEquals(
+            "2026 STSA Boba Chat｜Back to School Edition",
+            title("2026 STSA Boba Chat｜Back to School Edition 🧋"),
+        )
+    }
+
+    @Test
+    fun `drops a run of them`() {
+        assertEquals("2026 STSA 中秋烤肉趴", title("2026 STSA 中秋烤肉趴 🌕🔥"))
+    }
+
+    @Test
+    fun `closes the gap left in the middle`() {
+        assertEquals("STSA Boba Chat", title("STSA 🧋 Boba Chat"))
+    }
+
+    @Test
+    fun `does not eat the year`() {
+        assertEquals("2026 STSA Career Talk", title("2026 STSA Career Talk"))
+    }
+
+    @Test
+    fun `does not eat hashes or asterisks`() {
+        assertEquals("Room #04-32 *額滿*", title("Room #04-32 *額滿*"))
+    }
+
+    @Test
+    fun `drops a joined sequence whole`() {
+        assertEquals("家庭日", title("家庭日 👨‍👩‍👧‍👦"))
+    }
+
+    @Test
+    fun `drops a flag`() {
+        assertEquals("台灣之夜", title("台灣之夜 🇹🇼"))
+    }
+
+    /**
+     * Pinning a behaviour rather than an ideal: a title with nothing left is
+     * worse than one that kept its decoration.
+     */
+    @Test
+    fun `keeps a title that was nothing but emoji`() {
+        assertEquals("🎉🎉", title("🎉🎉"))
     }
 }

@@ -179,16 +179,39 @@ class AuthManager(context: Context) {
     suspend fun accessToken(): String {
         val state = authState ?: throw authError(R.string.error_not_authenticated)
 
-        val token = suspendCancellableCoroutine { continuation ->
-            state.performActionWithFreshTokens(authService) { accessToken, _, error ->
-                when {
-                    error != null -> continuation.resumeWithException(error)
-                    accessToken != null -> continuation.resume(accessToken)
-                    else -> continuation.resumeWithException(
-                        authError(R.string.error_token_unavailable)
-                    )
+        val token = try {
+            suspendCancellableCoroutine<String> { continuation ->
+                state.performActionWithFreshTokens(authService) { accessToken, _, error ->
+                    when {
+                        error != null -> continuation.resumeWithException(error)
+                        accessToken != null -> continuation.resume(accessToken)
+                        else -> continuation.resumeWithException(
+                            authError(R.string.error_token_unavailable)
+                        )
+                    }
                 }
             }
+        } catch (error: Throwable) {
+            // A session dying is ordinary: authentik rotates refresh tokens, they
+            // expire after 30 days, and they can be revoked from the account page.
+            // What is not ordinary is what used to happen next — this method threw
+            // before it could update [isLoggedIn], so the app stayed on the
+            // signed-in screen with a session that could never work again, showing
+            // a raw OAuth error and a Retry button that could not succeed. The only
+            // way out was to find 登出 in 設定.
+            //
+            // AppAuth has already folded a permanent OAuth failure into the state,
+            // so it can be asked.
+            if (state.authorizationException != null) {
+                withContext(Dispatchers.Main) { logout() }
+                throw authError(R.string.error_session_expired)
+            }
+
+            // Transient failure — a rotation may still have landed before it, so
+            // keep whatever AppAuth wrote rather than leaving a superseded refresh
+            // token in the store.
+            persist(state)
+            throw error
         }
 
         // A refresh rotates the token response (and on authentik, often the

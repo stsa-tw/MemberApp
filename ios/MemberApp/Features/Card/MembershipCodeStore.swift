@@ -39,14 +39,47 @@ final class MembershipCodeStore {
     // MARK: - Lifecycle
 
     /// Fetches immediately, then keeps refreshing until `stop()`.
+    ///
+    /// "Immediately" skips the fetch when a code minted moments ago is still
+    /// good — which is what `prefetch(using:)` sets up. Re-minting here would
+    /// throw away the head start and leave the member watching a spinner right
+    /// after they authenticated.
     func start(using auth: AuthManager) {
         stop()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh(using: auth)
-                try? await Task.sleep(for: .seconds(Self.refreshInterval))
+                if await self?.secondsUntilRefresh ?? 0 <= 0 {
+                    await self?.refresh(using: auth)
+                }
+                let wait = await self?.secondsUntilRefresh ?? Self.refreshInterval
+                try? await Task.sleep(for: .seconds(wait))
             }
         }
+    }
+
+    /// Mints a code without starting the refresh loop.
+    ///
+    /// Called alongside the biometric prompt rather than after it. The code is
+    /// only ever *drawn* behind a successful unlock, so this leaks nothing to
+    /// whoever failed the gate — it just removes a round-trip from the moment it
+    /// is most felt. If the gate does fail, the caller drops it with `clear()`.
+    func prefetch(using auth: AuthManager) async {
+        guard secondsUntilRefresh <= 0 else { return }
+        await refresh(using: auth)
+    }
+
+    /// Drops a code that was minted but never shown.
+    func clear() {
+        payload = nil
+        issuedAt = nil
+        errorMessage = nil
+    }
+
+    /// Seconds left before the held code should be replaced; 0 when there is
+    /// nothing usable.
+    private var secondsUntilRefresh: TimeInterval {
+        guard let issuedAt else { return 0 }
+        return max(0, Self.refreshInterval - Date().timeIntervalSince(issuedAt))
     }
 
     func stop() {
