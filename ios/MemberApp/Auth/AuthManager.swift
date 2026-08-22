@@ -15,6 +15,7 @@ import UIKit
 final class AuthManager {
     enum AuthError: LocalizedError {
         case notAuthenticated
+        case sessionExpired
         case noPresenter
         case missingUserinfoEndpoint
         case userinfoFailed(status: Int, body: String)
@@ -24,6 +25,8 @@ final class AuthManager {
             switch self {
             case .notAuthenticated:
                 "Not signed in."
+            case .sessionExpired:
+                String(localized: "登入已失效，請重新登入。")
             case .noPresenter:
                 "No foreground window to present the sign-in page from."
             case .missingUserinfoEndpoint:
@@ -34,14 +37,6 @@ final class AuthManager {
                 "The authorization server did not return an access token."
             }
         }
-    }
-
-    /// What the verification view needs to show, sampled on demand — the token
-    /// state lives inside AppAuth's object graph and is not observable.
-    struct TokenSnapshot {
-        var hasRefreshToken: Bool
-        var accessTokenExpiry: Date?
-        var scopesGranted: String?
     }
 
     private static let keychainService = "tw.stsa.membership.oidc"
@@ -156,24 +151,48 @@ final class AuthManager {
     func accessToken() async throws -> String {
         guard let authState else { throw AuthError.notAuthenticated }
 
-        let token: String = try await withCheckedThrowingContinuation { continuation in
-            authState.performAction { accessToken, _, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let accessToken {
-                    continuation.resume(returning: accessToken)
-                } else {
-                    continuation.resume(throwing: AuthError.tokenUnavailable)
+        do {
+            let token: String = try await withCheckedThrowingContinuation { continuation in
+                authState.performAction { accessToken, _, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let accessToken {
+                        continuation.resume(returning: accessToken)
+                    } else {
+                        continuation.resume(throwing: AuthError.tokenUnavailable)
+                    }
                 }
             }
+
+            // A refresh rotates the token response (and on authentik, often the
+            // refresh token too), so write the updated state back.
+            persist(authState)
+            isLoggedIn = authState.isAuthorized
+
+            return token
+        } catch {
+            // A session dying is ordinary: authentik rotates refresh tokens, they
+            // expire after 30 days, and they can be revoked from the account page.
+            // What is not ordinary is what used to happen next — this method threw
+            // before it could update `isLoggedIn`, so the app stayed on the
+            // signed-in screen with a session that could never work again, showing
+            // a raw OAuth error and a Retry button that could not succeed. The
+            // only way out was to find 登出 in 設定.
+            //
+            // AppAuth has already folded a permanent OAuth failure into the state
+            // (`updateWithTokenResponse` routes `OIDOAuthTokenErrorDomain` to
+            // `updateWithAuthorizationError`), so it can be asked.
+            if authState.authorizationError != nil {
+                logout()
+                throw AuthError.sessionExpired
+            }
+
+            // Transient failure — a rotation may still have landed before it, so
+            // keep whatever AppAuth wrote rather than leaving a superseded refresh
+            // token in the keychain.
+            persist(authState)
+            throw error
         }
-
-        // A refresh rotates the token response (and on authentik, often the
-        // refresh token too), so write the updated state back.
-        persist(authState)
-        isLoggedIn = authState.isAuthorized
-
-        return token
     }
 
     /// Renews the access token if it has lapsed, so the next request does not
@@ -205,14 +224,6 @@ final class AuthManager {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(try await accessToken())", forHTTPHeaderField: "Authorization")
         return request
-    }
-
-    func snapshot() -> TokenSnapshot {
-        TokenSnapshot(
-            hasRefreshToken: authState?.refreshToken != nil,
-            accessTokenExpiry: authState?.lastTokenResponse?.accessTokenExpirationDate,
-            scopesGranted: authState?.lastTokenResponse?.scope
-        )
     }
 
     // MARK: - Discovery
