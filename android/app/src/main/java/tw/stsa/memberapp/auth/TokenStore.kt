@@ -29,15 +29,23 @@ import javax.crypto.spec.GCMParameterSpec
  * it is shorter than the dependency's transitive Tink graph, and the newest
  * release of that library is still alpha.
  *
+ * Two of these exist: the authentik `AuthState` and, once the member links it,
+ * the Indico one. They are separate stores with separate Keystore keys rather
+ * than two values in one blob, so dropping one cannot disturb the other.
+ *
  * No `setUserAuthenticationRequired` — matching iOS's choice of AfterFirstUnlock
  * over WhenUnlocked. A silent token refresh must be able to run without putting
  * a lock screen in front of the member. Authentication guards the *card*, in
  * [BiometricGate], not the credential store.
  */
-class TokenStore(context: Context) {
+class TokenStore(
+    context: Context,
+    prefsName: String = PREFS_NAME,
+    private val keyAlias: String = KEY_ALIAS,
+) {
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
     fun read(): String? {
         val stored = prefs.getString(KEY_PAYLOAD, null) ?: return null
@@ -79,12 +87,12 @@ class TokenStore(context: Context) {
 
     private fun secretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        (keyStore.getEntry(keyAlias, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
 
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
         generator.init(
             KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
             )
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)

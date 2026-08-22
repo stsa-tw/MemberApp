@@ -4,6 +4,9 @@ import UIKit
 struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AuthManager.self) private var auth
+    @Environment(IndicoAuthManager.self) private var indico
+    @Environment(TicketStore.self) private var tickets
+    @Environment(CheckinStore.self) private var checkin
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -58,7 +61,14 @@ struct SettingsView: View {
             }
 
             Section {
-                Button("登出", role: .destructive) { auth.logout() }
+                // The Indico link and any pass held in memory belong to
+                // whoever was signed in, so they go with the session.
+                Button("登出", role: .destructive) {
+                    auth.logout()
+                    indico.unlink()
+                    tickets.clear()
+                    checkin.clear()
+                }
             } footer: {
                 Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
             }

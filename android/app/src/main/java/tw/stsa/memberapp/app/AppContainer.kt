@@ -6,8 +6,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import tw.stsa.memberapp.auth.AuthManager
+import tw.stsa.memberapp.auth.IndicoAuthManager
 import tw.stsa.memberapp.feature.card.MembershipCodeStore
 import tw.stsa.memberapp.feature.events.EventsStore
+import tw.stsa.memberapp.feature.events.TicketStore
 
 /**
  * The single instance of every piece of shared state, created once in
@@ -15,7 +17,7 @@ import tw.stsa.memberapp.feature.events.EventsStore
  * [LocalAppContainer] — the same shape as iOS creating them in `MemberAppApp`
  * and injecting with `.environment(…)`.
  *
- * Hand-rolled rather than Hilt. Five objects with no graph between them do not
+ * Hand-rolled rather than Hilt. A handful of objects with no graph between them do not
  * need a dependency-injection framework, and the rule that matters here is not
  * "how are these constructed" but "there is exactly one of each": nothing may
  * own a second copy of identity. `AuthManager.isLoggedIn` is the single gate.
@@ -34,8 +36,10 @@ class AppContainer(context: Context) {
         appContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
     )
     val auth = AuthManager(appContext)
+    val indico = IndicoAuthManager(appContext)
     val codes = MembershipCodeStore(appContext, scope)
     val events = EventsStore(appContext)
+    val tickets = TicketStore(appContext)
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

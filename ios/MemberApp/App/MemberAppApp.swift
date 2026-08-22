@@ -5,8 +5,11 @@ struct MemberAppApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var session = Session()
     @State private var auth = AuthManager()
+    @State private var indico = IndicoAuthManager()
     @State private var codes = MembershipCodeStore()
     @State private var events = EventsStore()
+    @State private var tickets = TicketStore()
+    @State private var checkin = CheckinStore()
     @State private var settings = AppSettings()
 
     var body: some Scene {
@@ -14,14 +17,19 @@ struct MemberAppApp: App {
             RootView()
                 .environment(session)
                 .environment(auth)
+                .environment(indico)
                 .environment(codes)
                 .environment(events)
+                .environment(tickets)
+                .environment(checkin)
                 .environment(settings)
                 .tint(Theme.Palette.brand)
                 .preferredColorScheme(settings.appearance.colorScheme)
                 .onOpenURL { url in
                     // tw.stsa.membership://callback — hand the authorization
-                    // code back to the in-flight AppAuth request.
+                    // code back to the in-flight AppAuth request. The Indico flow
+                    // also returns through this scheme, but its browser session
+                    // captures the callback itself, so only authentik needs this.
                     auth.resume(url)
                 }
                 // onChange does not fire for the initial value, so the launch

@@ -29,6 +29,7 @@
     <string name="welcome_highlight_deals_title">會員優惠與職缺</string>
     <string name="welcome_highlight_deals_detail">合作商家折扣碼、在星實習機會</string>
     <string name="sign_in">登入</string>
+    <string name="sign_in_links_indico">登入會一併連結你的 Indico 帳號，用來顯示你的報名與票券。</string>
     <string name="sign_in_failed">登入失敗</string>
     <string name="ok">好</string>
 
@@ -68,7 +69,7 @@
     <string name="card_field_school" translatable="false">School</string>
     <string name="card_field_role" translatable="false">Role</string>
     <string name="card_field_code" translatable="false">Code</string>
-    <string name="card_member_year" translatable="false">STSA MEMBER 2026</string>
+    <string name="card_member_year" translatable="false">STSA MEMBER</string>
     <string name="officer">幹部</string>
     <string name="expired">已過期</string>
     <string name="retry">重試</string>
@@ -78,12 +79,17 @@
     <string name="events">活動</string>
     <string name="events_upcoming">即將舉行</string>
     <string name="events_past">已結束</string>
+    <string name="events_past_none">沒有你報名過的活動。</string>
     <string name="events_website">活動網站</string>
     <string name="events_load_failed">讀不到活動</string>
     <string name="events_empty_detail">新的活動公布後會出現在這裡。</string>
     <string name="event_register">前往報名</string>
     <string name="event_view_page">查看活動頁</string>
     <string name="event_registration_note">報名在 Indico 上完成，使用同一個 STSA 帳號。</string>
+    <string name="event_ticket_view">查看我的票券</string>
+    <string name="event_ticket_link_note">會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。</string>
+    <string name="event_registered">已報名</string>
+    <string name="event_ticket_open">查看票券</string>
     <string name="event_kicker_conference">活動</string>
     <string name="event_kicker_meeting">聚會</string>
     <string name="event_kicker_lecture">講座</string>
@@ -195,6 +201,7 @@
 
     <!-- Errors -->
     <string name="error_not_authenticated">尚未登入。</string>
+    <string name="error_session_expired">登入已失效，請重新登入。</string>
     <string name="error_no_userinfo_endpoint">discovery 文件沒有提供 userinfo endpoint。</string>
     <string name="error_userinfo_failed">userinfo 回應 HTTP %1$d：%2$s</string>
     <string name="error_token_unavailable">授權伺服器沒有回傳 access token。</string>
@@ -202,4 +209,6 @@
     <string name="error_code_403">帳號缺少必要的授權範圍。(403 %1$s)</string>
     <string name="error_code_server">伺服器錯誤 %1$d。%2$s</string>
     <string name="error_indico_http">Indico 回應 HTTP %1$d。</string>
+    <string name="error_indico_not_linked">尚未連結 Indico 帳號。</string>
+    <string name="ticket_fetch_failed">無法取得票券，稍後再試。</string>
 </resources>

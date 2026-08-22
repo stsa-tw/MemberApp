@@ -26,6 +26,7 @@
     <string name="welcome_highlight_deals_title">Offers and jobs</string>
     <string name="welcome_highlight_deals_detail">Partner discounts and internships in Singapore</string>
     <string name="sign_in">Sign in</string>
+    <string name="sign_in_links_indico">Signing in also links your Indico account, used to show your registrations and tickets.</string>
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="ok">OK</string>
 
@@ -73,12 +74,17 @@
     <string name="events">Events</string>
     <string name="events_upcoming">Upcoming</string>
     <string name="events_past">Past</string>
+    <string name="events_past_none">Nothing you registered for.</string>
     <string name="events_website">Event website</string>
     <string name="events_load_failed">Couldn’t load events</string>
     <string name="events_empty_detail">New events appear here once announced.</string>
     <string name="event_register">Register</string>
     <string name="event_view_page">View event page</string>
     <string name="event_registration_note">Registration happens on Indico, using the same STSA account.</string>
+    <string name="event_ticket_view">Show my ticket</string>
+    <string name="event_ticket_link_note">Links your Indico account, used only to read your own registrations and tickets.</string>
+    <string name="event_registered">Registered</string>
+    <string name="event_ticket_open">Show ticket</string>
     <string name="event_kicker_conference">Event</string>
     <string name="event_kicker_meeting">Meetup</string>
     <string name="event_kicker_lecture">Talk</string>
@@ -183,6 +189,7 @@
 
     <!-- Errors -->
     <string name="error_not_authenticated">Not signed in.</string>
+    <string name="error_session_expired">Your session has expired — please sign in again.</string>
     <string name="error_no_userinfo_endpoint">The discovery document did not advertise a userinfo endpoint.</string>
     <string name="error_userinfo_failed">userinfo returned HTTP %1$d: %2$s</string>
     <string name="error_token_unavailable">The authorization server did not return an access token.</string>
@@ -190,4 +197,6 @@
     <string name="error_code_403">This account is missing a required scope. (403 %1$s)</string>
     <string name="error_code_server">Server error %1$d. %2$s</string>
     <string name="error_indico_http">Indico returned HTTP %1$d.</string>
+    <string name="error_indico_not_linked">Indico account is not linked.</string>
+    <string name="ticket_fetch_failed">Could not fetch the ticket. Try again later.</string>
 </resources>

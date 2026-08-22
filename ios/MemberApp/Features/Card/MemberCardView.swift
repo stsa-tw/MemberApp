@@ -35,12 +35,7 @@ struct MemberCardView: View {
                 }
             }
         }
-        .task {
-            await unlockIfNeeded()
-            guard isUnlocked else { return }
-            codes.start(using: auth)
-            raiseBrightness()
-        }
+        .task { await unlock() }
         .onDisappear {
             codes.stop()
             restoreBrightness()
@@ -58,7 +53,7 @@ struct MemberCardView: View {
             Text("需要驗證才能出示會員卡")
                 .font(.headline)
             Button("使用 \(BiometricGate.biometryName) 解鎖") {
-                Task { await unlockIfNeeded() }
+                Task { await unlock() }
             }
             .buttonStyle(.brandPlain)
         }
@@ -66,16 +61,30 @@ struct MemberCardView: View {
         .padding(.top, 80)
     }
 
-    private func unlockIfNeeded() async {
-        guard settings.requireBiometricsForCard else {
-            isUnlocked = true
-            return
-        }
-        isUnlocked = await BiometricGate.authenticate(reason: String(localized: "出示 STSA 電子會員卡"))
-        if isUnlocked {
+    /// Authenticates and mints the code *at the same time*.
+    ///
+    /// These used to run in sequence, so the network round-trip started only
+    /// once Face ID had succeeded — a wait right at the moment the member is
+    /// holding the phone up to a scanner. Minting alongside the prompt is safe
+    /// because the code is only ever drawn behind `isUnlocked`; a failed gate
+    /// throws the code away instead of showing it.
+    private func unlock() async {
+        let prefetch = Task { await codes.prefetch(using: auth) }
+        let unlocked = await authenticate()
+
+        isUnlocked = unlocked
+        if unlocked {
             codes.start(using: auth)
             raiseBrightness()
+        } else {
+            await prefetch.value
+            codes.clear()
         }
+    }
+
+    private func authenticate() async -> Bool {
+        guard settings.requireBiometricsForCard else { return true }
+        return await BiometricGate.authenticate(reason: String(localized: "出示 STSA 電子會員卡"))
     }
 
     // MARK: - Card
@@ -84,7 +93,7 @@ struct MemberCardView: View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("STSA MEMBER 2026")
+                    Text(verbatim: "STSA MEMBER")
                         .font(.caption.weight(.semibold))
                         .tracking(1.0)
                         .foregroundStyle(Theme.Palette.brand)

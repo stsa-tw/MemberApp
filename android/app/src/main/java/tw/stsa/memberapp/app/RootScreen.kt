@@ -1,6 +1,8 @@
 package tw.stsa.memberapp.app
 
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.core.tween
@@ -30,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -50,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.feature.account.AccountScreen
 import tw.stsa.memberapp.feature.card.MemberCardScreen
@@ -112,6 +116,31 @@ fun RootScreen(
         return
     }
 
+    // Link Indico as soon as there is a session, rather than making the member
+    // find a button for it. It lives here rather than in WelcomeScreen because a
+    // successful sign-in swaps that screen away immediately, taking its launcher
+    // and coroutine scope with it — a flow started there would never finish.
+    //
+    // Unlike iOS, the Custom Tab shows no system prompt of its own, so this is
+    // invisible: the browser already carries the authentik session that Indico
+    // delegates to.
+    //
+    // Deliberately swallowed: nothing here may break the signed-in shell. When it
+    // does not complete, the events screen still offers to link, and this tries
+    // again on the next launch.
+    val indico = container.indico
+    val linkScope = rememberCoroutineScope()
+    val indicoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        linkScope.launch { runCatching { indico.completeAuthorization(result.data) } }
+    }
+    LaunchedEffect(indico.isLinked) {
+        if (indico.isLinked) return@LaunchedEffect
+        runCatching { indicoLauncher.launch(indico.authorizationIntent()) }
+            .onFailure { indico.abandonAuthorization() }
+    }
+
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
@@ -120,6 +149,8 @@ fun RootScreen(
     }
 
     val view = LocalView.current
+
+    LaunchedEffect(auth.profile?.sub) { container.tickets.subject = auth.profile?.sub }
 
     // Loaded here rather than in EventsScreen: Home shows the upcoming count
     // too, and it was reading an empty store until the events tab was first
