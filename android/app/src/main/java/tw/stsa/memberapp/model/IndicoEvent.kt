@@ -98,7 +98,7 @@ private data class EventDto(
 ) {
     fun toEvent(): IndicoEvent = IndicoEvent(
         id = id,
-        title = title,
+        title = title.withoutEmoji(),
         start = startDate.instant,
         end = endDate.instant,
         zone = startDate.zone,
@@ -165,6 +165,47 @@ private val ENTITIES = linkedMapOf(
     "&rdquo;" to "”",
     "&amp;" to "&",
 )
+
+/**
+ * Drops decorative emoji, and the whitespace they leave behind.
+ *
+ * Organisers type them into Indico titles freely (🧋, 🌕🔥), which reads fine on a
+ * web page with one event per screen and badly in a list of dense two-line rows,
+ * where they are the loudest thing in the column and carry no information the
+ * title does not already give.
+ *
+ * `Character.isEmoji` is Java 21 and not on Android's `java.lang.Character`, so
+ * this tests the code point's general category instead: emoji are `OTHER_SYMBOL`,
+ * joined by the zero-width joiner, tinted by the skin-tone modifiers and forced
+ * into emoji presentation by U+FE0F. Digits and `#`/`*` are not `OTHER_SYMBOL`,
+ * so a title keeps its year.
+ */
+private fun String.withoutEmoji(): String {
+    val kept = StringBuilder(length)
+    var index = 0
+    while (index < length) {
+        val codePoint = codePointAt(index)
+        val width = Character.charCount(codePoint)
+        if (!codePoint.isEmojiScalar()) kept.appendCodePoint(codePoint)
+        index += width
+    }
+
+    val tidied = kept.toString()
+        .replace(Regex(" +"), " ")
+        .replace(Regex(" ([｜|·,、])"), "$1")
+        .trim()
+
+    // A title that was nothing but emoji is still better than no title.
+    return tidied.ifEmpty { this }
+}
+
+private fun Int.isEmojiScalar(): Boolean = when {
+    this == 0x200D -> true                       // zero-width joiner
+    this == 0xFE0F -> true                       // emoji presentation selector
+    this in 0x1F3FB..0x1F3FF -> true             // skin-tone modifiers
+    this in 0x1F1E6..0x1F1FF -> true             // regional indicators (flags)
+    else -> Character.getType(this) == Character.OTHER_SYMBOL.toInt()
+}
 
 private fun String.plainTextFromHtml(): String {
     // Block-level tags become paragraph breaks before everything else is dropped.

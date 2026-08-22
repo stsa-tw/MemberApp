@@ -5,6 +5,7 @@ import Testing
 
 private func makeEvent(
     id: String = "10",
+    title: String = "工作坊",
     location: String? = "i2Hub",
     room: String? = "#04-32",
     description: String? = nil,
@@ -12,7 +13,7 @@ private func makeEvent(
 ) throws -> IndicoEvent {
     var fields: [String] = [
         #""id": \#(id)"#,
-        #""title": "工作坊""#,
+        #""title": "\#(title)""#,
         #""startDate": {"date": "2026-08-15", "time": "13:30:00", "tz": "Asia/Singapore"}"#,
         #""endDate": {"date": "2026-08-15", "time": "15:30:00", "tz": "Asia/Singapore"}"#,
     ]
@@ -79,6 +80,14 @@ struct IndicoEventSummaryTests {
         #expect(event.summary == "第一段\n第二段")
     }
 
+    /// Indico and the CDN in front of it both emit numeric entities; `&#160;`
+    /// lands as a non-breaking space, which is normalised so it does not read as
+    /// a different character than `&nbsp;` would have.
+    @Test func decodesNumericEntities() throws {
+        let event = try makeEvent(description: "A&#160;B &#x4E2D;")
+        #expect(event.summary == "A B 中")
+    }
+
     @Test func inlineTagsAreStrippedWithoutLeavingAGap() throws {
         let event = try makeEvent(description: "報名<strong>截止</strong>了")
 
@@ -120,5 +129,52 @@ struct IndicoEventPlaceTests {
 
     @Test func isNilWhenNeitherFieldIsPresent() throws {
         #expect(try makeEvent(location: nil, room: nil).place == nil)
+    }
+}
+
+/// Organisers decorate Indico titles freely, and the app strips that at decode
+/// time so every screen gets the same clean string.
+///
+/// The digit cases are the ones that matter: `Unicode.Scalar.Properties.isEmoji`
+/// is true for plain digits and for `#`/`*`, so the naive test would quietly eat
+/// the year out of "2026 STSA".
+struct IndicoEventTitleTests {
+    private func title(_ raw: String) throws -> String {
+        try makeEvent(title: raw).title
+    }
+
+    @Test func dropsATrailingEmoji() throws {
+        #expect(try title("2026 STSA Boba Chat｜Back to School Edition 🧋")
+            == "2026 STSA Boba Chat｜Back to School Edition")
+    }
+
+    @Test func dropsARunOfThem() throws {
+        #expect(try title("2026 STSA 中秋烤肉趴 🌕🔥") == "2026 STSA 中秋烤肉趴")
+    }
+
+    @Test func closesTheGapLeftInTheMiddle() throws {
+        #expect(try title("STSA 🧋 Boba Chat") == "STSA Boba Chat")
+    }
+
+    @Test func doesNotEatTheYear() throws {
+        #expect(try title("2026 STSA Career Talk") == "2026 STSA Career Talk")
+    }
+
+    @Test func doesNotEatHashesOrAsterisks() throws {
+        #expect(try title("Room #04-32 *額滿*") == "Room #04-32 *額滿*")
+    }
+
+    @Test func dropsAJoinedSequenceWhole() throws {
+        #expect(try title("家庭日 👨‍👩‍👧‍👦") == "家庭日")
+    }
+
+    @Test func dropsAFlag() throws {
+        #expect(try title("台灣之夜 🇹🇼") == "台灣之夜")
+    }
+
+    /// Pinning a behaviour rather than an ideal: a title with nothing left is
+    /// worse than one that kept its decoration.
+    @Test func keepsATitleThatWasNothingButEmoji() throws {
+        #expect(try title("🎉🎉") == "🎉🎉")
     }
 }
