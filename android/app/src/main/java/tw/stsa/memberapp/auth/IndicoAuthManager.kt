@@ -90,7 +90,7 @@ class IndicoAuthManager(context: Context) {
      * placeholder, so the response comes back through the activity result exactly
      * as the authentik flow's does.
      */
-    fun authorizationIntent(): Intent {
+    fun authorizationIntent(scopes: List<String> = IndicoAuthConfiguration.SCOPES): Intent {
         isBusy = true
         try {
             // The standard builder derives a PKCE code_verifier and an S256
@@ -101,7 +101,7 @@ class IndicoAuthManager(context: Context) {
                 IndicoAuthConfiguration.CLIENT_ID,
                 ResponseTypeValues.CODE,
                 IndicoAuthConfiguration.REDIRECT_URI,
-            ).setScopes(IndicoAuthConfiguration.SCOPES).build()
+            ).setScopes(scopes).build()
 
             return authService.getAuthorizationRequestIntent(request)
         } catch (error: Throwable) {
@@ -162,6 +162,17 @@ class IndicoAuthManager(context: Context) {
 
     fun authorizationHeaders(): Map<String, String> =
         mapOf("Authorization" to "Bearer ${token()}")
+
+    /**
+     * Whether this authorization can record a check-in, as opposed to only
+     * reading a roster.
+     *
+     * Read from what Indico granted rather than from what was asked for: the
+     * application's allowed scopes are server config, so a request for
+     * `registrants` can come back without it.
+     */
+    val canRecordCheckin: Boolean
+        get() = authState?.scopeSet?.contains(IndicoAuthConfiguration.CHECKIN_SCOPE) == true
 
     // MARK: - Persistence
 

@@ -47,11 +47,35 @@ enum IndicoAuthConfiguration {
     /// accepted scopes for every GET. It reads nothing the member could not
     /// already see on the website.
     ///
-    /// `registrants` looks like the narrower and therefore better choice. It is
-    /// not: the check-in API it unlocks also requires `registration_checkin` on
-    /// the event, which is an organiser permission, so a member's token cannot
-    /// use it to read even their own registration.
+    /// `registrants` looks like the narrower and therefore better choice for
+    /// this list. It is not: the check-in API it unlocks also requires
+    /// `registration_checkin` on the event, which is an organiser permission, so
+    /// a member's token cannot use it to read even their own registration. It
+    /// earns its place only on the door screen — see `checkinScopes`.
     static let scopes = ["read:everything"]
+
+    /// What 報到 needs in addition, to *write* a check-in.
+    ///
+    /// `read:everything` covers any GET, but Indico accepts only `registrants`
+    /// or `full:everything` for anything else — so recording attendance is a
+    /// wider grant than reading a roster, and `registrants` is the narrower of
+    /// the two that can do it.
+    ///
+    /// Asked for **only when a 幹部 opens the door screen**, never at sign-in.
+    /// Indico's `save_token` extends an existing authorization in place
+    /// (`link.update_scopes(new_scopes)`), so a member who already granted
+    /// `read:everything` keeps it untouched and is never re-prompted; the one
+    /// person who needs to write consents once, on their own account. That is
+    /// why this is a separate list rather than an addition to `scopes` — putting
+    /// `registrants` there would re-authorize every member for a screen almost
+    /// none of them can open.
+    ///
+    /// The Indico application must allow this scope for the request to succeed.
+    /// Adding it there does not invalidate anyone's existing authorization.
+    static let checkinScopes = scopes + ["registrants"]
+
+    /// The scope whose presence decides whether the door can record anything.
+    static let checkinScope = "registrants"
 
     static var serviceConfiguration: OIDServiceConfiguration {
         OIDServiceConfiguration(

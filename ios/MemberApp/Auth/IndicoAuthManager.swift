@@ -55,6 +55,11 @@ final class IndicoAuthManager {
     private(set) var isLinked = false
     private(set) var isBusy = false
 
+    /// What Indico actually granted, which is not always what was asked for.
+    /// Read rather than assumed: the application's allowed scopes are server
+    /// config, so a request for `registrants` can come back without it.
+    private(set) var grantedScopes: Set<String> = []
+
     @ObservationIgnored private var token: String?
 
     init() {
@@ -65,7 +70,13 @@ final class IndicoAuthManager {
 
     /// Runs the authorization flow. Call this at the point the member asks for
     /// something that needs it, not at sign-in — see the note in `TicketStore`.
-    func link() async throws {
+    /// Whether this authorization can record a check-in, as opposed to only
+    /// reading a roster.
+    var canRecordCheckin: Bool {
+        grantedScopes.contains(IndicoAuthConfiguration.checkinScope)
+    }
+
+    func link(scopes: [String] = IndicoAuthConfiguration.scopes) async throws {
         isBusy = true
         defer { isBusy = false }
 
@@ -75,7 +86,7 @@ final class IndicoAuthManager {
         let request = OIDAuthorizationRequest(
             configuration: IndicoAuthConfiguration.serviceConfiguration,
             clientId: IndicoAuthConfiguration.clientID,
-            scopes: IndicoAuthConfiguration.scopes,
+            scopes: scopes,
             redirectURL: IndicoAuthConfiguration.redirectURI,
             responseType: OIDResponseTypeCode,
             additionalParameters: nil
@@ -111,7 +122,7 @@ final class IndicoAuthManager {
         }
 
         guard let token = response.accessToken else { throw LinkError.tokenUnavailable }
-        adopt(token)
+        adopt(token, scopes: Self.scopes(from: response.scope) ?? Set(scopes))
         logLinkResult(response)
     }
 
@@ -138,6 +149,7 @@ final class IndicoAuthManager {
     func unlink() {
         try? Keychain.remove(service: Self.keychainService, account: Self.keychainAccount)
         token = nil
+        grantedScopes = []
         isLinked = false
     }
 
@@ -161,12 +173,24 @@ final class IndicoAuthManager {
 
     // MARK: - Persistence
 
-    private func adopt(_ token: String) {
+    /// Indico reports granted scopes as a space-separated list, per RFC 6749.
+    private static func scopes(from raw: String?) -> Set<String>? {
+        guard let raw, !raw.isEmpty else { return nil }
+        return Set(raw.split(separator: " ").map(String.init))
+    }
+
+    private func adopt(_ token: String, scopes: Set<String>) {
         self.token = token
+        grantedScopes = scopes
         isLinked = true
 
+        // Stored together: a token whose scopes are unknown would send the door
+        // to Indico only to be refused, after the worker had already scanned.
+        let stored = Stored(token: token, scopes: Array(scopes).sorted())
+
         do {
-            try Keychain.set(Data(token.utf8), service: Self.keychainService, account: Self.keychainAccount)
+            try Keychain.set(try JSONEncoder().encode(stored),
+                             service: Self.keychainService, account: Self.keychainAccount)
         } catch {
             // Same reasoning as AuthManager: losing the write costs the member one
             // more authorization tap. Never fall back to a file.
@@ -175,13 +199,31 @@ final class IndicoAuthManager {
     }
 
     private func restore() {
-        guard let data = try? Keychain.get(service: Self.keychainService, account: Self.keychainAccount),
-              let stored = String(data: data, encoding: .utf8),
-              !stored.isEmpty
+        guard let data = try? Keychain.get(service: Self.keychainService, account: Self.keychainAccount)
         else { return }
 
-        token = stored
+        if let stored = try? JSONDecoder().decode(Stored.self, from: data), !stored.token.isEmpty {
+            token = stored.token
+            grantedScopes = Set(stored.scopes)
+            isLinked = true
+            return
+        }
+
+        // Anything written before scopes were recorded is a bare token string.
+        // It is still a valid authorization, so keep it and assume the only
+        // scope that was ever requested then, rather than making the member
+        // link again.
+        guard let bare = String(data: data, encoding: .utf8), !bare.isEmpty else { return }
+        token = bare
+        grantedScopes = Set(IndicoAuthConfiguration.scopes)
         isLinked = true
+    }
+
+    /// Keychain payload. Versionless on purpose: the decode either succeeds or
+    /// falls back to the bare-token form above.
+    private struct Stored: Codable {
+        let token: String
+        let scopes: [String]
     }
 
     // MARK: - Verification logging

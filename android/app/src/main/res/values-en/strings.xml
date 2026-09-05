@@ -199,4 +199,35 @@
     <string name="error_indico_http">Indico returned HTTP %1$d.</string>
     <string name="error_indico_not_linked">Indico account is not linked.</string>
     <string name="ticket_fetch_failed">Could not fetch the ticket. Try again later.</string>
+    <!-- Check-in -->
+    <string name="checkin_title">Check-in</string>
+    <string name="checkin_denied">This account has no check-in permission for this event in Indico.</string>
+    <string name="checkin_denied_detail">Check-in permission lives in Indico — a separate list from the officer group in this app.</string>
+    <string name="checkin_failed_to_start">Check-in could not start.</string>
+    <string name="checkin_progress">%1$d / %2$d checked in</string>
+    <string name="checkin_hint">Scan a member card or an Indico ticket</string>
+    <string name="checkin_camera_needed">Scanning needs camera access.</string>
+    <string name="checkin_camera_needed_detail">Grant camera access in Settings.</string>
+    <string name="checkin_confirm">Check in</string>
+    <string name="checkin_confirm_again">Check in again</string>
+    <string name="checkin_done">Checked in</string>
+    <string name="checkin_continue">Keep scanning</string>
+    <string name="checkin_failed">Could not check in</string>
+    <string name="checkin_already">Already checked in.</string>
+    <string name="checkin_already_at">Checked in at %1$s.</string>
+    <string name="checkin_authorize">Authorize</string>
+    <string name="error_checkin_needs_authorization">This Indico authorization is read-only. Grant once and check-ins can be recorded.</string>
+
+    <string name="error_checkin_401">Your Indico session has expired — please sign in again.</string>
+    <string name="error_checkin_403">This account has no check-in permission for this event in Indico.</string>
+    <string name="error_checkin_404">Indico has no such ticket or registration.</string>
+    <string name="error_checkin_server">Indico server error %1$d. %2$s</string>
+    <string name="error_checkin_malformed">Indico\'s response could not be read.</string>
+    <string name="error_checkin_foreign">This ticket was issued by %1$s, not by STSA.</string>
+    <string name="error_checkin_accompanying">This is an accompanying person\'s ticket — use the official Indico app.</string>
+    <string name="error_checkin_wrong_event">This ticket belongs to a different event.</string>
+    <string name="error_checkin_expired_code">The member code has expired — ask them to reopen their card.</string>
+    <string name="error_checkin_not_registered">%1$s is not registered for this event.</string>
+    <string name="error_checkin_not_admissible">%1$s\'s registration was withdrawn or rejected.</string>
+    <string name="error_checkin_unrecognised">This QR code was not recognised.</string>
 </resources>

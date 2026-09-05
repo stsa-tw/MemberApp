@@ -13,6 +13,12 @@ struct RegistrationAnswer: Identifiable, Equatable {
 /// One registrant, as Indico's check-in API describes them.
 struct CheckinRegistration: Equatable {
     let id: Int
+    /// The event and form this registration belongs to. Needed to address the
+    /// check-in PATCH, and to refuse a ticket scanned at the wrong door — the
+    /// ticket endpoint is not scoped to an event, so Indico will happily resolve
+    /// a ticket for another event the same staffer manages.
+    let eventID: Int
+    let formID: Int
     let fullName: String
     let email: String
     /// Indico's own word: `complete`, `pending`, `withdrawn`, `unpaid`, `rejected`.
@@ -23,6 +29,14 @@ struct CheckinRegistration: Equatable {
     let answers: [RegistrationAnswer]
 
     var isComplete: Bool { state == "complete" }
+
+    /// Whether this person may be admitted at all.
+    ///
+    /// A withdrawn or rejected registration still comes back in the roster, and
+    /// recording attendance for one would put someone in the room the organiser
+    /// removed. `unpaid` is admissible — payment is not the door's problem, and
+    /// Indico's own app checks those in too.
+    var isAdmissible: Bool { state == "complete" || state == "unpaid" }
 }
 
 /// Decodes `CheckinRegistrationSchema` and renders its raw answers.
@@ -47,6 +61,8 @@ enum CheckinDecoder {
         guard let id = raw["id"] as? Int else { return nil }
         return CheckinRegistration(
             id: id,
+            eventID: raw["event_id"] as? Int ?? 0,
+            formID: raw["regform_id"] as? Int ?? 0,
             fullName: raw["full_name"] as? String ?? "",
             email: (raw["email"] as? String ?? "").lowercased(),
             state: raw["state"] as? String ?? "",

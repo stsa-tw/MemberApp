@@ -33,8 +33,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
+import tw.stsa.memberapp.app.Checkin
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.designsystem.BrandButton
+import tw.stsa.memberapp.designsystem.BrandTextButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -133,6 +135,26 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
                 onLink = { linkLauncher.launch(indico.authorizationIntent()) },
                 onOpen = { uriHandler.openUri(it) },
             )
+
+            // 報到 is for 幹部 only, and only while an event is still running.
+            //
+            // The group claim decides what is *visible*; Indico's
+            // `registration_checkin` permission decides what *works*, and is
+            // enforced on every call. Gating the button on the claim is what
+            // keeps ordinary members from being sent to a door they cannot open
+            // — see the note on `Profile.groups`, which is not a security
+            // boundary and is not used as one here.
+            val showsCheckin = container.auth.profile?.isOfficer == true &&
+                event.isUpcoming() &&
+                event.id.toIntOrNull() != null
+            if (showsCheckin) {
+                Spacer(Modifier.size(12.dp))
+                BrandTextButton(
+                    text = stringResource(R.string.checkin_title),
+                    onClick = { navController.navigate(Checkin(event.id)) },
+                    modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),
+                )
+            }
 
             if (event.summary.isNotEmpty()) {
                 Spacer(Modifier.size(22.dp))

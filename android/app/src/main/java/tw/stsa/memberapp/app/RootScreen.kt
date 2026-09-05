@@ -58,6 +58,7 @@ import tw.stsa.memberapp.R
 import tw.stsa.memberapp.feature.account.AccountScreen
 import tw.stsa.memberapp.feature.card.MemberCardScreen
 import tw.stsa.memberapp.feature.channels.ChannelsScreen
+import tw.stsa.memberapp.feature.checkin.CheckinScreen
 import tw.stsa.memberapp.feature.deals.DealDetailScreen
 import tw.stsa.memberapp.feature.deals.DealsScreen
 import tw.stsa.memberapp.feature.events.EventDetailScreen
@@ -251,6 +252,9 @@ fun RootScreen(
 
                 composable<EventDetail> { entry ->
                     EventDetailScreen(navController, entry.toRoute<EventDetail>().id)
+                }
+                composable<Checkin> { entry ->
+                    CheckinScreen(navController, entry.toRoute<Checkin>().id)
                 }
                 composable<DealDetail> { entry ->
                     DealDetailScreen(navController, entry.toRoute<DealDetail>().brand)
