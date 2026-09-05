@@ -10,6 +10,7 @@ struct EventDetailView: View {
     @Environment(CheckinStore.self) private var checkin
 
     @State private var isLinking = false
+    @State private var isAddingPass = false
     @State private var isShowingDescription = false
 
     var body: some View {
@@ -114,6 +115,18 @@ struct EventDetailView: View {
         }
     }
 
+    private func addToWallet(_ url: URL) async {
+        isAddingPass = true
+        defer { isAddingPass = false }
+        do {
+            try await WalletPass.add(from: url, using: indico)
+        } catch {
+            // Shown where the ticket's own failures are shown; adding a pass is
+            // not important enough to interrupt with an alert.
+            tickets.report(error, for: event.id)
+        }
+    }
+
     // MARK: - Actions
 
     /// Exactly one filled button, ever.
@@ -129,6 +142,19 @@ struct EventDetailView: View {
         VStack(spacing: 8) {
             switch ticketState {
             case .available(let ticket):
+                // The pass is the better ticket — it carries the same check-in
+                // QR and lives where a ticket belongs — so it leads when the
+                // server produced one. The PDF stays as the way through when it
+                // did not, which is every event until the instance's 500 on
+                // `…/ticket/apple-wallet` is fixed.
+                if let pass = tickets.walletURL(for: event.id), WalletPass.isAvailable {
+                    Button("加入 Apple Wallet") {
+                        Task { await addToWallet(pass) }
+                    }
+                    .buttonStyle(.brand)
+                    .disabled(isAddingPass)
+                }
+
                 Button("查看票券") { openURL(ticket) }
                     .buttonStyle(.brand)
 

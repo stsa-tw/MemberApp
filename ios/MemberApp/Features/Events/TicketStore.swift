@@ -88,6 +88,18 @@ final class TicketStore {
 
     private static let host = "https://event.stsa.tw"
 
+    /// Where this event's ticket lives as an Apple Wallet pass, once asked.
+    ///
+    /// `nil` for an event that was asked and could not produce one — currently
+    /// every event on this instance, which is why the PDF is still the primary
+    /// route. Cached either way so a screen that redraws does not re-ask a
+    /// server that answers 500.
+    private var walletURLs: [String: URL?] = [:]
+
+    func walletURL(for eventID: String) -> URL? {
+        walletURLs[eventID] ?? nil
+    }
+
     func state(for eventID: String) -> State {
         states[eventID] ?? .idle
     }
@@ -134,6 +146,7 @@ final class TicketStore {
                 case .available:
                     states[eventID] = .available(url)
                     remember(eventID: eventID, hasTicket: true, formID: formID)
+                    await loadWalletPass(eventID: eventID, formID: formID, using: indico)
                     return
                 case .needsLinking:
                     states[eventID] = .needsLinking
@@ -237,6 +250,40 @@ final class TicketStore {
 
     static func ticketURL(eventID: String, formID: Int) -> URL {
         URL(string: "\(host)/event/\(eventID)/registrations/\(formID)/ticket.pdf")!
+    }
+
+    /// The same ticket as an Apple Wallet pass.
+    ///
+    /// Indico serves this itself — it is core, not a plugin, and needs no
+    /// certificate of ours — so a working instance hands back a signed
+    /// `.pkpass` and there is nothing for the app to sign.
+    static func walletURL(eventID: String, formID: Int) -> URL {
+        URL(string: "\(host)/event/\(eventID)/registrations/\(formID)/ticket/apple-wallet")!
+    }
+
+    /// Asks whether this ticket exists as a pass, and remembers either answer.
+    ///
+    /// Deliberately never fails the ticket: a pass is the nicer route to the
+    /// same QR, not a replacement for it. This instance currently answers 500
+    /// `RecursionError` for every event, so the expected outcome today is "no
+    /// pass, keep the PDF" — and the moment that is fixed server-side this
+    /// starts returning one with no further change here.
+    private func loadWalletPass(eventID: String, formID: Int, using indico: IndicoAuthManager) async {
+        if walletURLs[eventID] != nil { return }
+
+        let url = Self.walletURL(eventID: eventID, formID: formID)
+        do {
+            var request = try indico.authorizedRequest(for: url)
+            // The body is the pass itself; only the verdict is needed here.
+            request.httpMethod = "HEAD"
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let http = response as? HTTPURLResponse
+            let isPass = http?.statusCode == 200
+                && http?.mimeType == "application/vnd.apple.pkpass"
+            walletURLs[eventID] = isPass ? url : URL?.none
+        } catch {
+            walletURLs[eventID] = URL?.none
+        }
     }
 
     private func registrationForms(eventID: String, using indico: IndicoAuthManager) async throws -> [Int] {

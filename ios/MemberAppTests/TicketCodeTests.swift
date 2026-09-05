@@ -178,3 +178,18 @@ struct CheckinWindowTests {
         #expect(event.isWithinCheckinWindow(at: moment("2026-06-01T12:00:00+08:00")))
     }
 }
+
+
+struct WalletTicketURLTests {
+    /// The pass and the PDF are the same ticket by two routes, so they must
+    /// address the same registration form — a mismatch here would hand someone
+    /// a pass for an event they are not registered for.
+    @Test func addressesTheSameRegistrationAsThePDF() {
+        let pdf = TicketStore.ticketURL(eventID: "12", formID: 16)
+        let pass = TicketStore.walletURL(eventID: "12", formID: 16)
+
+        #expect(pdf.absoluteString == "https://event.stsa.tw/event/12/registrations/16/ticket.pdf")
+        #expect(pass.absoluteString
+            == "https://event.stsa.tw/event/12/registrations/16/ticket/apple-wallet")
+    }
+}
