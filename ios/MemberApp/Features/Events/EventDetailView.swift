@@ -145,12 +145,14 @@ struct EventDetailView: View {
         VStack(spacing: 8) {
             switch ticketState {
             case .available(let ticket):
-                // The pass is the better ticket — it carries the same check-in
-                // QR and lives where a ticket belongs — so it leads when the
-                // server produced one. The PDF stays as the way through when it
-                // did not, which is every event until the instance's 500 on
-                // `…/ticket/apple-wallet` is fixed.
-                if let pass = tickets.walletURL(for: event.id), WalletPass.isAvailable {
+                // The pass is the better ticket — same check-in QR, kept where a
+                // ticket belongs, and it survives losing the Indico session — so
+                // when there is one it takes the filled slot and the PDF drops to
+                // plain. Adding a pass is a one-off; opening the PDF is what you
+                // do afterwards if you did not.
+                let pass = WalletPass.isAvailable ? tickets.walletURL(for: event.id) : nil
+
+                if let pass {
                     Button("加入 Apple Wallet") {
                         Task { await addToWallet(pass) }
                     }
@@ -159,7 +161,7 @@ struct EventDetailView: View {
                 }
 
                 Button("查看票券") { openURL(ticket) }
-                    .buttonStyle(.brand)
+                    .buttonStyle(pass == nil ? .brand : .brandPlain)
 
                 // Opened in the browser rather than rendered here: Safari already
                 // holds the member's Indico session, and the ticket never has to
