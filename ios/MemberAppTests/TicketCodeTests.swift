@@ -169,12 +169,12 @@ struct CheckinWindowTests {
         #expect(try !event().isWithinCheckinWindow(at: moment("2026-08-17T09:00:00+08:00")))
     }
 
-    /// Staff arrive before the first attendee, but a door on an event months
-    /// away is only clutter — and a pointless request to Indico.
-    @Test func opensShortlyBeforeTheStart() throws {
+    /// No restriction before the start: an organiser checking next month's
+    /// event should find the door already there rather than having to wait for
+    /// the day to learn whether they can open it.
+    @Test func isOpenWellBeforeTheStart() throws {
         let event = try event()
         #expect(event.isWithinCheckinWindow(at: moment("2026-08-15T12:00:00+08:00")))
-        #expect(!event.isWithinCheckinWindow(at: moment("2026-08-15T10:00:00+08:00")))
-        #expect(!event.isWithinCheckinWindow(at: moment("2026-06-01T12:00:00+08:00")))
+        #expect(event.isWithinCheckinWindow(at: moment("2026-06-01T12:00:00+08:00")))
     }
 }

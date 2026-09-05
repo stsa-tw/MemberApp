@@ -180,14 +180,14 @@ class CheckinWindowTest {
     }
 
     /**
-     * Staff arrive before the first attendee, but a door on an event months away
-     * is only clutter — and a pointless request to Indico.
+     * No restriction before the start: an organiser checking next month's event
+     * should find the door already there rather than having to wait for the day
+     * to learn whether they can open it.
      */
     @Test
-    fun `opens shortly before the start`() {
+    fun `is open well before the start`() {
         val event = event()
         assertTrue(event.isWithinCheckinWindow(moment("2026-08-15T12:00:00+08:00")))
-        assertFalse(event.isWithinCheckinWindow(moment("2026-08-15T10:00:00+08:00")))
-        assertFalse(event.isWithinCheckinWindow(moment("2026-06-01T12:00:00+08:00")))
+        assertTrue(event.isWithinCheckinWindow(moment("2026-06-01T12:00:00+08:00")))
     }
 }
