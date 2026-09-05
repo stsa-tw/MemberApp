@@ -144,8 +144,11 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
             // keeps ordinary members from being sent to a door they cannot open
             // — see the note on `Profile.groups`, which is not a security
             // boundary and is not used as one here.
+            // No date condition: Indico's check-in API will set `checked_in` on
+            // any registration whenever, so an organiser reconciling attendance
+            // after the fact is doing something Indico supports and this app has
+            // no business refusing.
             val showsCheckin = container.auth.profile?.isOfficer == true &&
-                event.isWithinCheckinWindow() &&
                 event.id.toIntOrNull() != null
             if (showsCheckin) {
                 Spacer(Modifier.size(12.dp))

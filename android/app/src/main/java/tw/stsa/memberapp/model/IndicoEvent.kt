@@ -38,24 +38,6 @@ data class IndicoEvent(
 ) {
     fun isUpcoming(now: Instant = Instant.now()): Boolean = !end.isBefore(now)
 
-    /**
-     * Whether 報到 should be offered for this event.
-     *
-     * [isUpcoming] plus a grace period, and deliberately nothing more.
-     *
-     * The end matters: [isUpcoming] flips at the *scheduled* end, so a staffer
-     * working the door at 17:05 for an event billed to 17:00 would watch the
-     * button vanish mid-shift, and anyone missed could never be recorded.
-     * Indico imposes no limit of its own — its check-in app will set the flag on
-     * any registration whenever — so the grace is ours, and generous.
-     *
-     * There is no matching restriction before the start. An organiser opening
-     * next month's event and finding the door already there can check their own
-     * access before the day, which is worth more than hiding a button that would
-     * show an empty roster. Permission remains Indico's answer, not this.
-     */
-    fun isWithinCheckinWindow(now: Instant = Instant.now()): Boolean =
-        !now.isAfter(end.plusSeconds(CHECKIN_GRACE_SECONDS))
 
     /**
      * [location] is the venue name, [room] the room within it. Indico leaves
@@ -77,13 +59,6 @@ data class IndicoEvent(
         }
 
     companion object {
-        /**
-         * How long after the scheduled end it stays open. Events overrun, and
-         * someone is always missed and reconciled afterwards; a day covers both
-         * without leaving the door standing open on last year's events.
-         */
-        const val CHECKIN_GRACE_SECONDS = 24L * 60 * 60
-
         /**
          * Stands in for a moment Indico sent that could not be parsed.
          *

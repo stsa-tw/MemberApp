@@ -146,7 +146,6 @@ final class TicketStore {
                 case .available:
                     states[eventID] = .available(url)
                     remember(eventID: eventID, hasTicket: true, formID: formID)
-                    await loadWalletPass(eventID: eventID, formID: formID, using: indico)
                     return
                 case .needsLinking:
                     states[eventID] = .needsLinking
@@ -268,8 +267,17 @@ final class TicketStore {
     /// `RecursionError` for every event, so the expected outcome today is "no
     /// pass, keep the PDF" — and the moment that is fixed server-side this
     /// starts returning one with no further change here.
-    private func loadWalletPass(eventID: String, formID: Int, using indico: IndicoAuthManager) async {
-        if walletURLs[eventID] != nil { return }
+    ///
+    /// Asked for past events too. Indico's `RHTicketDownload._check_access` runs
+    /// four checks — registration complete, tickets enabled, ticket visible or
+    /// the user manages registration, ticket not blocked — and **none of them is
+    /// about the date. A ticket outlives its event**, and a pass for one already
+    /// attended is a record worth keeping rather than something to withhold.
+    func loadWalletPass(eventID: String, using indico: IndicoAuthManager) async {
+        guard indico.isLinked, walletURLs[eventID] == nil else { return }
+        // Only a ticket that exists can become a pass.
+        guard case .available = state(for: eventID) else { return }
+        guard let formID = remembered[eventID]?.formID ?? formIDs[eventID]?.first else { return }
 
         let url = Self.walletURL(eventID: eventID, formID: formID)
         do {

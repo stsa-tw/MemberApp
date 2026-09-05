@@ -1,14 +1,10 @@
 package tw.stsa.memberapp
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tw.stsa.memberapp.feature.checkin.ScannedCode
-import tw.stsa.memberapp.model.IndicoEvent
-import java.time.Instant
-import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
@@ -139,55 +135,5 @@ class ScannedCodeTest {
         assertNull(ScannedCode.parse(""))
         assertNull(ScannedCode.parse("""{"i":[2]}"""))
         assertNull(ScannedCode.parse("{}"))
-    }
-}
-
-/** The event runs 13:30–15:30 on 2026-08-15 in the fixture below. */
-class CheckinWindowTest {
-    private fun event(): IndicoEvent = IndicoEvent.decode(
-        """
-        {"id": 10, "title": "工作坊",
-         "startDate": {"date": "2026-08-15", "time": "13:30:00", "tz": "Asia/Singapore"},
-         "endDate": {"date": "2026-08-15", "time": "15:30:00", "tz": "Asia/Singapore"}}
-        """,
-    )
-
-    private fun moment(text: String): Instant = OffsetDateTime.parse(text).toInstant()
-
-    @Test
-    fun `is open while the event runs`() {
-        assertTrue(event().isWithinCheckinWindow(moment("2026-08-15T14:00:00+08:00")))
-    }
-
-    /**
-     * The whole point of not using isUpcoming: events overrun, and the door must
-     * not close on a staffer who is still working it.
-     */
-    @Test
-    fun `stays open after the scheduled end`() {
-        val event = event()
-        assertTrue(event.isWithinCheckinWindow(moment("2026-08-15T15:35:00+08:00")))
-        assertTrue(event.isWithinCheckinWindow(moment("2026-08-16T09:00:00+08:00")))
-    }
-
-    /**
-     * Someone missed at the door is reconciled the same day or the next one, not
-     * a week later.
-     */
-    @Test
-    fun `closes once the grace has passed`() {
-        assertFalse(event().isWithinCheckinWindow(moment("2026-08-17T09:00:00+08:00")))
-    }
-
-    /**
-     * No restriction before the start: an organiser checking next month's event
-     * should find the door already there rather than having to wait for the day
-     * to learn whether they can open it.
-     */
-    @Test
-    fun `is open well before the start`() {
-        val event = event()
-        assertTrue(event.isWithinCheckinWindow(moment("2026-08-15T12:00:00+08:00")))
-        assertTrue(event.isWithinCheckinWindow(moment("2026-06-01T12:00:00+08:00")))
     }
 }

@@ -48,21 +48,24 @@ struct EventDetailView: View {
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
-        // Forced rather than `loadIfNeeded`, because this is where someone lands
-        // right after registering and expects the answer to have changed. Past
-        // events are skipped outright: `ticketState` will not offer a ticket for
-        // one, so asking would be a PDF rendered for nothing.
+        // Nothing here is gated on the date, because Indico gates none of it.
+        // `RHTicketDownload._check_access` never looks at when the event was, and
+        // the check-in API will set `checked_in` on any registration whenever —
+        // so a ticket, a Wallet pass and a door all outlive the event, and the
+        // app has no business deciding otherwise.
         //
-        // The door does not share that rule. A ticket is pointless once the
-        // event is over; a check-in is not, because events overrun and someone
-        // always has to be recorded afterwards — see `isWithinCheckinWindow`.
+        // What the date does change is whether the answer can still move. A past
+        // event's is settled, so it comes from `remembered` without touching the
+        // network; an upcoming one is asked live every time, because this is
+        // where someone lands right after registering and expects it to have
+        // changed.
         .task {
-            if event.isUpcoming {
+            tickets.hydrate(eventID: event.id)
+            if event.isUpcoming || !tickets.isSettled(for: event.id) {
                 await tickets.load(eventID: event.id, using: indico)
             }
-            if event.isWithinCheckinWindow() {
-                await checkin.probe(eventID: event.id, using: indico)
-            }
+            await tickets.loadWalletPass(eventID: event.id, using: indico)
+            await checkin.probe(eventID: event.id, using: indico)
         }
     }
 
@@ -207,10 +210,14 @@ struct EventDetailView: View {
         }
     }
 
-    /// A past event's ticket is not worth offering, so the archive only ever
-    /// sees the plain "open the page" action.
+    /// The archive shows its tickets too.
+    ///
+    /// A ticket outlives its event — Indico's `_check_access` never looks at the
+    /// date — and someone who attended has reason to want the record: the pass
+    /// they kept, or the QR they were scanned with. Withholding it here was the
+    /// app's own rule, not Indico's.
     private var ticketState: TicketStore.State {
-        event.isUpcoming ? tickets.state(for: event.id) : .unavailable
+        tickets.state(for: event.id)
     }
 
     private var primaryLabel: LocalizedStringKey {
@@ -240,9 +247,8 @@ struct EventDetailView: View {
         do {
             try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
-            if event.isWithinCheckinWindow() {
-                await checkin.probe(eventID: event.id, using: indico)
-            }
+            await tickets.loadWalletPass(eventID: event.id, using: indico)
+            await checkin.probe(eventID: event.id, using: indico)
         } catch {
             // Dismissing the sheet is not a failure worth an alert, same as the
             // authentik flow.
