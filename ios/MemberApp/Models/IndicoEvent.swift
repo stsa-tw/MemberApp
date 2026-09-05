@@ -19,6 +19,31 @@ struct IndicoEvent: Identifiable, Hashable {
 
     var isUpcoming: Bool { end >= Date() }
 
+    /// How long before the scheduled start the door opens — staff arrive before
+    /// the first attendee does.
+    static let checkinLeadIn: TimeInterval = 2 * 60 * 60
+
+    /// How long after the scheduled end it stays open.
+    ///
+    /// Events overrun, and someone is always missed and reconciled afterwards.
+    /// A day covers both without leaving the door standing open on last year's
+    /// events.
+    static let checkinGrace: TimeInterval = 24 * 60 * 60
+
+    /// Whether 報到 should be offered for this event.
+    ///
+    /// Deliberately not `isUpcoming`, which flips at the *scheduled* end: a
+    /// staffer working the door at 17:05 for an event billed to 17:00 would
+    /// watch the button vanish mid-shift, and anyone missed could never be
+    /// recorded afterwards. Indico imposes no time limit of its own — its
+    /// check-in app will set the flag on any registration whenever — so this
+    /// window is only about not offering a door for an event months away or
+    /// long finished. Permission remains Indico's answer, not this.
+    func isWithinCheckinWindow(at moment: Date = Date()) -> Bool {
+        moment >= start.addingTimeInterval(-Self.checkinLeadIn)
+            && moment <= end.addingTimeInterval(Self.checkinGrace)
+    }
+
     /// `location` is the venue name, `room` the room within it. Indico leaves
     /// either blank, so join whatever is there.
     var place: String? {

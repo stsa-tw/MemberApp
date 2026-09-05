@@ -51,10 +51,17 @@ struct EventDetailView: View {
         // right after registering and expects the answer to have changed. Past
         // events are skipped outright: `ticketState` will not offer a ticket for
         // one, so asking would be a PDF rendered for nothing.
+        //
+        // The door does not share that rule. A ticket is pointless once the
+        // event is over; a check-in is not, because events overrun and someone
+        // always has to be recorded afterwards — see `isWithinCheckinWindow`.
         .task {
-            guard event.isUpcoming else { return }
-            await tickets.load(eventID: event.id, using: indico)
-            await checkin.probe(eventID: event.id, using: indico)
+            if event.isUpcoming {
+                await tickets.load(eventID: event.id, using: indico)
+            }
+            if event.isWithinCheckinWindow() {
+                await checkin.probe(eventID: event.id, using: indico)
+            }
         }
     }
 
@@ -207,7 +214,9 @@ struct EventDetailView: View {
         do {
             try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
-            await checkin.probe(eventID: event.id, using: indico)
+            if event.isWithinCheckinWindow() {
+                await checkin.probe(eventID: event.id, using: indico)
+            }
         } catch {
             // Dismissing the sheet is not a failure worth an alert, same as the
             // authentik flow.

@@ -132,3 +132,49 @@ struct CheckinAdmissibilityTests {
         #expect(registration?.formID == 3)
     }
 }
+
+
+/// The event runs 13:30–15:30 on 2026-08-15 in the fixture below.
+struct CheckinWindowTests {
+    private func event() throws -> IndicoEvent {
+        let json = """
+        {"id": 10, "title": "工作坊",
+         "startDate": {"date": "2026-08-15", "time": "13:30:00", "tz": "Asia/Singapore"},
+         "endDate": {"date": "2026-08-15", "time": "15:30:00", "tz": "Asia/Singapore"}}
+        """
+        return try JSONDecoder().decode(IndicoEvent.self, from: Data(json.utf8))
+    }
+
+    private func moment(_ text: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: text)!
+    }
+
+    @Test func isOpenWhileTheEventRuns() throws {
+        #expect(try event().isWithinCheckinWindow(at: moment("2026-08-15T14:00:00+08:00")))
+    }
+
+    /// The whole point of not using `isUpcoming`: events overrun, and the door
+    /// must not close on a staffer who is still working it.
+    @Test func staysOpenAfterTheScheduledEnd() throws {
+        let event = try event()
+        #expect(event.isWithinCheckinWindow(at: moment("2026-08-15T15:35:00+08:00")))
+        #expect(event.isWithinCheckinWindow(at: moment("2026-08-16T09:00:00+08:00")))
+    }
+
+    /// Someone missed at the door is reconciled the same day or the next one,
+    /// not a week later.
+    @Test func closesOnceTheGraceHasPassed() throws {
+        #expect(try !event().isWithinCheckinWindow(at: moment("2026-08-17T09:00:00+08:00")))
+    }
+
+    /// Staff arrive before the first attendee, but a door on an event months
+    /// away is only clutter — and a pointless request to Indico.
+    @Test func opensShortlyBeforeTheStart() throws {
+        let event = try event()
+        #expect(event.isWithinCheckinWindow(at: moment("2026-08-15T12:00:00+08:00")))
+        #expect(!event.isWithinCheckinWindow(at: moment("2026-08-15T10:00:00+08:00")))
+        #expect(!event.isWithinCheckinWindow(at: moment("2026-06-01T12:00:00+08:00")))
+    }
+}

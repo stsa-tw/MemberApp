@@ -145,7 +145,7 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
             // — see the note on `Profile.groups`, which is not a security
             // boundary and is not used as one here.
             val showsCheckin = container.auth.profile?.isOfficer == true &&
-                event.isUpcoming() &&
+                event.isWithinCheckinWindow() &&
                 event.id.toIntOrNull() != null
             if (showsCheckin) {
                 Spacer(Modifier.size(12.dp))
