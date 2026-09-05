@@ -18,13 +18,14 @@ struct EventDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 hero
 
-                // First, not buried: for whoever is standing at the door this is
-                // the only thing on the page they came for, and everything above
-                // it is a scroll they do not have time for.
-                checkinEntry
-                    .padding(.horizontal, Theme.Metrics.gutter)
-
                 infoCard
+                    .padding(.horizontal, Theme.Metrics.gutter)
+                    .padding(.top, 16)
+
+                // Above the member's own actions, because for whoever is working
+                // the door this is what they came for and they have no time to
+                // hunt. Below the facts, because it is not what the page is for.
+                organiserEntry
                     .padding(.horizontal, Theme.Metrics.gutter)
                     .padding(.top, 16)
 
@@ -66,6 +67,11 @@ struct EventDetailView: View {
             }
             await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)
+            // Only ever for an organiser, and it is what puts the count on the
+            // row rather than a generic label.
+            if checkin.access(for: event.id) == .allowed {
+                await checkin.loadRoster(eventID: event.id, using: indico)
+            }
         }
     }
 
@@ -101,21 +107,46 @@ struct EventDetailView: View {
     /// Only for someone Indico says manages this event. There is no role claim
     /// behind it — the app asked the check-in API and it answered, which is the
     /// same permission the screen itself runs on.
+    ///
+    /// A row rather than a button, and it carries the count: an organiser
+    /// opening the event usually wants the number, not the scanner, and a row
+    /// that answers before it is tapped is worth more than one that does not.
     @ViewBuilder
-    private var checkinEntry: some View {
+    private var organiserEntry: some View {
         if checkin.access(for: event.id) == .allowed {
             NavigationLink {
-                EventCheckinView(event: event)
+                EventOrganiserView(event: event)
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "qrcode.viewfinder")
-                    Text("報到")
+                        .font(.body)
+                        .foregroundStyle(Theme.Palette.brand)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("幹部功能")
+                            .font(.callout)
+                            .foregroundStyle(.primary)
+                        Text(organiserSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    DisclosureChevron()
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.vertical, 12)
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(.rect(cornerRadius: Theme.Radius.card))
             }
-            .buttonStyle(.brandPlain)
-            .padding(.top, 20)
+            .buttonStyle(.plain)
         }
+    }
+
+    private var organiserSummary: String {
+        let entries = checkin.entries(for: event.id)
+        guard !entries.isEmpty else { return String(localized: "報到與報名名單") }
+        let checkedIn = entries.filter(\.registration.checkedIn).count
+        return String(localized: "\(checkedIn) / \(entries.count) 已報到")
     }
 
     private func addToWallet(_ url: URL) async {
@@ -158,18 +189,28 @@ struct EventDetailView: View {
                     }
                     .buttonStyle(.brand)
                     .disabled(isAddingPass)
+
+                    // The same ticket by another route, so it sits directly under
+                    // the pass and reads as the alternative rather than a second
+                    // thing to do.
+                    Button("查看票券") { openURL(ticket) }
+                        .buttonStyle(.brandLink)
+                } else {
+                    Button("查看票券") { openURL(ticket) }
+                        .buttonStyle(.brand)
                 }
 
-                Button("查看票券") { openURL(ticket) }
-                    .buttonStyle(pass == nil ? .brand : .brandPlain)
-
+                // A different destination, not another way to the ticket — so it
+                // is set apart rather than stacked as a third peer.
+                //
                 // Opened in the browser rather than rendered here: Safari already
                 // holds the member's Indico session, and the ticket never has to
                 // touch the app or the disk. That is plumbing, not something the
                 // member needs told — the button says what it does.
                 if let url = event.url {
                     Button("活動頁") { openURL(url) }
-                        .buttonStyle(.brandPlain)
+                        .buttonStyle(.brandLink)
+                        .padding(.top, 8)
                 }
 
             case .needsLinking:
@@ -203,8 +244,9 @@ struct EventDetailView: View {
                     Button(primaryLabel) { openURL(url) }
                         .buttonStyle(.brand)
 
-                    // Indico's HTTP API is read-only, so registration cannot
-                    // happen in-app. Opening Indico is not a downgrade: it signs
+                    // Indico exposes no registration API — the check-in API
+                    // behind 幹部功能 writes attendance, not sign-ups — so
+                    // registering happens on Indico. Not a downgrade: it signs
                     // in through the same authentik.
                     caption("報名在 Indico 上完成，使用同一個 STSA 帳號。")
                 }

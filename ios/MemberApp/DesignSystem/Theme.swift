@@ -77,3 +77,27 @@ extension ButtonStyle where Self == BrandButtonStyle {
     static var brand: BrandButtonStyle { BrandButtonStyle() }
     static var brandPlain: BrandButtonStyle { BrandButtonStyle(prominent: false) }
 }
+
+/// A third tier, for an action that leads somewhere else rather than doing the
+/// thing the screen is about.
+///
+/// It is not a slab. `BrandButtonStyle` gives every button `ctaHeight` and the
+/// full width, which is right for a call to action and wrong for the third one
+/// in a column: three identical 50-point rows read as three peers, whatever
+/// their colour, and a ticket and the event's own page are not peers.
+///
+/// Still full-width for the tap target — 44 points, invisibly — because a short
+/// label should not mean a small target.
+struct BrandLinkButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .foregroundStyle(Theme.Palette.brand)
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+extension ButtonStyle where Self == BrandLinkButtonStyle {
+    static var brandLink: BrandLinkButtonStyle { BrandLinkButtonStyle() }
+}
