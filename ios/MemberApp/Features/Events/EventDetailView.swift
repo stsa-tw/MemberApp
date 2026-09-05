@@ -142,6 +142,29 @@ struct EventDetailView: View {
         }
     }
 
+    /// A card of secondary destinations, matching the facts card above it.
+    private func links<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 0) { content() }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(.rect(cornerRadius: Theme.Radius.card))
+    }
+
+    private func linkRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(.callout)
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 8)
+                DisclosureChevron()
+            }
+            .padding(.horizontal, Theme.Metrics.gutter)
+            .padding(.vertical, 13)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
     private var organiserSummary: String {
         let entries = checkin.entries(for: event.id)
         guard !entries.isEmpty else { return String(localized: "報到與報名名單") }
@@ -183,6 +206,13 @@ struct EventDetailView: View {
                 // do afterwards if you did not.
                 let pass = WalletPass.isAvailable ? tickets.walletURL(for: event.id) : nil
 
+                // One filled call to action, then everything else as rows in a
+                // card — the same shape as the facts above and the 幹部功能 row
+                // below it. Free-floating labels under a slab were the odd thing
+                // out on a screen built entirely from grouped cards.
+                //
+                // The pass takes the button when there is one, because saving a
+                // ticket is a one-off and viewing it is what you do afterwards.
                 if let pass {
                     Button("加入 Apple Wallet") {
                         Task { await addToWallet(pass) }
@@ -190,27 +220,23 @@ struct EventDetailView: View {
                     .buttonStyle(.brand)
                     .disabled(isAddingPass)
 
-                    // The same ticket by another route, so it sits directly under
-                    // the pass and reads as the alternative rather than a second
-                    // thing to do.
-                    Button("查看票券") { openURL(ticket) }
-                        .buttonStyle(.brandLink)
+                    links {
+                        // Opened in the browser rather than rendered here: Safari
+                        // already holds the member's Indico session, and the
+                        // ticket never has to touch the app or the disk.
+                        linkRow("查看票券") { openURL(ticket) }
+                        if let url = event.url {
+                            RowSeparator()
+                            linkRow("活動頁") { openURL(url) }
+                        }
+                    }
                 } else {
                     Button("查看票券") { openURL(ticket) }
                         .buttonStyle(.brand)
-                }
 
-                // A different destination, not another way to the ticket — so it
-                // is set apart rather than stacked as a third peer.
-                //
-                // Opened in the browser rather than rendered here: Safari already
-                // holds the member's Indico session, and the ticket never has to
-                // touch the app or the disk. That is plumbing, not something the
-                // member needs told — the button says what it does.
-                if let url = event.url {
-                    Button("活動頁") { openURL(url) }
-                        .buttonStyle(.brandLink)
-                        .padding(.top, 8)
+                    if let url = event.url {
+                        links { linkRow("活動頁") { openURL(url) } }
+                    }
                 }
 
             case .needsLinking:

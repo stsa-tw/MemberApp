@@ -21,6 +21,26 @@
         }
       }
     },
+    "%lld / %lld" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld / %lld 已報到" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld 已報到"
+          }
+        }
+      }
+    },
     "%lld 人已報名這場活動。" : {
 
     },
@@ -633,6 +653,9 @@
     "報到" : {
 
     },
+    "報到與報名名單" : {
+
+    },
     "報名在 Indico 上完成，使用同一個 STSA 帳號。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -779,6 +802,9 @@
         }
       }
     },
+    "已報到" : {
+
+    },
     "已報名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -872,6 +898,9 @@
           }
         }
       }
+    },
+    "幹部功能" : {
+
     },
     "成立宗旨" : {
       "extractionState" : "manual",
@@ -1633,6 +1662,9 @@
       }
     },
     "這個 Indico 授權只能讀取。授權一次之後就能記錄報到。" : {
+
+    },
+    "這場活動還沒有人報名。" : {
 
     },
     "這張票屬於其他活動。" : {
