@@ -1,4 +1,5 @@
 import AppAuth
+import AuthenticationServices
 import Foundation
 import Observation
 import UIKit
@@ -125,10 +126,20 @@ final class AuthManager {
 
     /// True when the person dismissed the sign-in sheet themselves. Callers
     /// should treat this as "nothing happened", not as a failure worth an alert.
+    ///
+    /// Two domains, because the two flows are driven by different code. The
+    /// authentik one is AppAuth's end to end and reports its own error; the
+    /// Indico one runs the browser leg itself (`IndicoBrowserSession`, and the
+    /// reason is documented there), so a dismissal arrives as
+    /// `ASWebAuthenticationSession`'s. Matching only the first is why cancelling
+    /// the Indico sheet used to surface as an error the member could not act on.
     static func isUserCancellation(_ error: any Error) -> Bool {
         let error = error as NSError
-        return error.domain == OIDGeneralErrorDomain
-            && error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue
+        if error.domain == OIDGeneralErrorDomain {
+            return error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue
+        }
+        return error.domain == ASWebAuthenticationSessionErrorDomain
+            && error.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
     }
 
     /// Hands the redirect back to the in-flight authorization request.

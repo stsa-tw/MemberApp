@@ -55,7 +55,10 @@ struct ScanView: View {
     // MARK: - Camera
 
     private var viewfinder: some View {
-        CameraScanner { payload in
+        // Member cards only. A malformed one still gets through, on purpose:
+        // someone holding up a card that does not work deserves to be told so,
+        // rather than to stand there while nothing happens.
+        CameraScanner(accepts: { $0.hasPrefix(MembershipValidator.prefix) }) { payload in
             Task { await validator.validate(payload: payload) }
         }
         .aspectRatio(3.0 / 4.0, contentMode: .fit)
