@@ -6,17 +6,6 @@ import SwiftUI
 /// mocks up by hand, so there is no custom bar to build — the trailing 會員卡
 /// button rides alongside it as a bottom accessory.
 struct RootView: View {
-    /// Re-evaluates the link attempt when the session or the scene changes, and
-    /// not on every redraw.
-    private struct LinkMoment: Equatable {
-        let isLoggedIn: Bool
-        let phase: ScenePhase
-        /// Part of the identity of the moment, so the task re-runs once the
-        /// profile arrives rather than having already given up without it.
-        let email: String?
-    }
-
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(Session.self) private var session
     @Environment(AuthManager.self) private var auth
     @Environment(IndicoAuthManager.self) private var indico
@@ -25,7 +14,6 @@ struct RootView: View {
     @Environment(MembershipCodeStore.self) private var codes
     @Environment(CheckinStore.self) private var checkin
 
-    @State private var hasTriedLinking = false
 
     var body: some View {
         @Bindable var session = session
@@ -64,38 +52,35 @@ struct RootView: View {
         .onChange(of: auth.isLoggedIn) { _, isLoggedIn in
             if !isLoggedIn { endSession() }
         }
+        // A token that turns out to be somebody else's did not only fail to be
+        // theirs — it had already been believed. Every answer it gave was filed
+        // under *this* member: which events they hold a ticket for, and the door
+        // roster. `TicketStore` keeps its answers across launches on purpose, so
+        // without this the officer's tickets stayed cached under the member's
+        // own key, and the event page went on showing 查看票券 for an event they
+        // had never registered for — with no 連結 button anywhere, because as
+        // far as the app knew the question was already settled.
+        .onChange(of: indico.refused) { _, refused in
+            guard refused != nil else { return }
+            tickets.clear()
+            checkin.clear()
+        }
         // Loaded here rather than in EventsView: Home shows the upcoming count
         // too, and it was reading an empty store until the events tab was first
         // opened.
-        // Link Indico as soon as there is a session, rather than making the
-        // member find a button for it. It lives here rather than in WelcomeView
-        // because signing in swaps that view away the moment it succeeds, and a
-        // browser round-trip started there would be torn down mid-flight.
+        // Indico is deliberately *not* linked here.
         //
-        // Gated on `.active`, not merely on being signed in: a browser session
-        // cannot be presented from a scene that is still coming up, and trying
-        // anyway is what crashed the first device build. Once per launch, so
-        // dismissing it does not mean meeting it again on every return to the app.
+        // It used to be, so nobody had to find a button for it. But that flow
+        // opens `ASWebAuthenticationSession`, and iOS puts its own
+        // "…Wants to Use event.stsa.tw to Sign In" alert in front of every
+        // non-ephemeral one — so a member who had just signed in met a system
+        // permission dialog on 首頁, naming a site they had not asked about,
+        // before touching anything. Most members never open a ticket at all.
         //
-        // Deliberately `try?`: nothing here may break the signed-in shell. When it
-        // does not complete, the events screen still offers to link.
-        //
-        // Waits for the profile, and not only because the link is nicer with one:
-        // `IndicoAuthManager.verifyOwner` checks the token it gets against this
-        // member's address, and with no address to check against it has nothing
-        // to refuse. Linking before the profile lands would skip the one test
-        // that catches a browser still signed in as somebody else.
-        .task(id: LinkMoment(isLoggedIn: auth.isLoggedIn,
-                             phase: scenePhase,
-                             email: auth.profile?.email)) {
-            guard scenePhase == .active, auth.isLoggedIn,
-                  auth.profile?.email != nil,
-                  !indico.isLinked, !hasTriedLinking
-            else { return }
-
-            hasTriedLinking = true
-            try? await indico.link()
-        }
+        // So it happens where it means something instead: 活動 → the event's
+        // 查看我的票券, which says what is being connected and why, and which is
+        // also allowed to re-authenticate when the browser is signed in as
+        // somebody else.
         .task(id: auth.profile?.sub) {
             tickets.subject = auth.profile?.sub
             // What an Indico token is checked against — see `verifyOwner`.
@@ -117,16 +102,12 @@ struct RootView: View {
     /// them — the event page offered them 幹部功能, and every Indico request went
     /// out under the previous member's token, which is Indico's answer to who
     /// may open the door.
-    ///
-    /// `hasTriedLinking` resets with them, so the next member links their own
-    /// Indico account instead of riding on one that is no longer theirs.
     private func endSession() {
         session.isShowingMemberCard = false
         indico.unlink()
         codes.clear()
         tickets.clear()
         checkin.clear()
-        hasTriedLinking = false
     }
 }
 
