@@ -41,6 +41,10 @@ final class CheckinStore {
 
     @ObservationIgnored private var formIDs: [String: [Int]] = [:]
 
+    /// How many check-ins this app has written for an event, used only to tell
+    /// a refetch that started earlier that it is now out of date.
+    @ObservationIgnored private var writes: [String: Int] = [:]
+
     private static let indicoHost = "event.stsa.tw"
     private static let host = "https://\(indicoHost)"
 
@@ -80,26 +84,61 @@ final class CheckinStore {
     /// request. The list deliberately carries no answers — Indico excludes them
     /// from the list endpoint — so those are fetched per person on scan.
     func loadRoster(eventID: String, using indico: IndicoAuthManager) async {
-        guard roster[eventID] == nil, let forms = formIDs[eventID] else { return }
+        guard roster[eventID] == nil else { return }
+        await fetchRoster(eventID: eventID, using: indico)
+    }
+
+    /// Asks Indico again, for the door that is not the only one.
+    ///
+    /// The count on this phone moves when *this* phone records a check-in, and
+    /// that is all it knew: a second 幹部 on a second phone, or anyone using
+    /// Indico's own app, moved a number this one never saw. So the list is
+    /// re-asked when the door screen opens and whenever the roster is pulled
+    /// down, rather than being fetched once and believed for the rest of the
+    /// event.
+    func refreshRoster(eventID: String, using indico: IndicoAuthManager) async {
+        await fetchRoster(eventID: eventID, using: indico)
+    }
+
+    private func fetchRoster(eventID: String, using indico: IndicoAuthManager) async {
+        guard let forms = formIDs[eventID] else { return }
 
         isLoadingRoster = true
         defer { isLoadingRoster = false }
 
+        // Read before the requests go out and compared after they come back: a
+        // check-in recorded while this was in flight is newer than anything the
+        // response can contain, and letting a stale list land on top of it would
+        // take the person back off the screen they were just admitted on.
+        let generation = writes[eventID, default: 0]
+
         var entries: [Entry] = []
+        var isComplete = true
         for formID in forms {
             guard let url = URL(string:
                 "\(Self.host)/api/checkin/event/\(eventID)/forms/\(formID)/registrations/")
-            else { continue }
+            else { isComplete = false; continue }
 
             do {
                 let request = try indico.authorizedRequest(for: url)
                 let (data, response) = try await URLSession.shared.data(for: request)
-                guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+                guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                    isComplete = false
+                    continue
+                }
                 entries += CheckinDecoder.list(data).map { Entry(formID: formID, registration: $0) }
             } catch {
+                isComplete = false
                 errorMessage = error.localizedDescription
             }
         }
+
+        guard writes[eventID, default: 0] == generation else { return }
+
+        // A refresh that could not read every form must not shorten a list the
+        // door is working from — the venue's wifi dropping should cost the
+        // count its freshness, not its rows.
+        guard isComplete || roster[eventID] == nil else { return }
 
         roster[eventID] = entries
     }
@@ -242,6 +281,8 @@ final class CheckinStore {
     }
 
     private func replace(_ registration: CheckinRegistration, eventID: String) {
+        writes[eventID, default: 0] += 1
+
         guard var entries = roster[eventID],
               let index = entries.firstIndex(where: { $0.registration.id == registration.id })
         else { return }
@@ -254,6 +295,7 @@ final class CheckinStore {
         access.removeAll()
         roster.removeAll()
         formIDs.removeAll()
+        writes.removeAll()
         errorMessage = nil
     }
 }

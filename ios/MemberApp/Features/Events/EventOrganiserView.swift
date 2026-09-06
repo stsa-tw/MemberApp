@@ -40,6 +40,10 @@ struct EventOrganiserView: View {
         .navigationTitle("幹部功能")
         .navigationBarTitleDisplayMode(.inline)
         .task { await checkin.loadRoster(eventID: event.id, using: indico) }
+        // The number here is the one an organiser trusts, and it is not the only
+        // door: another 幹部 on another phone moves it too. Pulling asks Indico
+        // rather than redrawing what this phone happens to remember.
+        .refreshable { await checkin.refreshRoster(eventID: event.id, using: indico) }
     }
 
     /// The number a door actually wants, before anyone opens the scanner: how

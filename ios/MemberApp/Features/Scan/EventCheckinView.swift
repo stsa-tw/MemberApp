@@ -71,7 +71,10 @@ struct EventCheckinView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             access = await CameraAccess.request()
-            await checkin.loadRoster(eventID: event.id, using: indico)
+            // Re-asked rather than reused: opening the door is exactly the
+            // moment the list has to match what the other doors have already
+            // done, and it is two requests for most events.
+            await checkin.refreshRoster(eventID: event.id, using: indico)
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
