@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- 報到 only. Ordinary members never reach the scanner, so the prompt only
+         ever appears for a 幹部 who opened it. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
     <!-- Package visibility for the browser. AppAuth enumerates installed
          browsers to pick one that supports Custom Tabs, and from API 30 that
          query returns nothing without this — sign-in fails with "no browser

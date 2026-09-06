@@ -6,19 +6,29 @@ import SwiftUI
 /// semantic colours (`rgba(60,60,67,.6)` is `.secondaryLabel`, `#f2f2f7` is
 /// `systemGroupedBackground`, `rgba(118,118,128,.12)` is `tertiarySystemFill`).
 /// Using the semantic colours instead of the hex values is what makes the app
-/// adapt to Dark Mode and Increase Contrast for free — only the brand rose is ours.
+/// adapt to Dark Mode and Increase Contrast for free — only the brand red is ours.
 enum Theme {}
 
 // MARK: - Colour
 
 extension Theme {
     enum Palette {
-        /// STSA brand rose — the app's tint.
+        /// STSA brand red — the app's tint.
         ///
-        /// `AccentColor.colorset` holds it in **display-P3** (`#C68578` read as
-        /// hex), which is `#D18175` in sRGB. That sRGB value is what the Android
-        /// scheme is seeded with; the prototype's `#EC3013` is a different, more
-        /// saturated red that the shipped asset never used.
+        /// `#8E2622`, the red the Indico ticket prints its labels in, so a member
+        /// looking at the pass in Wallet and at the app is looking at one colour.
+        /// It replaces the rose the prototype shipped (`#D18175`), which read as
+        /// a tint of this rather than a colour of its own.
+        ///
+        /// Stored in **sRGB**, deliberately: the value is sampled from a rendered
+        /// ticket, and sRGB is the space it was sampled in. The rose before it was
+        /// held in display-P3, which meant the asset and the Android seed were two
+        /// different numbers for one colour — now they are the same number.
+        ///
+        /// Dark mode gets `#E2635A`: the same hue, lifted. `#8E2622` reads 8.6:1
+        /// against white and 2:1 against the dark scheme's near-black — a colour
+        /// that works in one appearance and vanishes in the other — where the
+        /// lifted one clears 4.9:1 and still reads as the same red.
         static let brand = Color("AccentColor")
 
         /// Near-black surface behind the member card and deal marks. `#1C1C1E`

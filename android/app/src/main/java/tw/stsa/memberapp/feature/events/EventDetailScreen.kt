@@ -3,6 +3,7 @@ package tw.stsa.memberapp.feature.events
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,8 +40,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
+import tw.stsa.memberapp.app.EventOrganiser
+import tw.stsa.memberapp.app.EventTicket
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.designsystem.BrandButton
+import tw.stsa.memberapp.designsystem.BrandTextButton
+import tw.stsa.memberapp.designsystem.FactRow
+import tw.stsa.memberapp.feature.checkin.CheckinStore
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
@@ -54,13 +66,35 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
 
     val indico = container.indico
     val tickets = container.tickets
+    val checkin = container.checkin
 
-    // Forced rather than `loadIfNeeded`, because this is where someone lands right
-    // after registering and expects the answer to have changed. Past events are
-    // skipped outright: the ticket section will not offer one, so asking would be
-    // a PDF rendered for nothing.
+    // Nothing here is gated on the date, because Indico gates none of it.
+    // `RHTicketDownload._check_access` runs four checks and not one of them is
+    // about when the event was, so a ticket and a pass both outlive it. Someone
+    // who attended has reason to want the record — the pass they kept, or the
+    // code they were scanned with — and withholding it was this app's own rule.
+    //
+    // What the date does change is whether the answer can still move. A past
+    // event's is settled, so it comes from `remembered` without touching the
+    // network; an upcoming one is asked live every time, because this is where
+    // someone lands right after registering and expects it to have changed.
+    //
+    // The door and the ticket are separate questions, so they are asked at the
+    // same time. In sequence the door would go last, and everything ahead of it
+    // is slow in a way a cheap JSON endpoint is not: Indico *renders a PDF* to
+    // answer the ticket probe and *signs a pass* to answer the wallet one. An
+    // organiser would sit watching 幹部功能 arrive seconds after the rest of the
+    // page, held up by two requests about a ticket they may not even hold. iOS
+    // had exactly this and it was the first thing anyone noticed.
     LaunchedEffect(eventId, indico.isLinked) {
-        if (event.isUpcoming()) tickets.load(eventId, indico)
+        launch {
+            tickets.hydrate(eventId)
+            if (event.isUpcoming() || !tickets.isSettled(eventId)) {
+                tickets.load(eventId, indico)
+            }
+            tickets.loadWalletPass(eventId, indico)
+        }
+        launch { checkin.probe(eventId, indico) }
     }
 
     val linkLauncher = rememberLauncherForActivityResult(
@@ -80,6 +114,19 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
     ScreenScaffold(
         title = event.title,
         onBack = { navController.popBackStack() },
+        // The event's own page is a destination, not an action, and it is the one
+        // thing on this screen that is true whatever the member's state —
+        // registered or not, ticketed or not. That makes it chrome.
+        actions = {
+            event.url?.let { url ->
+                IconButton(onClick = { uriHandler.openUri(url) }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = stringResource(R.string.event_view_page),
+                    )
+                }
+            }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -96,43 +143,42 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
             // bottom — see Theme.Metrics.fabClearance. This also puts the action
             // next to the time and place instead of at the end of a long
             // description.
-            event.url?.let { url ->
-                Spacer(Modifier.size(16.dp))
-                Column(
-                    modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    BrandButton(onClick = { uriHandler.openUri(url) }) {
-                        Text(
-                            stringResource(
-                                if (event.isUpcoming()) {
-                                    R.string.event_register
-                                } else {
-                                    R.string.event_view_page
-                                }
-                            )
-                        )
-                    }
-                    // Indico's HTTP API is read-only, so registration cannot
-                    // happen in-app. Opening Indico is not a downgrade: it signs
-                    // in through the same authentik.
-                    Text(
-                        text = stringResource(R.string.event_registration_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            TicketSection(
+            Spacer(Modifier.size(16.dp))
+            Actions(
                 state = tickets.state(eventId),
+                eventUrl = event.url,
                 isUpcoming = event.isUpcoming(),
                 isBusy = indico.isBusy,
+                onOpenUrl = { uriHandler.openUri(it) },
                 onLink = { linkLauncher.launch(indico.authorizationIntent()) },
-                onOpen = { uriHandler.openUri(it) },
+                onShowTicket = { navController.navigate(EventTicket(eventId)) },
             )
+
+            // Only for someone Indico says manages this event.
+            //
+            // This used to be gated on the `isOfficer` group claim, which
+            // answers a different question — a 幹部 is not necessarily a 幹部 of
+            // *this* event — so the button appeared for people whose first tap
+            // was a 403. `CheckinStore.probe` asks Indico instead, which is the
+            // same permission the screen behind it runs on.
+            //
+            // A row rather than a button, and it carries the count: an organiser
+            // opening the event usually wants the number, not the scanner, and a
+            // row that answers before it is tapped is worth more than one that
+            // does not.
+            //
+            // No date condition: Indico's check-in API will set `checked_in` on
+            // any registration whenever, so an organiser reconciling attendance
+            // after the fact is doing something Indico supports and this app has
+            // no business refusing.
+            if (checkin.access(eventId) == CheckinStore.Access.ALLOWED) {
+                Spacer(Modifier.size(16.dp))
+                OrganiserRow(
+                    checkedIn = checkin.checkedInCount(eventId),
+                    registered = checkin.registeredCount(eventId),
+                    onClick = { navController.navigate(EventOrganiser(event.id)) },
+                )
+            }
 
             if (event.summary.isNotEmpty()) {
                 Spacer(Modifier.size(22.dp))
@@ -148,77 +194,135 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
 }
 
 /**
- * Only for events that have not happened yet. A pass for last month's dinner is
- * not something anyone needs in their Wallet.
+ * Exactly one filled button, ever.
+ *
+ * This screen used to stack the registration CTA and the ticket CTA as two
+ * equally loud brand slabs, which is a wall of colour and no hierarchy — and it
+ * had them the wrong way round for the case that matters: once you hold a
+ * ticket, the registration page is the *lesser* action. So the primary is
+ * whichever action the member's state makes primary, anything else drops to
+ * plain, and there is one line of explanation rather than one per button.
+ *
+ * Mirrors `EventDetailView.actions` on iOS, down to which case gets the fill.
  */
 @Composable
-private fun TicketSection(
+private fun Actions(
     state: TicketStore.State,
+    eventUrl: String?,
     isUpcoming: Boolean,
     isBusy: Boolean,
+    onOpenUrl: (String) -> Unit,
     onLink: () -> Unit,
-    onOpen: (String) -> Unit,
+    onShowTicket: () -> Unit,
 ) {
-    if (!isUpcoming) return
+    val primaryLabel = stringResource(
+        if (isUpcoming) R.string.event_register else R.string.event_view_page
+    )
 
-    when (state) {
-        // "Unavailable" could be "not registered", "awaiting approval" or "the
-        // organiser turned tickets off" — Indico answers all three with 403, so
-        // claiming any of them would be a guess. The registration button above
-        // already leads to the page that knows.
-        TicketStore.State.Idle,
-        TicketStore.State.Loading,
-        TicketStore.State.Unavailable,
-        -> Unit
-
-        TicketStore.State.NeedsLinking -> {
-            Spacer(Modifier.size(16.dp))
-            Column(
-                modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                BrandButton(onClick = onLink, enabled = !isBusy) {
-                    Text(stringResource(R.string.event_ticket_view))
+    Column(
+        modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        when (state) {
+            // One door to the ticket, whatever Indico can serve for it. This
+            // used to hand the PDF straight to a Custom Tab, which answers
+            // "where is my ticket filed" rather than "what do I show at the
+            // door". The screen behind this button answers the second, and still
+            // offers the first.
+            is TicketStore.State.Available ->
+                BrandButton(onClick = onShowTicket) {
+                    Text(stringResource(R.string.event_ticket_open))
                 }
+
+            TicketStore.State.NeedsLinking -> {
+                eventUrl?.let { url ->
+                    BrandButton(onClick = { onOpenUrl(url) }) { Text(primaryLabel) }
+                }
+                BrandTextButton(
+                    text = stringResource(R.string.event_ticket_view),
+                    onClick = onLink,
+                    enabled = !isBusy,
+                )
                 // Indico's application is registered as trusted, so it shows no
                 // consent screen — nothing else in the flow will tell the member
                 // what is being connected. So this line has to.
-                Text(
-                    text = stringResource(R.string.event_ticket_link_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
+                Caption(stringResource(R.string.event_ticket_link_note))
             }
-        }
 
-        is TicketStore.State.Available -> {
-            Spacer(Modifier.size(16.dp))
-            Column(
-                modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                // Opened in the browser rather than rendered here: the Custom Tab
-                // already holds the member's Indico session, and the ticket never
-                // has to touch the app or the disk.
-                BrandButton(onClick = { onOpen(state.url) }) {
-                    Text(stringResource(R.string.event_ticket_open))
+            is TicketStore.State.Failed -> {
+                eventUrl?.let { url ->
+                    BrandButton(onClick = { onOpenUrl(url) }) { Text(primaryLabel) }
                 }
+                Caption(state.message)
+            }
+
+            // "Unavailable" could be "not registered", "awaiting approval" or
+            // "the organiser turned tickets off" — Indico answers all three with
+            // 403, so claiming any of them would be a guess. The registration
+            // page knows; this button leads there.
+            TicketStore.State.Idle,
+            TicketStore.State.Loading,
+            TicketStore.State.Unavailable,
+            -> eventUrl?.let { url ->
+                BrandButton(onClick = { onOpenUrl(url) }) { Text(primaryLabel) }
+                // Indico's HTTP API is read-only, so registration cannot happen
+                // in-app. Opening Indico is not a downgrade: it signs in through
+                // the same authentik.
+                Caption(stringResource(R.string.event_registration_note))
             }
         }
+    }
+}
 
-        is TicketStore.State.Failed -> {
-            Spacer(Modifier.size(16.dp))
+@Composable
+private fun Caption(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/**
+ * The door, as a row that has already answered.
+ *
+ * Above the member's own actions, because for whoever is working the door this
+ * is what they came for and they have no time to hunt. Below the facts, because
+ * it is not what the page is for.
+ */
+@Composable
+private fun OrganiserRow(checkedIn: Int, registered: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = Theme.Metrics.gutter)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Theme.Radius.card))
+            .clickable(role = Role.Button, onClick = onClick)
+            .background(MaterialTheme.colorScheme.sectionContainer)
+            .padding(horizontal = Theme.Metrics.gutter, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.QrCodeScanner,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.message,
+                text = stringResource(R.string.checkin_organiser_title),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = if (registered > 0) {
+                    stringResource(R.string.checkin_progress, checkedIn, registered)
+                } else {
+                    stringResource(R.string.checkin_organiser_subtitle)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Theme.Metrics.gutter),
             )
         }
     }
@@ -275,41 +379,24 @@ private fun InfoCard(event: IndicoEvent) {
             .clip(RoundedCornerShape(Theme.Radius.card))
             .background(MaterialTheme.colorScheme.sectionContainer),
     ) {
-        InfoRow(stringResource(R.string.label_time), schedule(event))
+        FactRow(stringResource(R.string.label_time), schedule(event))
         event.place?.let {
             RowSeparator()
-            InfoRow(stringResource(R.string.label_venue), it)
+            FactRow(stringResource(R.string.label_venue), it)
         }
         event.address?.takeIf { it.isNotEmpty() }?.let {
             RowSeparator()
-            InfoRow(stringResource(R.string.label_address), it)
+            FactRow(stringResource(R.string.label_address), it)
         }
     }
 }
 
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Theme.Metrics.gutter, vertical = 11.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-private fun schedule(event: IndicoEvent): String {
+/**
+ * When the event runs, written the way a person would say it — in the event's
+ * own zone, not the reader's. Shared with [EventTicketScreen], which prints the
+ * same line on the ticket.
+ */
+internal fun schedule(event: IndicoEvent): String {
     val day = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withZone(event.zone)
     val clock = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(event.zone)
 

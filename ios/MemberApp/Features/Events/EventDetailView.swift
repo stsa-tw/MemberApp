@@ -17,15 +17,17 @@ struct EventDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 hero
 
-                // First, not buried: for whoever is standing at the door this is
-                // the only thing on the page they came for, and everything above
-                // it is a scroll they do not have time for.
-                checkinEntry
-                    .padding(.horizontal, Theme.Metrics.gutter)
-
                 infoCard
                     .padding(.horizontal, Theme.Metrics.gutter)
                     .padding(.top, 16)
+
+                // Above the member's own actions, because for whoever is working
+                // the door this is what they came for and they have no time to
+                // hunt. Below the facts, because it is not what the page is for.
+                organiserEntry
+                    .padding(.horizontal, Theme.Metrics.gutter)
+                    .padding(.top, 16)
+                    .animation(.snappy(duration: 0.22), value: checkin.access(for: event.id))
 
                 // Inline, directly under the key facts, rather than pinned to
                 // the bottom — see Theme.Metrics.accessoryClearance. This also
@@ -47,14 +49,59 @@ struct EventDetailView: View {
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
-        // Forced rather than `loadIfNeeded`, because this is where someone lands
-        // right after registering and expects the answer to have changed. Past
-        // events are skipped outright: `ticketState` will not offer a ticket for
-        // one, so asking would be a PDF rendered for nothing.
+        // The event's own page is a destination, not an action, and it is the
+        // one thing on this screen that is true whatever the member's state —
+        // registered or not, ticketed or not. That makes it chrome.
+        .toolbar {
+            if let url = event.url {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { openURL(url) } label: {
+                        Label("活動頁", systemImage: "safari")
+                    }
+                }
+            }
+        }
+        // Nothing here is gated on the date, because Indico gates none of it.
+        // `RHTicketDownload._check_access` never looks at when the event was, and
+        // the check-in API will set `checked_in` on any registration whenever —
+        // so a ticket, a Wallet pass and a door all outlive the event, and the
+        // app has no business deciding otherwise.
+        //
+        // What the date does change is whether the answer can still move. A past
+        // event's is settled, so it comes from `remembered` without touching the
+        // network; an upcoming one is asked live every time, because this is
+        // where someone lands right after registering and expects it to have
+        // changed.
+        //
+        // The door and the ticket are separate questions, so they are asked at
+        // the same time. In sequence the door went last, and everything ahead of
+        // it is slow in a way a cheap JSON endpoint is not: Indico *renders a
+        // PDF* to answer the ticket probe and *signs a pass* to answer the wallet
+        // one. An organiser sat watching 幹部功能 arrive seconds after the rest of
+        // the page, held up by two requests about a ticket they may not even hold.
         .task {
-            guard event.isUpcoming else { return }
+            async let door: Void = openDoor()
+            async let ticket: Void = loadTicket()
+            _ = await (door, ticket)
+        }
+    }
+
+    /// Whether the member holds a ticket, and where it lives as a pass.
+    private func loadTicket() async {
+        tickets.hydrate(eventID: event.id)
+        if event.isUpcoming || !tickets.isSettled(for: event.id) {
             await tickets.load(eventID: event.id, using: indico)
-            await checkin.probe(eventID: event.id, using: indico)
+        }
+        await tickets.loadWalletPass(eventID: event.id, using: indico)
+    }
+
+    /// Whether this member manages the event, and if so who has turned up.
+    private func openDoor() async {
+        await checkin.probe(eventID: event.id, using: indico)
+        // Only ever for an organiser, and it is what puts the count on the row
+        // rather than a generic label.
+        if checkin.access(for: event.id) == .allowed {
+            await checkin.loadRoster(eventID: event.id, using: indico)
         }
     }
 
@@ -90,21 +137,46 @@ struct EventDetailView: View {
     /// Only for someone Indico says manages this event. There is no role claim
     /// behind it — the app asked the check-in API and it answered, which is the
     /// same permission the screen itself runs on.
+    ///
+    /// A row rather than a button, and it carries the count: an organiser
+    /// opening the event usually wants the number, not the scanner, and a row
+    /// that answers before it is tapped is worth more than one that does not.
     @ViewBuilder
-    private var checkinEntry: some View {
+    private var organiserEntry: some View {
         if checkin.access(for: event.id) == .allowed {
             NavigationLink {
-                EventCheckinView(event: event)
+                EventOrganiserView(event: event)
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "qrcode.viewfinder")
-                    Text("報到")
+                        .font(.body)
+                        .foregroundStyle(Theme.Palette.brand)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("幹部功能")
+                            .font(.callout)
+                            .foregroundStyle(.primary)
+                        Text(organiserSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    DisclosureChevron()
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.vertical, 12)
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(.rect(cornerRadius: Theme.Radius.card))
             }
-            .buttonStyle(.brandPlain)
-            .padding(.top, 20)
+            .buttonStyle(.plain)
         }
+    }
+
+    private var organiserSummary: String {
+        let entries = checkin.entries(for: event.id)
+        guard !entries.isEmpty else { return String(localized: "報到與報名名單") }
+        let checkedIn = entries.filter(\.registration.checkedIn).count
+        return String(localized: "\(checkedIn) / \(entries.count) 已報到")
     }
 
     // MARK: - Actions
@@ -122,17 +194,20 @@ struct EventDetailView: View {
         VStack(spacing: 8) {
             switch ticketState {
             case .available(let ticket):
-                Button("查看票券") { openURL(ticket) }
-                    .buttonStyle(.brand)
-
-                // Opened in the browser rather than rendered here: Safari already
-                // holds the member's Indico session, and the ticket never has to
-                // touch the app or the disk. That is plumbing, not something the
-                // member needs told — the button says what it does.
-                if let url = event.url {
-                    Button("活動頁") { openURL(url) }
-                        .buttonStyle(.brandPlain)
+                // One door to the ticket, whatever Indico can serve for it.
+                //
+                // This slot used to hold 加入 Apple Wallet where there was a pass
+                // and a link to the PDF where there was not, so the same tap
+                // meant "file it away" on one event and "open Safari" on the
+                // next — and neither is what someone wanting their code at a
+                // door is asking for. Now it leads to the ticket, and the ticket
+                // screen offers the pass underneath the code it copies.
+                NavigationLink {
+                    EventTicketView(event: event, ticket: ticket)
+                } label: {
+                    Text("查看票券")
                 }
+                .buttonStyle(.brand)
 
             case .needsLinking:
                 if let url = event.url {
@@ -147,7 +222,10 @@ struct EventDetailView: View {
                 // Indico's application is registered as trusted, so it shows no
                 // consent screen — nothing else in the flow will tell the member
                 // what is being connected. So this line has to.
-                caption("會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。")
+                caption("會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。第一次連結時，活動網站會請你填姓名建立個人資料。")
+
+            case .wrongAccount:
+                IndicoStatusBanner(state: .mismatch)
 
             case .failed(let message):
                 if let url = event.url {
@@ -165,8 +243,9 @@ struct EventDetailView: View {
                     Button(primaryLabel) { openURL(url) }
                         .buttonStyle(.brand)
 
-                    // Indico's HTTP API is read-only, so registration cannot
-                    // happen in-app. Opening Indico is not a downgrade: it signs
+                    // Indico exposes no registration API — the check-in API
+                    // behind 幹部功能 writes attendance, not sign-ups — so
+                    // registering happens on Indico. Not a downgrade: it signs
                     // in through the same authentik.
                     caption("報名在 Indico 上完成，使用同一個 STSA 帳號。")
                 }
@@ -174,10 +253,14 @@ struct EventDetailView: View {
         }
     }
 
-    /// A past event's ticket is not worth offering, so the archive only ever
-    /// sees the plain "open the page" action.
+    /// The archive shows its tickets too.
+    ///
+    /// A ticket outlives its event — Indico's `_check_access` never looks at the
+    /// date — and someone who attended has reason to want the record: the pass
+    /// they kept, or the QR they were scanned with. Withholding it here was the
+    /// app's own rule, not Indico's.
     private var ticketState: TicketStore.State {
-        event.isUpcoming ? tickets.state(for: event.id) : .unavailable
+        tickets.state(for: event.id)
     }
 
     private var primaryLabel: LocalizedStringKey {
@@ -207,6 +290,7 @@ struct EventDetailView: View {
         do {
             try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
+            await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)
         } catch {
             // Dismissing the sheet is not a failure worth an alert, same as the
@@ -250,42 +334,18 @@ struct EventDetailView: View {
 
     private var infoCard: some View {
         VStack(spacing: 0) {
-            row("時間", value: schedule)
+            FactRow("時間", value: event.schedule)
             if let place = event.place {
                 RowSeparator()
-                row("地點", value: place)
+                FactRow("地點", value: place)
             }
             if let address = event.address, !address.isEmpty {
                 RowSeparator()
-                row("地址", value: address)
+                FactRow("地址", value: address)
             }
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: Theme.Radius.card))
     }
 
-    private func row(_ label: LocalizedStringKey, value: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
-            Text(value)
-                .multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
-        .padding(.horizontal, Theme.Metrics.gutter)
-        .padding(.vertical, 11)
-    }
-
-    private var schedule: String {
-        var day = Date.FormatStyle.dateTime.year().month().day().weekday(.abbreviated)
-        var clock = Date.FormatStyle.dateTime.hour().minute()
-        day.timeZone = event.timeZone
-        clock.timeZone = event.timeZone
-
-        let sameDay = Calendar.current.isDate(event.start, inSameDayAs: event.end)
-        return sameDay
-            ? "\(event.start.formatted(day)) \(event.start.formatted(clock))–\(event.end.formatted(clock))"
-            : "\(event.start.formatted(day)) \(event.start.formatted(clock)) – \(event.end.formatted(day)) \(event.end.formatted(clock))"
-    }
 }

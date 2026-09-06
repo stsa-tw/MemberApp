@@ -58,9 +58,12 @@ import tw.stsa.memberapp.R
 import tw.stsa.memberapp.feature.account.AccountScreen
 import tw.stsa.memberapp.feature.card.MemberCardScreen
 import tw.stsa.memberapp.feature.channels.ChannelsScreen
+import tw.stsa.memberapp.feature.checkin.CheckinScreen
 import tw.stsa.memberapp.feature.deals.DealDetailScreen
 import tw.stsa.memberapp.feature.deals.DealsScreen
 import tw.stsa.memberapp.feature.events.EventDetailScreen
+import tw.stsa.memberapp.feature.events.EventOrganiserScreen
+import tw.stsa.memberapp.feature.events.EventTicketScreen
 import tw.stsa.memberapp.feature.events.EventsScreen
 import tw.stsa.memberapp.feature.home.AnnouncementDetailScreen
 import tw.stsa.memberapp.feature.home.HomeScreen
@@ -150,7 +153,11 @@ fun RootScreen(
 
     val view = LocalView.current
 
-    LaunchedEffect(auth.profile?.sub) { container.tickets.subject = auth.profile?.sub }
+    LaunchedEffect(auth.profile?.sub) {
+        container.tickets.subject = auth.profile?.sub
+        // What an Indico token is checked against — see `verifyOwner`.
+        container.indico.expectedEmail = auth.profile?.email
+    }
 
     // Loaded here rather than in EventsScreen: Home shows the upcoming count
     // too, and it was reading an empty store until the events tab was first
@@ -251,6 +258,15 @@ fun RootScreen(
 
                 composable<EventDetail> { entry ->
                     EventDetailScreen(navController, entry.toRoute<EventDetail>().id)
+                }
+                composable<EventTicket> { entry ->
+                    EventTicketScreen(navController, entry.toRoute<EventTicket>().id)
+                }
+                composable<EventOrganiser> { entry ->
+                    EventOrganiserScreen(navController, entry.toRoute<EventOrganiser>().id)
+                }
+                composable<Checkin> { entry ->
+                    CheckinScreen(navController, entry.toRoute<Checkin>().id)
                 }
                 composable<DealDetail> { entry ->
                     DealDetailScreen(navController, entry.toRoute<DealDetail>().brand)

@@ -76,10 +76,7 @@ private struct DealRow: View {
         HStack(spacing: 12) {
             // Always on white: the logos are dark-on-transparent and would
             // disappear against the grouped background in Dark Mode.
-            Image(deal.logo)
-                .resizable()
-                .scaledToFit()
-                .padding(6)
+            DealMark(deal: deal, inset: 6, font: .caption2.weight(.bold))
                 .frame(width: 72, height: 44)
                 .background(.white)
                 .clipShape(.rect(cornerRadius: 10))

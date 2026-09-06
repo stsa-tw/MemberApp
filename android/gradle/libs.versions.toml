@@ -16,6 +16,10 @@ biometric = "1.1.0"
 
 appauth = "0.11.1"
 zxing = "3.5.4"
+# Newest stable in each case; the 5.x/1.7.x lines are still alpha, same rule as
+# biometric above.
+okhttp = "4.12.0"
+camerax = "1.6.2"
 
 junit = "4.13.2"
 robolectric = "4.16.1"
@@ -43,6 +47,10 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 appauth = { group = "net.openid", name = "appauth", version.ref = "appauth" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }

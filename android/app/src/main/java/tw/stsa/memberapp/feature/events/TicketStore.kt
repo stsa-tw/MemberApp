@@ -1,13 +1,16 @@
 package tw.stsa.memberapp.feature.events
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
+import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.auth.IndicoAuthManager
 import tw.stsa.memberapp.net.httpGet
+import tw.stsa.memberapp.net.httpGetBytes
 
 /**
  * Works out whether the member holds a ticket for an event, and where to open it.
@@ -28,12 +31,15 @@ import tw.stsa.memberapp.net.httpGet
  * try to explain it — it offers the Indico page and lets Indico do the
  * explaining.
  *
- * **Why the PDF and not a Wallet pass.** Indico also serves
- * `…/ticket/google-wallet` and `…/ticket/apple-wallet`, and those would be the
- * better ticket. Both currently answer **500 `RecursionError: maximum recursion
- * depth exceeded`** on this instance, for every event, in a plain browser as
- * well as from here. When that is fixed server-side, switching back is a matter
- * of changing the path and the expected content type.
+ * **The PDF and the Wallet pass.** Indico also serves `…/ticket/google-wallet`,
+ * which is the better ticket — the same check-in QR, kept where a ticket
+ * belongs, and it outlives the Indico session. That endpoint answered **500
+ * `RecursionError: maximum recursion depth exceeded`** on this instance when
+ * this store was written; it no longer does. So the app asks for one and offers
+ * it alongside the code.
+ *
+ * The PDF stays for the cases a pass does not cover: an instance that will not
+ * render one for a ticket, or a member with no Wallet to put it in.
  *
  * Nothing is written to disk and no ticket is held in memory: a ticket QR *is*
  * the credential — whoever holds it can be checked in as that member — so the
@@ -69,6 +75,17 @@ class TicketStore(context: Context) {
     enum class Outcome { AVAILABLE, UNAVAILABLE, NEEDS_LINKING, FAILED }
 
     private val states = mutableStateMapOf<String, State>()
+
+    /**
+     * Where this event's ticket lives as a Google Wallet pass, once asked.
+     *
+     * Null for an event that was asked and could not produce one. Cached either
+     * way — including the negative — so a screen that recomposes does not re-ask
+     * a server that answered no.
+     */
+    private val walletUrls = mutableStateMapOf<String, String>()
+
+    fun walletUrl(eventId: String): String? = walletUrls[eventId]
 
     /** An event's registration forms do not change under us. */
     private val formIds = mutableMapOf<String, List<Int>>()
@@ -185,6 +202,50 @@ class TicketStore(context: Context) {
     }
 
     /**
+     * Asks whether this ticket exists as a Google Wallet pass, and remembers
+     * either answer.
+     *
+     * Deliberately never fails the ticket: a pass is the nicer route to the same
+     * QR, not a replacement for it, so an instance that cannot produce one still
+     * leaves the code and the PDF working.
+     *
+     * **What "yes" looks like.** Indico does not hand back a pass file the way
+     * the Apple endpoint does — it answers with a **redirect** to a
+     * `pay.google.com/gp/v/save/<jwt>` link, and that link *is* the pass: the
+     * JWT carries the whole ticket, signed by Indico's service account.
+     *
+     * So the redirect is not followed. Followed, Google sees a client with no
+     * session of its own and bounces on to `accounts.google.com/v3/signin`, and
+     * the save link survives only as a query parameter of a login page. The
+     * `Location` header is the clean answer, and it is opened in the member's
+     * browser, which has the Google session this app never will.
+     *
+     * Asked for past events too. `RHTicketDownload._check_access` runs four
+     * checks — registration complete, tickets enabled, ticket visible or the
+     * user manages registration, ticket not blocked — and **none of them is
+     * about the date. A ticket outlives its event**, and a pass for one already
+     * attended is a record worth keeping rather than something to withhold.
+     */
+    suspend fun loadWalletPass(eventId: String, indico: IndicoAuthManager) {
+        if (!indico.isLinked || walletUrls.containsKey(eventId)) return
+        // Only a ticket that exists can become a pass.
+        if (state(eventId) !is State.Available) return
+        val formId = remembered[eventId]?.second ?: formIds[eventId]?.firstOrNull() ?: return
+
+        runCatching {
+            val response = httpGetBytes(
+                googleWalletUrl(eventId, formId),
+                indico.authorizationHeaders(),
+                readBody = false,
+                followRedirects = false,
+            )
+            val save = response.location?.takeIf { it.startsWith(GOOGLE_WALLET_SAVE) }
+            if (save != null) walletUrls[eventId] = save
+            logWalletProbe(eventId, response.status, response.location, null)
+        }.onFailure { logWalletProbe(eventId, null, null, it) }
+    }
+
+    /**
      * Loads only what has not been resolved yet.
      *
      * The events list uses this rather than [load] so that opening the tab
@@ -234,6 +295,7 @@ class TicketStore(context: Context) {
     fun clear() {
         states.clear()
         formIds.clear()
+        walletUrls.clear()
         remembered.clear()
         subject?.let { prefs.edit { remove(rememberedKey(it)) } }
     }
@@ -305,11 +367,57 @@ class TicketStore(context: Context) {
             "$HOST/event/$eventId/registrations/$formId/ticket.pdf"
 
         /**
+         * The same ticket as a Google Wallet pass.
+         *
+         * Indico serves this itself — it is core, not a plugin, and needs no
+         * issuer account of ours — so a working instance signs the pass and
+         * redirects to Google with it.
+         */
+        fun googleWalletUrl(eventId: String, formId: Int) =
+            "$HOST/event/$eventId/registrations/$formId/ticket/google-wallet"
+
+        /**
+         * Where Indico's redirect is expected to land. Checked rather than
+         * assumed: a 200 that stayed on `event.stsa.tw` is Indico's login page,
+         * not a pass, and handing that to Wallet would be handing it nothing.
+         */
+        private const val GOOGLE_WALLET_SAVE = "https://pay.google.com/gp/v/save/"
+
+        /**
          * @param contentType is not decoration. The JDK client follows redirects,
          *   so a request that lost its authorization comes back as a perfectly
          *   good 200 — carrying Indico's *login page*. Only a PDF body is a
          *   ticket.
          */
+        /**
+         * Says why a pass was or was not offered.
+         *
+         * Without this a 500, a 403 and a redirect that landed back on Indico's
+         * login page all look the same from the outside — the button is simply
+         * absent — which is not enough to tell whether the app or the server is
+         * at fault. The iOS side logs the same thing for the same reason.
+         */
+        private fun logWalletProbe(
+            eventId: String,
+            status: Int?,
+            location: String?,
+            error: Throwable?,
+        ) {
+            if (!BuildConfig.DEBUG) return
+            val verdict = when {
+                error != null -> "request failed — $error"
+                location?.startsWith(GOOGLE_WALLET_SAVE) == true -> "pass offered"
+                else -> "no pass"
+            }
+            // The save link carries the signed ticket, so only its prefix is
+            // logged. A JWT in logcat is a ticket in logcat.
+            Log.d(
+                "Indico",
+                "google wallet for event $eventId: HTTP ${status ?: "?"} " +
+                    "→ ${location?.take(48) ?: "nowhere"}… — $verdict",
+            )
+        }
+
         fun outcome(status: Int, contentType: String?): Outcome = when {
             status == 200 ->
                 if (contentType?.lowercase()?.startsWith("application/pdf") == true) {

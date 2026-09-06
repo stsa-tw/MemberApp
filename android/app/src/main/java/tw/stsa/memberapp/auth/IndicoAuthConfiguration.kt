@@ -62,6 +62,28 @@ object IndicoAuthConfiguration {
      */
     val SCOPES = listOf("read:everything")
 
+    /**
+     * What 報到 needs in addition, to *write* a check-in.
+     *
+     * `read:everything` covers any GET, but Indico accepts only `registrants` or
+     * `full:everything` for anything else, so recording attendance is a wider
+     * grant than reading a roster.
+     *
+     * Asked for **only when a 幹部 opens the door screen**, never at sign-in.
+     * Indico's `save_token` extends an existing authorization in place
+     * (`link.update_scopes(new_scopes)`), so a member who already granted
+     * `read:everything` keeps it untouched and is never re-prompted; the one
+     * person who needs to write consents once, on their own account. That is why
+     * this is a separate list rather than an addition to [SCOPES].
+     *
+     * The Indico application must allow this scope. Adding it there does not
+     * invalidate anyone's existing authorization.
+     */
+    val CHECKIN_SCOPES = SCOPES + "registrants"
+
+    /** The scope whose presence decides whether the door can record anything. */
+    const val CHECKIN_SCOPE = "registrants"
+
     val serviceConfiguration = AuthorizationServiceConfiguration(
         AUTHORIZATION_ENDPOINT,
         TOKEN_ENDPOINT,

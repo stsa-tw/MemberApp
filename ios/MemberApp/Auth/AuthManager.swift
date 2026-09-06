@@ -1,4 +1,5 @@
 import AppAuth
+import AuthenticationServices
 import Foundation
 import Observation
 import UIKit
@@ -43,6 +44,13 @@ final class AuthManager {
     private static let keychainAccount = "authState"
     private static let subjectDefaultsKey = "auth.currentSubject"
 
+    /// Set by an explicit 登出, read by the next `login()`.
+    ///
+    /// Survives a launch on purpose: signing out and signing back in are often
+    /// the same errand across two app runs, and a flag that died with the
+    /// process would forget the one thing the member is about to need.
+    private static let promptForAccountKey = "auth.promptForAccount"
+
     private(set) var isLoggedIn = false
     private(set) var profile: Profile?
     private(set) var isBusy = false
@@ -72,7 +80,7 @@ final class AuthManager {
             scopes: AuthConfiguration.scopes,
             redirectURL: AuthConfiguration.redirectURI,
             responseType: OIDResponseTypeCode,
-            additionalParameters: nil
+            additionalParameters: Self.promptParameters()
         )
 
         let presenter = try topViewController()
@@ -95,6 +103,7 @@ final class AuthManager {
 
         userAgentSession = nil
         adopt(state)
+        UserDefaults.standard.removeObject(forKey: Self.promptForAccountKey)
 
         let (profile, rawUserinfo) = try await fetchProfile()
         self.profile = profile
@@ -103,14 +112,33 @@ final class AuthManager {
         logLoginResult(rawUserinfo: rawUserinfo, state: state)
     }
 
+    /// Asks authentik for the account, rather than taking the one it remembers.
+    ///
+    /// The flow runs in the shared Safari session, which is what makes SSO work
+    /// and is deliberate — but it also means that after 登出 the cookie is still
+    /// there, `/authorize` answers instantly from it, and the sheet appears and
+    /// vanishes before anyone can read it. A member handing the phone to someone
+    /// else, or signing in on their own second account, never got the choice.
+    ///
+    /// So an explicit 登出 asks the next sign-in to prompt. Only an explicit one:
+    /// a session that merely expired did not ask to be signed out, and making
+    /// that member retype a password for a token that quietly lapsed would be
+    /// punishing them for the app's bookkeeping.
+    private static func promptParameters() -> [String: String]? {
+        guard UserDefaults.standard.bool(forKey: promptForAccountKey) else { return nil }
+        return ["prompt": "login"]
+    }
+
     /// Drops every local credential.
     ///
-    /// Deliberately local-only. Because the flow runs in the shared Safari
-    /// session, the authentik session cookie survives — the next `login()` may
-    /// complete without a prompt. If you need to end the IdP session too, that
-    /// is an RP-initiated logout against
+    /// Deliberately local-only: the authentik session cookie lives in Safari and
+    /// is not ours to clear. What this does instead is set the flag
+    /// `promptParameters` reads, so the next sign-in asks who is signing in
+    /// rather than assuming. Ending the IdP session outright would be an
+    /// RP-initiated logout against
     /// `serviceConfiguration?.discoveryDocument?.endSessionEndpoint`.
     func logout() {
+        UserDefaults.standard.set(true, forKey: Self.promptForAccountKey)
         if let sub = profile?.sub ?? UserDefaults.standard.string(forKey: Self.subjectDefaultsKey) {
             UserDefaults.standard.removeObject(forKey: Self.profileKey(for: sub))
         }
@@ -125,10 +153,20 @@ final class AuthManager {
 
     /// True when the person dismissed the sign-in sheet themselves. Callers
     /// should treat this as "nothing happened", not as a failure worth an alert.
+    ///
+    /// Two domains, because the two flows are driven by different code. The
+    /// authentik one is AppAuth's end to end and reports its own error; the
+    /// Indico one runs the browser leg itself (`IndicoBrowserSession`, and the
+    /// reason is documented there), so a dismissal arrives as
+    /// `ASWebAuthenticationSession`'s. Matching only the first is why cancelling
+    /// the Indico sheet used to surface as an error the member could not act on.
     static func isUserCancellation(_ error: any Error) -> Bool {
         let error = error as NSError
-        return error.domain == OIDGeneralErrorDomain
-            && error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue
+        if error.domain == OIDGeneralErrorDomain {
+            return error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue
+        }
+        return error.domain == ASWebAuthenticationSessionErrorDomain
+            && error.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
     }
 
     /// Hands the redirect back to the in-flight authorization request.

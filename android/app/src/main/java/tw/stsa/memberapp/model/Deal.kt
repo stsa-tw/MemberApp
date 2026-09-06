@@ -21,8 +21,12 @@ data class Deal(
     /**
      * Partner logo, from stsa.tw's own uploads. These are horizontal lockups,
      * so they are letterboxed rather than cropped to a square.
+     *
+     * Null when a partnership is agreed before the artwork arrives — the
+     * discount is real from the day it is agreed. `PartnerLogo` sets the brand
+     * name on the same plate until there is a mark to put there.
      */
-    @param:DrawableRes val logo: Int,
+    @param:DrawableRes val logo: Int?,
     val brand: String,
     val brandEnglish: String? = null,
     /** Short headline, e.g. "85 折". Null when the offer is not a discount. */
@@ -71,7 +75,7 @@ data class Deal(
                     "實體門市暫無使用期限",
                 ),
                 code = "15OFF4STSA",
-                expires = LocalDate.of(2026, 6, 30),
+                expires = LocalDate.of(2026, 12, 31),
             ),
             Deal(
                 logo = R.drawable.finetable_logo,
@@ -86,6 +90,16 @@ data class Deal(
                     "除禮品卡外，其他商品皆可使用",
                 ),
                 code = "ONLYFORSTSA",
+            ),
+            Deal(
+                logo = R.drawable.wushiland_logo,
+                brand = "Wushiland Boba",
+                headline = "9 折",
+                summary = "出示會員證享 9 折，永久有效。",
+                terms = listOf(
+                    "出示會員證享 9 折",
+                    "永久有效，無使用期限",
+                ),
             ),
             Deal(
                 logo = R.drawable.hsbc_logo,

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -110,6 +111,37 @@ fun RowSeparator(inset: Dp = 16.dp) {
 }
 
 /**
+ * A label on the left, its value on the right — the shape of every fact the app
+ * states about something: an event's time and place, a ticket's holder.
+ *
+ * Not a [SectionRow]: that is a Material `ListItem`, built for a tappable row
+ * with a headline and supporting text underneath. This is two columns on one
+ * baseline, and the value is the half that wraps — an address runs to three
+ * lines and its label should stay level with the first of them.
+ */
+@Composable
+fun FactRow(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Theme.Metrics.gutter, vertical = 11.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/**
  * The full-width brand button that anchors Welcome, Deal Detail and the event
  * CTA — the counterpart of iOS's `BrandButtonStyle`.
  */
@@ -142,9 +174,11 @@ fun BrandTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     TextButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.defaultMinSize(minHeight = Theme.Metrics.ctaHeight),
         shape = RoundedCornerShape(Theme.Radius.button),
     ) {

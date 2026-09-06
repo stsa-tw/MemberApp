@@ -38,6 +38,7 @@ data class IndicoEvent(
 ) {
     fun isUpcoming(now: Instant = Instant.now()): Boolean = !end.isBefore(now)
 
+
     /**
      * [location] is the venue name, [room] the room within it. Indico leaves
      * either blank, so join whatever is there.

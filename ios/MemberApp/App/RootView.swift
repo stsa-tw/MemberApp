@@ -6,21 +6,14 @@ import SwiftUI
 /// mocks up by hand, so there is no custom bar to build — the trailing 會員卡
 /// button rides alongside it as a bottom accessory.
 struct RootView: View {
-    /// Re-evaluates the link attempt when the session or the scene changes, and
-    /// not on every redraw.
-    private struct LinkMoment: Equatable {
-        let isLoggedIn: Bool
-        let phase: ScenePhase
-    }
-
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(Session.self) private var session
     @Environment(AuthManager.self) private var auth
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(EventsStore.self) private var events
     @Environment(TicketStore.self) private var tickets
+    @Environment(MembershipCodeStore.self) private var codes
+    @Environment(CheckinStore.self) private var checkin
 
-    @State private var hasTriedLinking = false
 
     var body: some View {
         @Bindable var session = session
@@ -57,38 +50,64 @@ struct RootView: View {
         // An expired session drops the app back to Welcome; a card sheet left
         // standing over it would be a dead credential on top of a sign-in screen.
         .onChange(of: auth.isLoggedIn) { _, isLoggedIn in
-            if !isLoggedIn { session.isShowingMemberCard = false }
+            if !isLoggedIn { endSession() }
+        }
+        // A token that turns out to be somebody else's did not only fail to be
+        // theirs — it had already been believed. Every answer it gave was filed
+        // under *this* member: which events they hold a ticket for, and the door
+        // roster. `TicketStore` keeps its answers across launches on purpose, so
+        // without this the officer's tickets stayed cached under the member's
+        // own key, and the event page went on showing 查看票券 for an event they
+        // had never registered for — with no 連結 button anywhere, because as
+        // far as the app knew the question was already settled.
+        .onChange(of: indico.refused) { _, refused in
+            guard refused != nil else { return }
+            tickets.clear()
+            checkin.clear()
         }
         // Loaded here rather than in EventsView: Home shows the upcoming count
         // too, and it was reading an empty store until the events tab was first
         // opened.
-        // Link Indico as soon as there is a session, rather than making the
-        // member find a button for it. It lives here rather than in WelcomeView
-        // because signing in swaps that view away the moment it succeeds, and a
-        // browser round-trip started there would be torn down mid-flight.
+        // Indico is deliberately *not* linked here.
         //
-        // Gated on `.active`, not merely on being signed in: a browser session
-        // cannot be presented from a scene that is still coming up, and trying
-        // anyway is what crashed the first device build. Once per launch, so
-        // dismissing it does not mean meeting it again on every return to the app.
+        // It used to be, so nobody had to find a button for it. But that flow
+        // opens `ASWebAuthenticationSession`, and iOS puts its own
+        // "…Wants to Use event.stsa.tw to Sign In" alert in front of every
+        // non-ephemeral one — so a member who had just signed in met a system
+        // permission dialog on 首頁, naming a site they had not asked about,
+        // before touching anything. Most members never open a ticket at all.
         //
-        // Deliberately `try?`: nothing here may break the signed-in shell. When it
-        // does not complete, the events screen still offers to link.
-        .task(id: LinkMoment(isLoggedIn: auth.isLoggedIn, phase: scenePhase)) {
-            guard scenePhase == .active, auth.isLoggedIn,
-                  !indico.isLinked, !hasTriedLinking
-            else { return }
-
-            hasTriedLinking = true
-            try? await indico.link()
-        }
+        // So it happens where it means something instead: 活動 → the event's
+        // 查看我的票券, which says what is being connected and why, and which is
+        // also allowed to re-authenticate when the browser is signed in as
+        // somebody else.
         .task(id: auth.profile?.sub) {
             tickets.subject = auth.profile?.sub
+            // What an Indico token is checked against — see `verifyOwner`.
+            indico.expectedEmail = auth.profile?.email
         }
         .task(id: auth.isLoggedIn) {
             guard auth.isLoggedIn, events.events.isEmpty else { return }
             await events.load()
         }
+    }
+
+    /// Drops everything that belonged to whoever was signed in.
+    ///
+    /// Here, on the session ending, rather than in the 登出 button — because a
+    /// session also ends on its own. `AuthManager` signs out by itself when
+    /// authentik refuses a refresh token, and that path went through no button:
+    /// it left the Indico link, the roster and the door's `.allowed` verdict
+    /// standing in memory. The next person to sign in on that device inherited
+    /// them — the event page offered them 幹部功能, and every Indico request went
+    /// out under the previous member's token, which is Indico's answer to who
+    /// may open the door.
+    private func endSession() {
+        session.isShowingMemberCard = false
+        indico.unlink()
+        codes.clear()
+        tickets.clear()
+        checkin.clear()
     }
 }
 

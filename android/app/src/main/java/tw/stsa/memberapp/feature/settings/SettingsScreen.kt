@@ -186,6 +186,7 @@ fun SettingsScreen(navController: NavHostController) {
                             // the session.
                             container.indico.unlink()
                             container.tickets.clear()
+                            container.checkin.clear()
                             // The graph is inside the signed-in branch of
                             // RootScreen, so it goes away with the session; there
                             // is nothing to pop.

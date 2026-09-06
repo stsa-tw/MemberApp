@@ -102,7 +102,26 @@ class AuthManager(context: Context) {
                 AuthConfiguration.CLIENT_ID,
                 ResponseTypeValues.CODE,
                 AuthConfiguration.REDIRECT_URI,
-            ).setScopes(AuthConfiguration.SCOPES).build()
+            )
+                .setScopes(AuthConfiguration.SCOPES)
+                // Asks authentik for the account, rather than taking the one it
+                // remembers. The flow runs in the browser's session, which is
+                // what makes SSO work and is deliberate — but it also means that
+                // after a sign-out the cookie is still there, /authorize answers
+                // instantly from it, and the tab appears and vanishes before
+                // anyone can read it. A member handing the phone over, or
+                // signing in on their own second account, never got the choice.
+                //
+                // Only after an *explicit* sign-out: a session that merely
+                // expired did not ask to be signed out, and making that member
+                // retype a password for a token that quietly lapsed would be
+                // punishing them for the app's bookkeeping.
+                .apply {
+                    if (prefs.getBoolean(PROMPT_FOR_ACCOUNT_KEY, false)) {
+                        setPrompt(AuthorizationRequest.Prompt.LOGIN)
+                    }
+                }
+                .build()
 
             // AppAuth drives a Custom Tab here, so the sign-in page runs in the
             // browser's session and participates in SSO. Never swap this for a
@@ -129,6 +148,7 @@ class AuthManager(context: Context) {
             val tokens = exchange(response)
             state.update(tokens, null)
             adopt(state)
+            prefs.edit { remove(PROMPT_FOR_ACCOUNT_KEY) }
 
             val (fetched, rawUserinfo) = fetchProfile()
             profile = fetched
@@ -149,16 +169,20 @@ class AuthManager(context: Context) {
      * Drops every local credential.
      *
      * Deliberately local-only. Because the flow runs in the shared browser
-     * session, the authentik session cookie survives — the next sign-in may
-     * complete without a prompt. If you need to end the IdP session too, that
-     * is an RP-initiated logout against the discovery document's
-     * `end_session_endpoint`.
+     * session, the authentik session cookie survives and is not ours to clear.
+     * What this does instead is set the flag [authorizationIntent] reads, so the
+     * next sign-in asks who is signing in rather than assuming. Ending the IdP
+     * session outright would be an RP-initiated logout against the discovery
+     * document's `end_session_endpoint`.
      */
     fun logout() {
         val sub = profile?.sub ?: prefs.getString(SUBJECT_KEY, null)
         prefs.edit {
             if (sub != null) remove(profileKey(sub))
             remove(SUBJECT_KEY)
+            // The browser's authentik cookie is not ours to clear; what this can
+            // do is make the next sign-in ask who is signing in.
+            putBoolean(PROMPT_FOR_ACCOUNT_KEY, true)
         }
         tokenStore.clear()
 
@@ -390,6 +414,15 @@ class AuthManager(context: Context) {
         private const val TAG = "Auth"
         private const val PROFILE_PREFS = "profile"
         private const val SUBJECT_KEY = "auth.currentSubject"
+
+        /**
+         * Set by an explicit sign-out, read by the next authorization request.
+         *
+         * Survives a launch on purpose: signing out and signing back in are
+         * often the same errand across two app runs, and a flag that died with
+         * the process would forget the one thing the member is about to need.
+         */
+        private const val PROMPT_FOR_ACCOUNT_KEY = "auth.promptForAccount"
 
         private fun profileKey(sub: String) = "auth.profile.$sub"
 

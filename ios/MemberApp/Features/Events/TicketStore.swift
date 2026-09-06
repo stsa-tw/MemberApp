@@ -19,13 +19,16 @@ import Observation
 /// not try to explain it — it offers the Indico page and lets Indico do the
 /// explaining.
 ///
-/// **Why the PDF and not a Wallet pass.** Indico also serves
-/// `…/ticket/apple-wallet` and `…/ticket/google-wallet`, and those would be the
-/// better ticket — a pass carries the same check-in QR and lives in the phone's
-/// wallet. Both currently answer **500 `RecursionError: maximum recursion depth
-/// exceeded`** on this instance, for every event, in a plain browser as well as
-/// from here. When that is fixed server-side, switching back is a matter of
-/// changing the path and the expected content type.
+/// **The PDF and the Wallet pass.** Indico also serves `…/ticket/apple-wallet`,
+/// which is the better ticket — the same check-in QR, kept where a ticket
+/// belongs, and it outlives the Indico session. That endpoint answered **500
+/// `RecursionError: maximum recursion depth exceeded`** on this instance when
+/// this store was written; it no longer does, and now returns a signed pass. So
+/// the app asks for one and leads with it when it arrives.
+///
+/// The PDF stays for the cases a pass does not cover: a device that cannot hold
+/// passes, or a ticket the instance will not render one for. Ask for the pass
+/// with a plain **GET** — `HEAD` looks thriftier and Indico answers it `400`.
 ///
 /// Nothing is written to disk and no ticket is held in memory: a ticket QR *is*
 /// the credential — whoever holds it can be checked in as that member — so the
@@ -44,6 +47,11 @@ final class TicketStore {
         /// Where the ticket lives. Opened in the browser rather than fetched
         /// again — the session there is what authenticates it.
         case available(URL)
+        /// Indico answered as somebody else. Its own case rather than a
+        /// `failed` string: this one has an address in it, a cause the member
+        /// can act on, and a way out — none of which survive being flattened
+        /// into a line of grey caption text.
+        case wrongAccount
         case failed(String)
     }
 
@@ -87,6 +95,18 @@ final class TicketStore {
     }
 
     private static let host = "https://event.stsa.tw"
+
+    /// Where this event's ticket lives as an Apple Wallet pass, once asked.
+    ///
+    /// `nil` for an event that was asked and could not produce one — currently
+    /// every event on this instance, which is why the PDF is still the primary
+    /// route. Cached either way so a screen that redraws does not re-ask a
+    /// server that answers 500.
+    private var walletURLs: [String: URL?] = [:]
+
+    func walletURL(for eventID: String) -> URL? {
+        walletURLs[eventID] ?? nil
+    }
 
     func state(for eventID: String) -> State {
         states[eventID] ?? .idle
@@ -192,6 +212,13 @@ final class TicketStore {
     /// Records a failure raised outside `load` — the authorization flow — so it
     /// surfaces in the same place as the rest.
     func report(_ error: any Error, for eventID: String) {
+        // The addresses behind this live on `IndicoAuthManager`, which is
+        // where they stay current — copying them per event would be one more
+        // thing to keep in step.
+        if case IndicoAuthManager.LinkError.wrongAccount = error {
+            states[eventID] = .wrongAccount
+            return
+        }
         states[eventID] = .failed(error.localizedDescription)
     }
 
@@ -237,6 +264,54 @@ final class TicketStore {
 
     static func ticketURL(eventID: String, formID: Int) -> URL {
         URL(string: "\(host)/event/\(eventID)/registrations/\(formID)/ticket.pdf")!
+    }
+
+    /// The same ticket as an Apple Wallet pass.
+    ///
+    /// Indico serves this itself — it is core, not a plugin, and needs no
+    /// certificate of ours — so a working instance hands back a signed
+    /// `.pkpass` and there is nothing for the app to sign.
+    static func walletURL(eventID: String, formID: Int) -> URL {
+        URL(string: "\(host)/event/\(eventID)/registrations/\(formID)/ticket/apple-wallet")!
+    }
+
+    /// Asks whether this ticket exists as a pass, and remembers either answer.
+    ///
+    /// Deliberately never fails the ticket: a pass is the nicer route to the
+    /// same QR, not a replacement for it, so an instance that cannot produce one
+    /// still leaves the PDF working.
+    ///
+    /// Asked for past events too. Indico's `RHTicketDownload._check_access` runs
+    /// four checks — registration complete, tickets enabled, ticket visible or
+    /// the user manages registration, ticket not blocked — and **none of them is
+    /// about the date. A ticket outlives its event**, and a pass for one already
+    /// attended is a record worth keeping rather than something to withhold.
+    func loadWalletPass(eventID: String, using indico: IndicoAuthManager) async {
+        guard indico.isLinked, walletURLs[eventID] == nil else { return }
+        // Only a ticket that exists can become a pass.
+        guard case .available = state(for: eventID) else { return }
+        guard let formID = remembered[eventID]?.formID ?? formIDs[eventID]?.first else { return }
+
+        let url = Self.walletURL(eventID: eventID, formID: formID)
+        do {
+            // A plain GET, like the PDF probe beside it. HEAD looks like the
+            // thriftier choice and Indico answers it 400: its request handlers
+            // are written for the methods the route declares, and the saving —
+            // a pass is a few kilobytes — was never worth the divergence.
+            let request = try indico.authorizedRequest(for: url)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let http = response as? HTTPURLResponse
+            let isPass = http?.statusCode == 200
+                && http?.mimeType == "application/vnd.apple.pkpass"
+            walletURLs[eventID] = isPass ? url : URL?.none
+            Self.logWalletProbe(eventID: eventID,
+                                status: http?.statusCode,
+                                contentType: http?.mimeType,
+                                error: nil)
+        } catch {
+            walletURLs[eventID] = URL?.none
+            Self.logWalletProbe(eventID: eventID, status: nil, contentType: nil, error: error)
+        }
     }
 
     private func registrationForms(eventID: String, using indico: IndicoAuthManager) async throws -> [Int] {
@@ -289,6 +364,28 @@ final class TicketStore {
         default:
             return .failed
         }
+    }
+
+    /// Says why a pass was or was not offered.
+    ///
+    /// Without this a 500, a 404 and "this device cannot hold passes" all look
+    /// the same from the outside — the button is simply absent — which is not
+    /// enough to tell whether the app or the server is at fault.
+    private static func logWalletProbe(eventID: String,
+                                       status: Int?,
+                                       contentType: String?,
+                                       error: (any Error)?) {
+        #if DEBUG
+        if let error {
+            print("[Indico] wallet pass for event \(eventID): request failed — \(error)")
+            return
+        }
+        let verdict = status == 200 && contentType == "application/vnd.apple.pkpass"
+            ? "pass offered"
+            : "no pass"
+        print("[Indico] wallet pass for event \(eventID): HTTP \(status.map(String.init) ?? "?")"
+            + " \(contentType ?? "no content type") — \(verdict)")
+        #endif
     }
 
     /// Raised when Indico rejects the token outright, so `load` can tell that

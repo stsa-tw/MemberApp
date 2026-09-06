@@ -1,12 +1,23 @@
 import AVFoundation
 import SwiftUI
 
-/// Live camera feed that reports the first STSA QR code it sees, once.
+/// Live camera feed that reports the first QR code it sees that the screen can
+/// use, once.
 ///
 /// The counterpart to `QRCode`, which draws them. `AVCaptureMetadataOutput` does
 /// the decoding, so there is no third-party scanner here for the same reason
 /// there is no HTTP client — the platform already ships one.
 struct CameraScanner: UIViewRepresentable {
+    /// Which payloads are worth reporting. The camera sees whatever is in frame
+    /// — a poster's URL, a Wi-Fi code — and everything else is ignored rather
+    /// than reported as a bad scan.
+    ///
+    /// A parameter and not a constant, because the two screens read different
+    /// things: 掃描 wants member cards, and the door also takes Indico tickets.
+    /// Hard-coding the membership prefix here is what made a ticket unscannable
+    /// at the door — the ticket branch was there, but no ticket ever reached it.
+    let accepts: (String) -> Bool
+
     /// Handed the raw payload, prefix included. The session is already stopped
     /// by the time this fires, so it arrives exactly once per scan: the web
     /// scanner keeps its stream live across the validation round-trip, which
@@ -27,7 +38,7 @@ struct CameraScanner: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onScan: onScan)
+        Coordinator(accepts: accepts, onScan: onScan)
     }
 
     /// Hosting the preview in the view's *own* layer lets AutoLayout size it; a
@@ -41,6 +52,7 @@ struct CameraScanner: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+        private let accepts: (String) -> Bool
         private let onScan: (String) -> Void
 
         /// `AVCaptureSession` is an unannotated Objective-C class, so the
@@ -56,7 +68,8 @@ struct CameraScanner: UIViewRepresentable {
 
         private var hasScanned = false
 
-        init(onScan: @escaping (String) -> Void) {
+        init(accepts: @escaping (String) -> Bool, onScan: @escaping (String) -> Void) {
+            self.accepts = accepts
             self.onScan = onScan
             super.init()
         }
@@ -151,9 +164,7 @@ struct CameraScanner: UIViewRepresentable {
         }
 
         private func deliver(_ payloads: [String]) {
-            guard !hasScanned,
-                  let payload = payloads.first(where: { $0.hasPrefix(MembershipValidator.prefix) })
-            else { return }
+            guard !hasScanned, let payload = payloads.first(where: accepts) else { return }
 
             // Stopped before the payload goes out, so the frames already in
             // flight cannot open a second validation request.

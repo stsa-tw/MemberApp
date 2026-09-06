@@ -10,7 +10,11 @@ import SwiftUI
 struct Deal: Identifiable, Hashable {
     /// Partner logo, from stsa.tw's own uploads. These are horizontal lockups,
     /// so they are letterboxed rather than cropped to a square.
-    let logo: ImageResource
+    ///
+    /// Optional, because a partnership is agreed before the artwork arrives and
+    /// the discount is real from the day it is agreed. `DealMark` sets the brand
+    /// name on the same plate until there is a mark to put there.
+    let logo: ImageResource?
     var brand: String
     var brandEnglish: String?
     /// Short headline, e.g. "85 折". Nil when the offer is not a discount.
@@ -56,7 +60,7 @@ extension Deal {
                 "實體門市暫無使用期限",
               ],
               code: "15OFF4STSA",
-              expires: DateComponents(year: 2026, month: 6, day: 30)),
+              expires: DateComponents(year: 2026, month: 12, day: 31)),
 
         .init(logo: .finetableLogo,
               brand: "良人食堂",
@@ -70,6 +74,15 @@ extension Deal {
                 "除禮品卡外，其他商品皆可使用",
               ],
               code: "ONLYFORSTSA"),
+
+        .init(logo: .wushilandLogo,
+              brand: "Wushiland Boba",
+              headline: "9 折",
+              summary: "出示會員證享 9 折，永久有效。",
+              terms: [
+                "出示會員證享 9 折",
+                "永久有效，無使用期限",
+              ]),
 
         .init(logo: .hsbcLogo,
               brand: "HSBC 滙豐 Premier",

@@ -44,6 +44,18 @@ data object MemberCard
 @Serializable
 data class EventDetail(val id: String)
 
+/** One event's ticket: the check-in code, the facts, and the Google Wallet pass. */
+@Serializable
+data class EventTicket(val id: String)
+
+/** 幹部功能 for one event: the count, the scanner and the roster. */
+@Serializable
+data class EventOrganiser(val id: String)
+
+/** The 報到 scanner for one event. Reached only by a 幹部 — see `EventOrganiserScreen`. */
+@Serializable
+data class Checkin(val id: String)
+
 /** Keyed on `Deal.id`, which is the brand name. */
 @Serializable
 data class DealDetail(val brand: String)
