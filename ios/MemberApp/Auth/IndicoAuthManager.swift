@@ -80,7 +80,28 @@ final class IndicoAuthManager {
         grantedScopes.contains(IndicoAuthConfiguration.checkinScope)
     }
 
-    func link(scopes: [String] = IndicoAuthConfiguration.scopes) async throws {
+    /// - Parameter mayReauthenticate: whether this is allowed to fall back to a
+    ///   cookie-less browser when the shared one answers as somebody else. True
+    ///   when a member asked for this and is watching; false for the silent
+    ///   attempt at launch, which must never put a login page in front of
+    ///   someone who did not ask for one.
+    func link(
+        scopes: [String] = IndicoAuthConfiguration.scopes,
+        mayReauthenticate: Bool = false
+    ) async throws {
+        do {
+            try await authorize(scopes: scopes, ephemeral: false)
+        } catch LinkError.wrongAccount(let indico) {
+            // The shared cookie is the whole reason this happened, so retrying
+            // through it would only produce the same person again. One retry,
+            // without it: the member signs in as themselves and the token that
+            // comes back is theirs.
+            guard mayReauthenticate else { throw LinkError.wrongAccount(indico: indico) }
+            try await authorize(scopes: scopes, ephemeral: true)
+        }
+    }
+
+    private func authorize(scopes: [String], ephemeral: Bool) async throws {
         isBusy = true
         defer { isBusy = false }
 
@@ -96,7 +117,10 @@ final class IndicoAuthManager {
             additionalParameters: nil
         )
 
-        let callback = try await IndicoBrowserSession.authorize(url: request.authorizationRequestURL())
+        let callback = try await IndicoBrowserSession.authorize(
+            url: request.authorizationRequestURL(),
+            ephemeral: ephemeral
+        )
         let code = try Self.authorizationCode(from: callback, expecting: request.state)
 
         // `redirectURL` here must be the value that was sent to the authorize
@@ -137,7 +161,18 @@ final class IndicoAuthManager {
     /// `TicketStore.subject` is. Email rather than `sub`, because the two
     /// providers do not share a subject: Indico has its own user ids, and the
     /// address is the one identifier both systems carry for the same person.
-    var expectedEmail: String?
+    var expectedEmail: String? {
+        didSet {
+            guard expectedEmail != oldValue else { return }
+            // A token restored from the keychain has never been checked against
+            // anybody: `restore()` runs in `init`, before there is a profile to
+            // compare it to, and it trusts whatever the last install left there.
+            // On the phone this was first found on, that is precisely the
+            // officer's token — so the check has to happen here too, and not
+            // only on a link the member just made.
+            Task { try? await verifyOwner() }
+        }
+    }
 
     /// Refuses a token that belongs to somebody else.
     ///
@@ -159,7 +194,8 @@ final class IndicoAuthManager {
     /// A mismatch throws the token away rather than keeping it: the member is
     /// better off with no Indico link than with someone else's.
     private func verifyOwner() async throws {
-        guard let expected = expectedEmail?.lowercased(), !expected.isEmpty,
+        guard isLinked,
+              let expected = expectedEmail?.lowercased(), !expected.isEmpty,
               let url = URL(string: "https://event.stsa.tw/api/user/")
         else { return }
 

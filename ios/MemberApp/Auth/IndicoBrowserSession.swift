@@ -41,8 +41,12 @@ enum IndicoBrowserSession {
         }
     }
 
+    /// - Parameter ephemeral: when true, the page runs in a browser that shares
+    ///   no cookies with Safari and keeps none afterwards. Off by default, and
+    ///   see the note at `prefersEphemeralWebBrowserSession` below for why; it
+    ///   is turned on only to escape a session belonging to somebody else.
     @MainActor
-    static func authorize(url: URL) async throws -> URL {
+    static func authorize(url: URL, ephemeral: Bool = false) async throws -> URL {
         guard let anchor = keyWindow() else { throw SessionError.noPresenter }
         let provider = AnchorProvider(anchor: anchor)
 
@@ -68,11 +72,18 @@ enum IndicoBrowserSession {
             }
 
             session.presentationContextProvider = provider
-            // Deliberately *not* ephemeral. The browser already carries an
-            // authentik session from signing in, and Indico delegates
+            // Deliberately *not* ephemeral by default. The browser already
+            // carries an authentik session from signing in, and Indico delegates
             // authentication to authentik — sharing it is what turns this into a
             // silent redirect rather than a second login.
-            session.prefersEphemeralWebBrowserSession = false
+            //
+            // That sharing is also the hole: the cookie belongs to whoever last
+            // signed in *on this phone's browser*, which is not necessarily
+            // whoever is signed into the app. No app can clear another app's
+            // cookies, so the only way back to the right person is to ask in a
+            // browser that has none — which is what `ephemeral` buys, at the
+            // price of typing a password.
+            session.prefersEphemeralWebBrowserSession = ephemeral
 
             provider.retain = session
             if !session.start() {

@@ -192,7 +192,8 @@ struct EventCheckinView: View {
     /// affected.
     private func authorizeWriting() async {
         do {
-            try await indico.link(scopes: IndicoAuthConfiguration.checkinScopes)
+            try await indico.link(scopes: IndicoAuthConfiguration.checkinScopes,
+                                  mayReauthenticate: true)
             // A grant that comes back without `registrants` means the Indico
             // application does not allow the scope, which is server config no
             // staffer can fix from here. Say so, rather than returning to the

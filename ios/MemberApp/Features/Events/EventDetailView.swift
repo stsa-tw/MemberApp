@@ -285,7 +285,9 @@ struct EventDetailView: View {
         defer { isLinking = false }
 
         do {
-            try await indico.link()
+            // The member asked and is watching, so a browser holding
+            // somebody else's session can be escaped — see `link`.
+            try await indico.link(mayReauthenticate: true)
             await tickets.load(eventID: event.id, using: indico)
             await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)
