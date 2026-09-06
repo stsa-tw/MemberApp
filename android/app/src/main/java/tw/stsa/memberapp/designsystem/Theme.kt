@@ -16,21 +16,21 @@ import tw.stsa.memberapp.app.AppSettings
  *
  * The iOS version is thin because the prototype's greys turned out to be literal
  * transcriptions of Apple's semantic colours, so it leans on those and keeps only
- * the brand rose. The same reasoning applies here with a different set of
+ * the brand red. The same reasoning applies here with a different set of
  * semantics: the greys come from the Material 3 scheme, which is what makes dark
- * mode and contrast work, and only the rose is ours.
+ * mode and contrast work, and only the red is ours.
  */
 object Theme {
 
     /**
-     * The STSA brand rose, and the seed the scheme below is generated from.
+     * The STSA brand red, the same number `AccentColor.colorset` holds on iOS.
      *
-     * Not the `#C68578` you get from reading `AccentColor.colorset` as hex:
-     * that asset stores **display-P3** components, and the same colour in sRGB —
-     * which is what `Color(0xFF…)` means here — is `#D18175`. Using the literal
-     * hex would leave Android visibly flatter than iOS rather than matching it.
+     * It used to be a muted rose (`#D18175`), and the two platforms used to
+     * disagree about how to write it down: the asset stored display-P3
+     * components and this stored their sRGB translation. The asset is plain sRGB
+     * hex now, so there is one value and both platforms use it.
      */
-    val Brand = Color(0xFFD18175)
+    val Brand = Color(0xFF8E2622)
 
     /** Near-black surface behind the member card banner and deal marks. `#1C1C1E` */
     val InkCard = Color(0xFF1C1C1E)
@@ -77,20 +77,34 @@ val ColorScheme.pageBackground: Color get() = surface
 /** The subtly raised container a section of rows sits in, on top of [pageBackground]. */
 val ColorScheme.sectionContainer: Color get() = surfaceContainerLow
 
-// Accent roles are generated from [Theme.Brand] — L* 62, chroma 35, hue 34°.
-// Written out rather than produced by dynamicColorScheme(): the member card is
-// an identity document and the rose is the thing that identifies it, so it does
-// not get repainted to match somebody's wallpaper.
+// Accent roles were generated from the rose this app started with — L* 62,
+// chroma 35, hue 34°. Written out rather than produced by dynamicColorScheme():
+// the member card is an identity document and the brand is the thing that
+// identifies it, so it does not get repainted to match somebody's wallpaper.
+//
+// **What moved when the brand became `#8E2622`, and what did not.** Only the
+// mid-tones: `primary` and `inversePrimary` in both schemes. The pale containers
+// are untouched on purpose — at tone 90 a hue-27 red and a hue-34 rose are
+// within a shade of each other, so `#FFDAD4` is as right for one as the other,
+// and rewriting it by hand would have been churn pretending to be precision.
+// Secondary and tertiary stay where they are: they are desaturated enough to
+// read as neutral company for either.
+//
+// The honest caveat is that this is a shift, not a regeneration. A full ramp
+// from the new seed wants Material Theme Builder; nothing here is computed from
+// HCT, and it does not pretend to be.
 //
 // Everything structural — page, containers, text, hairlines — is neutral grey on
 // purpose. Carrying the brand hue through the surface ramp tinted every screen
-// pink for no gain: a member reads the rose as "STSA" when it marks a button or
+// pink for no gain: a member reads the brand as "STSA" when it marks a button or
 // the card, and as a discoloured screen when it is the background.
 //
-// The error roles keep Material's own red. A rose primary and a rose error would
-// be the same colour saying two different things.
+// The error roles keep Material's own red, which is a closer cousin now than it
+// was. They survive it because `error` is only ever a line of text or an icon
+// tint — a failed card, an expired offer, 登出 — and never a filled slab next to
+// a brand one, so the two are not asked to be told apart at a glance.
 private val LightScheme = lightColorScheme(
-    primary = Color(0xFF91493F),
+    primary = Color(0xFF8E2622),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDAD4),
     onPrimaryContainer = Color(0xFF3B0900),
@@ -119,7 +133,7 @@ private val LightScheme = lightColorScheme(
     scrim = Color(0xFF000000),
     inverseSurface = Color(0xFF303033),
     inverseOnSurface = Color(0xFFF3F3F6),
-    inversePrimary = Color(0xFFFFB4A7),
+    inversePrimary = Color(0xFFE2635A),
     surfaceDim = Color(0xFFDCDCE0),
     surfaceBright = Color(0xFFFFFFFF),
     surfaceContainerLowest = Color(0xFFFFFFFF),
@@ -130,8 +144,12 @@ private val LightScheme = lightColorScheme(
 )
 
 private val DarkScheme = darkColorScheme(
-    primary = Color(0xFFFFB4A7),
-    onPrimary = Color(0xFF5B1A15),
+    // `#8E2622` is 2:1 on this scheme's near-black, so dark gets iOS's lifted
+    // variant instead. `onPrimary` drops with it: the old `#5B1A15` was picked
+    // against a much paler primary and reads 3.5:1 on this one, where `#3B0900`
+    // clears 4.9:1.
+    primary = Color(0xFFE2635A),
+    onPrimary = Color(0xFF3B0900),
     primaryContainer = Color(0xFF763129),
     onPrimaryContainer = Color(0xFFFFDAD4),
     secondary = Color(0xFFE7BDB6),
@@ -157,7 +175,7 @@ private val DarkScheme = darkColorScheme(
     scrim = Color(0xFF000000),
     inverseSurface = Color(0xFFE4E2E6),
     inverseOnSurface = Color(0xFF303033),
-    inversePrimary = Color(0xFF91493F),
+    inversePrimary = Color(0xFF8E2622),
     surfaceDim = Color(0xFF121212),
     surfaceBright = Color(0xFF38383B),
     surfaceContainerLowest = Color(0xFF0D0D0F),

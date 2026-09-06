@@ -277,13 +277,20 @@ Where the platforms diverge:
   a chevron on every row is iOS's grammar, not this platform's.
 
 > [!NOTE]
-> The brand colour is the muted rose in `AccentColor.colorset`, not the
-> `#EC3013` red the prototype used and the old comments described — the asset is
-> what ships, so the asset wins. Note that it stores **display-P3** components;
-> read as plain hex they say `#C68578`, but the same colour in sRGB, which is
-> what `Color(0xFF…)` means on Android, is `#D18175`. That sRGB value is the
-> seed the Material scheme is generated from. Using the literal `#C68578` would
-> leave Android visibly flatter than iOS rather than matching it.
+> The brand colour is `#8E2622` in `AccentColor.colorset` — the red an Indico
+> ticket prints its labels in, so the app and the pass in Wallet agree. It
+> replaced a muted rose (`#D18175`), which in turn replaced the `#EC3013` the
+> prototype and the old comments described; the asset is what ships, so the asset
+> wins. It is stored as plain **sRGB** hex now, so iOS and Android are one number
+> rather than a display-P3 value and its sRGB translation.
+>
+> Dark mode uses `#E2635A` — the same red, lifted, because `#8E2622` is 2:1
+> against the dark scheme's near-black. Android carries both values in
+> `Theme.kt`, but only as a **shift, not a regeneration**: `primary` and
+> `inversePrimary` moved, and the pale containers, secondary and tertiary stayed
+> as tones of the old rose — at tone 90 the two hues are within a shade of each
+> other. A true ramp from the new seed wants Material Theme Builder; nothing in
+> `Theme.kt` is computed from HCT and it does not claim to be.
 
 UI strings are Traditional Chinese, with English alongside: the source language
 is zh-Hant on both platforms.
