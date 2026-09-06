@@ -35,7 +35,7 @@ enum ScannedCode: Equatable {
 
     /// Returns nil for anything else in frame — a Wi-Fi QR, a boarding pass, a
     /// ticket from a format version this app does not know.
-    static func parse(_ raw: String) -> ScannedCode? {
+    nonisolated static func parse(_ raw: String) -> ScannedCode? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if let code = MembershipValidator.code(from: text) { return .memberCard(code) }
         if let ticket = ticket(from: text) { return .ticket(ticket) }
@@ -45,9 +45,9 @@ enum ScannedCode: Equatable {
     /// Bumped by Indico whenever the QR layout changes. An unknown version is
     /// refused rather than parsed hopefully: the fields would be in the wrong
     /// places, and that surfaces as the wrong person rather than as an error.
-    private static let supportedVersion = 2
+    private nonisolated static let supportedVersion = 2
 
-    private static func ticket(from text: String) -> Ticket? {
+    private nonisolated static func ticket(from text: String) -> Ticket? {
         guard let data = text.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               // Plugins add sibling keys — CERN's site-access plugin adds an
@@ -69,7 +69,7 @@ enum ScannedCode: Equatable {
 
     /// Indico base64-encodes the UUID's 16 raw bytes rather than its hyphenated
     /// text, to keep the QR small enough to scan off a phone screen.
-    private static func uuid(fromBase64 encoded: String) -> UUID? {
+    private nonisolated static func uuid(fromBase64 encoded: String) -> UUID? {
         guard let bytes = Data(base64Encoded: encoded), bytes.count == 16 else { return nil }
         var raw = uuid_t(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         withUnsafeMutableBytes(of: &raw) { bytes.copyBytes(to: $0) }
@@ -78,7 +78,7 @@ enum ScannedCode: Equatable {
 
     /// Indico strips `https://` from the URL it writes into the QR to save
     /// bytes, but leaves `http://` in place, so handle both.
-    private static func host(from url: String) -> String {
+    private nonisolated static func host(from url: String) -> String {
         var value = url
         for scheme in ["https://", "http://"] where value.hasPrefix(scheme) {
             value = String(value.dropFirst(scheme.count))

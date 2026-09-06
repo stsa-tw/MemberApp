@@ -77,3 +77,84 @@ enum WalletPass {
         return controller
     }
 }
+
+/// Apple's own control, because this is Apple's destination.
+///
+/// This was a hand-drawn slab for a while: brand rose, ticket notches, the app's
+/// corner radius, 加入 Apple Wallet set in the app's voice. The reasoning was
+/// that `PKAddPassButton` brings its own metrics and refuses our radius, which is
+/// true and turns out not to matter. What matters is that the black pill is a
+/// *sign*, not a sentence — someone scanning this screen for "where does this go
+/// in Wallet" recognises it without reading it, and recognises a rose slab as
+/// nothing in particular and reads it to find out. Dressing another app's
+/// front door in our paint did not make it ours; it made it unfamiliar.
+///
+/// So it is Apple's again, which is also what their identity guidelines ask for.
+/// The ticket notches did not go to waste — `TicketStub` now cuts the ticket
+/// itself on `EventTicketView`, which is the thing that is actually a ticket.
+struct AddPassButton: UIViewRepresentable {
+    var action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    func makeCoordinator() -> Coordinator { Coordinator(action) }
+
+    func makeUIView(context: Context) -> PKAddPassButton {
+        let button = PKAddPassButton(addPassButtonStyle: style)
+        button.addTarget(context.coordinator,
+                         action: #selector(Coordinator.fire),
+                         for: .touchUpInside)
+        // Sized by its own label. Stretched to the gutter it draws a capsule the
+        // width of the screen, which is not a shape Wallet has ever used and
+        // reads as the same homemade thing this replaced.
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return button
+    }
+
+    func updateUIView(_ button: PKAddPassButton, context: Context) {
+        // The closure captures view state that changes between renders, so the
+        // coordinator is handed the current one rather than the first one.
+        context.coordinator.action = action
+        button.addPassButtonStyle = style
+    }
+
+    /// Black on a light page, outlined in Dark Mode. `PKAddPassButton` does not
+    /// adapt on its own, and a black capsule on a near-black ground is a
+    /// rectangle of nothing with a label floating in it.
+    private var style: PKAddPassButtonStyle {
+        colorScheme == .dark ? .blackOutline : .black
+    }
+
+    final class Coordinator: NSObject {
+        var action: () -> Void
+
+        init(_ action: @escaping () -> Void) { self.action = action }
+
+        @objc func fire() { action() }
+    }
+}
+
+/// A rounded card bitten into on both sides, where a ticket is torn.
+///
+/// The notches are the whole idea, so they are cut at the vertical middle and
+/// sized against the height rather than a fixed number — they stay in
+/// proportion when the label wraps at larger text sizes.
+struct TicketStub: Shape {
+    var radius: CGFloat = Theme.Radius.card
+
+    func path(in rect: CGRect) -> Path {
+        let notch = min(rect.height / 5, 11)
+
+        var path = Path(roundedRect: rect, cornerRadius: radius)
+        for x in [rect.minX, rect.maxX] {
+            path = path.subtracting(
+                Path(ellipseIn: CGRect(x: x - notch,
+                                       y: rect.midY - notch,
+                                       width: notch * 2,
+                                       height: notch * 2))
+            )
+        }
+        return path
+    }
+}

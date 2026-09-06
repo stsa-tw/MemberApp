@@ -10,7 +10,6 @@ struct EventDetailView: View {
     @Environment(CheckinStore.self) private var checkin
 
     @State private var isLinking = false
-    @State private var isAddingPass = false
     @State private var isShowingDescription = false
 
     var body: some View {
@@ -28,6 +27,7 @@ struct EventDetailView: View {
                 organiserEntry
                     .padding(.horizontal, Theme.Metrics.gutter)
                     .padding(.top, 16)
+                    .animation(.snappy(duration: 0.22), value: checkin.access(for: event.id))
 
                 // Inline, directly under the key facts, rather than pinned to
                 // the bottom — see Theme.Metrics.accessoryClearance. This also
@@ -49,6 +49,18 @@ struct EventDetailView: View {
         // nav row, as in the mock. Extending it underneath put the title behind
         // the back button and made both unreadable.
         .navigationBarTitleDisplayMode(.inline)
+        // The event's own page is a destination, not an action, and it is the
+        // one thing on this screen that is true whatever the member's state —
+        // registered or not, ticketed or not. That makes it chrome.
+        .toolbar {
+            if let url = event.url {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { openURL(url) } label: {
+                        Label("活動頁", systemImage: "safari")
+                    }
+                }
+            }
+        }
         // Nothing here is gated on the date, because Indico gates none of it.
         // `RHTicketDownload._check_access` never looks at when the event was, and
         // the check-in API will set `checked_in` on any registration whenever —
@@ -60,18 +72,36 @@ struct EventDetailView: View {
         // network; an upcoming one is asked live every time, because this is
         // where someone lands right after registering and expects it to have
         // changed.
+        //
+        // The door and the ticket are separate questions, so they are asked at
+        // the same time. In sequence the door went last, and everything ahead of
+        // it is slow in a way a cheap JSON endpoint is not: Indico *renders a
+        // PDF* to answer the ticket probe and *signs a pass* to answer the wallet
+        // one. An organiser sat watching 幹部功能 arrive seconds after the rest of
+        // the page, held up by two requests about a ticket they may not even hold.
         .task {
-            tickets.hydrate(eventID: event.id)
-            if event.isUpcoming || !tickets.isSettled(for: event.id) {
-                await tickets.load(eventID: event.id, using: indico)
-            }
-            await tickets.loadWalletPass(eventID: event.id, using: indico)
-            await checkin.probe(eventID: event.id, using: indico)
-            // Only ever for an organiser, and it is what puts the count on the
-            // row rather than a generic label.
-            if checkin.access(for: event.id) == .allowed {
-                await checkin.loadRoster(eventID: event.id, using: indico)
-            }
+            async let door: Void = openDoor()
+            async let ticket: Void = loadTicket()
+            _ = await (door, ticket)
+        }
+    }
+
+    /// Whether the member holds a ticket, and where it lives as a pass.
+    private func loadTicket() async {
+        tickets.hydrate(eventID: event.id)
+        if event.isUpcoming || !tickets.isSettled(for: event.id) {
+            await tickets.load(eventID: event.id, using: indico)
+        }
+        await tickets.loadWalletPass(eventID: event.id, using: indico)
+    }
+
+    /// Whether this member manages the event, and if so who has turned up.
+    private func openDoor() async {
+        await checkin.probe(eventID: event.id, using: indico)
+        // Only ever for an organiser, and it is what puts the count on the row
+        // rather than a generic label.
+        if checkin.access(for: event.id) == .allowed {
+            await checkin.loadRoster(eventID: event.id, using: indico)
         }
     }
 
@@ -142,46 +172,11 @@ struct EventDetailView: View {
         }
     }
 
-    /// A card of secondary destinations, matching the facts card above it.
-    private func links<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(spacing: 0) { content() }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: Theme.Radius.card))
-    }
-
-    private func linkRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 8)
-                DisclosureChevron()
-            }
-            .padding(.horizontal, Theme.Metrics.gutter)
-            .padding(.vertical, 13)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-    }
-
     private var organiserSummary: String {
         let entries = checkin.entries(for: event.id)
         guard !entries.isEmpty else { return String(localized: "報到與報名名單") }
         let checkedIn = entries.filter(\.registration.checkedIn).count
         return String(localized: "\(checkedIn) / \(entries.count) 已報到")
-    }
-
-    private func addToWallet(_ url: URL) async {
-        isAddingPass = true
-        defer { isAddingPass = false }
-        do {
-            try await WalletPass.add(from: url, using: indico)
-        } catch {
-            // Shown where the ticket's own failures are shown; adding a pass is
-            // not important enough to interrupt with an alert.
-            tickets.report(error, for: event.id)
-        }
     }
 
     // MARK: - Actions
@@ -199,45 +194,20 @@ struct EventDetailView: View {
         VStack(spacing: 8) {
             switch ticketState {
             case .available(let ticket):
-                // The pass is the better ticket — same check-in QR, kept where a
-                // ticket belongs, and it survives losing the Indico session — so
-                // when there is one it takes the filled slot and the PDF drops to
-                // plain. Adding a pass is a one-off; opening the PDF is what you
-                // do afterwards if you did not.
-                let pass = WalletPass.isAvailable ? tickets.walletURL(for: event.id) : nil
-
-                // One filled call to action, then everything else as rows in a
-                // card — the same shape as the facts above and the 幹部功能 row
-                // below it. Free-floating labels under a slab were the odd thing
-                // out on a screen built entirely from grouped cards.
+                // One door to the ticket, whatever Indico can serve for it.
                 //
-                // The pass takes the button when there is one, because saving a
-                // ticket is a one-off and viewing it is what you do afterwards.
-                if let pass {
-                    Button("加入 Apple Wallet") {
-                        Task { await addToWallet(pass) }
-                    }
-                    .buttonStyle(.brand)
-                    .disabled(isAddingPass)
-
-                    links {
-                        // Opened in the browser rather than rendered here: Safari
-                        // already holds the member's Indico session, and the
-                        // ticket never has to touch the app or the disk.
-                        linkRow("查看票券") { openURL(ticket) }
-                        if let url = event.url {
-                            RowSeparator()
-                            linkRow("活動頁") { openURL(url) }
-                        }
-                    }
-                } else {
-                    Button("查看票券") { openURL(ticket) }
-                        .buttonStyle(.brand)
-
-                    if let url = event.url {
-                        links { linkRow("活動頁") { openURL(url) } }
-                    }
+                // This slot used to hold 加入 Apple Wallet where there was a pass
+                // and a link to the PDF where there was not, so the same tap
+                // meant "file it away" on one event and "open Safari" on the
+                // next — and neither is what someone wanting their code at a
+                // door is asking for. Now it leads to the ticket, and the ticket
+                // screen offers the pass underneath the code it copies.
+                NavigationLink {
+                    EventTicketView(event: event, ticket: ticket)
+                } label: {
+                    Text("查看票券")
                 }
+                .buttonStyle(.brand)
 
             case .needsLinking:
                 if let url = event.url {
@@ -361,42 +331,18 @@ struct EventDetailView: View {
 
     private var infoCard: some View {
         VStack(spacing: 0) {
-            row("時間", value: schedule)
+            FactRow("時間", value: event.schedule)
             if let place = event.place {
                 RowSeparator()
-                row("地點", value: place)
+                FactRow("地點", value: place)
             }
             if let address = event.address, !address.isEmpty {
                 RowSeparator()
-                row("地址", value: address)
+                FactRow("地址", value: address)
             }
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: Theme.Radius.card))
     }
 
-    private func row(_ label: LocalizedStringKey, value: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
-            Text(value)
-                .multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
-        .padding(.horizontal, Theme.Metrics.gutter)
-        .padding(.vertical, 11)
-    }
-
-    private var schedule: String {
-        var day = Date.FormatStyle.dateTime.year().month().day().weekday(.abbreviated)
-        var clock = Date.FormatStyle.dateTime.hour().minute()
-        day.timeZone = event.timeZone
-        clock.timeZone = event.timeZone
-
-        let sameDay = Calendar.current.isDate(event.start, inSameDayAs: event.end)
-        return sameDay
-            ? "\(event.start.formatted(day)) \(event.start.formatted(clock))–\(event.end.formatted(clock))"
-            : "\(event.start.formatted(day)) \(event.start.formatted(clock)) – \(event.end.formatted(day)) \(event.end.formatted(clock))"
-    }
 }

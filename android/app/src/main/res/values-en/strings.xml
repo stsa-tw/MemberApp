@@ -199,8 +199,20 @@
     <string name="error_indico_http">Indico returned HTTP %1$d.</string>
     <string name="error_indico_not_linked">Indico account is not linked.</string>
     <string name="ticket_fetch_failed">Could not fetch the ticket. Try again later.</string>
+    <string name="indico_wrong_account">The events site is signed in as %1$s, which is not the STSA account signed in here. Sign out of it in your browser and try again.</string>
+    <string name="ticket_title">Ticket</string>
+    <string name="ticket_holder">Ticket holder</string>
+    <string name="ticket_qr_description">Check-in QR code</string>
+    <string name="ticket_open_indico">Open on Indico</string>
+    <string name="ticket_footnote">Show this QR code at the door. The screen brightens automatically so it scans.</string>
+    <string name="ticket_unreadable">The ticket couldn\u2019t be read.</string>
+    <string name="ticket_add_google_wallet">Add to Google Wallet</string>
     <!-- Check-in -->
     <string name="checkin_title">Check-in</string>
+    <string name="checkin_organiser_title">Organiser tools</string>
+    <string name="checkin_organiser_subtitle">Check-in and registrant list</string>
+    <string name="checkin_checked_in">Checked in</string>
+    <string name="checkin_roster_empty">Nobody has registered for this event yet.</string>
     <string name="checkin_denied">This account has no check-in permission for this event in Indico.</string>
     <string name="checkin_denied_detail">Check-in permission lives in Indico — a separate list from the officer group in this app.</string>
     <string name="checkin_failed_to_start">Check-in could not start.</string>

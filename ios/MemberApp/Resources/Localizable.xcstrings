@@ -119,6 +119,9 @@
     "Indico 沒有這張票。" : {
 
     },
+    "Indico 沒有開放報到權限" : {
+
+    },
     "Logo 以世學聯兩大主色為起點：象徵美麗海島的海洋藍台灣黑熊，承載著遊子對土地的連結；深紅的獅頭則代表新加坡，也象徵台灣留學生在海外奮鬥的精神。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -523,9 +526,6 @@
         }
       }
     },
-    "加入 Apple Wallet" : {
-
-    },
     "午安" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -617,6 +617,17 @@
         }
       }
     },
+    "在 Indico 開啟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on Indico"
+          }
+        }
+      }
+    },
     "在「設定」中允許 STSA 使用相機,就可以掃描會員卡。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -624,6 +635,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allow STSA to use the camera in Settings to scan member cards."
+          }
+        }
+      }
+    },
+    "在入場時出示此 QR code。畫面會自動調亮以便掃描。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show this QR code at the door. The screen brightens automatically so it scans."
           }
         }
       }
@@ -652,6 +674,17 @@
     },
     "報到" : {
 
+    },
+    "報到 QR code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in QR code"
+          }
+        }
+      }
     },
     "報到與報名名單" : {
 
@@ -942,6 +975,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Discount code"
+          }
+        }
+      }
+    },
+    "持票人" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket holder"
           }
         }
       }
@@ -1269,6 +1313,17 @@
         }
       }
     },
+    "活動網站目前登入的是 %@，與這裡的 STSA 帳號不同。請在瀏覽器登出活動網站後再試一次。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The events site is signed in as %@, which is not the STSA account signed in here. Sign out of it in your browser and try again."
+          }
+        }
+      }
+    },
     "活動與合作商家皆可出示" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1460,6 +1515,28 @@
     "確認報到" : {
 
     },
+    "票券" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket"
+          }
+        }
+      }
+    },
+    "票券格式無法讀取。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The ticket couldn’t be read."
+          }
+        }
+      }
+    },
     "總會目標" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1582,6 +1659,9 @@
       }
     },
     "請對方重新開啟會員卡再掃一次。" : {
+
+    },
+    "請管理員在 Indico 的應用程式設定中勾選「Event registrants」允許範圍，再授權一次。" : {
 
     },
     "講座" : {

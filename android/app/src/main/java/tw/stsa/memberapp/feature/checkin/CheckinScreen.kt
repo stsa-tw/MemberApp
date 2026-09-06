@@ -205,7 +205,12 @@ fun CheckinScreen(navController: NavHostController, eventId: String) {
                 onConfirm = { registration ->
                     scope.launch {
                         outcome = try {
-                            Outcome.Done(session.checkIn(registration))
+                            val updated = session.checkIn(registration)
+                            // The organiser screen behind this one shows the same
+                            // count, so it learns what the door just did rather
+                            // than refetching the roster on the way back.
+                            container.checkin.update(updated)
+                            Outcome.Done(updated)
                         } catch (error: CheckinError) {
                             Outcome.Failed(
                                 error.message(context),

@@ -96,3 +96,32 @@ struct DisclosureChevron: View {
             .accessibilityHidden(true)
     }
 }
+
+/// A label on the left, its value on the right — the shape of every fact the app
+/// states about something: an event's time and place, a ticket's holder.
+///
+/// `.top` alignment rather than centred, because the value is the half that
+/// wraps: an address runs to three lines and its label should stay level with
+/// the first of them.
+struct FactRow: View {
+    let label: LocalizedStringKey
+    let value: String
+
+    init(_ label: LocalizedStringKey, value: String) {
+        self.label = label
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .multilineTextAlignment(.trailing)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, Theme.Metrics.gutter)
+        .padding(.vertical, 11)
+    }
+}

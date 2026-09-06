@@ -32,6 +32,8 @@ final class IndicoAuthManager {
         case stateMismatch
         case tokenUnavailable
         case server(error: String, description: String?)
+        /// Indico issued a token for somebody other than the member signed in here.
+        case wrongAccount(indico: String)
 
         var errorDescription: String? {
             switch self {
@@ -43,6 +45,8 @@ final class IndicoAuthManager {
                 "Indico did not return an access token."
             case .server(let error, let description):
                 "Indico refused the authorization: \(description ?? error)"
+            case .wrongAccount(let indico):
+                String(localized: "活動網站目前登入的是 \(indico)，與這裡的 STSA 帳號不同。請在瀏覽器登出活動網站後再試一次。")
             }
         }
     }
@@ -124,6 +128,53 @@ final class IndicoAuthManager {
         guard let token = response.accessToken else { throw LinkError.tokenUnavailable }
         adopt(token, scopes: Self.scopes(from: response.scope) ?? Set(scopes))
         logLinkResult(response)
+        try await verifyOwner()
+    }
+
+    /// Who the member is here, so a token can be checked against them.
+    ///
+    /// Set from the composition root when the profile is known, the same way
+    /// `TicketStore.subject` is. Email rather than `sub`, because the two
+    /// providers do not share a subject: Indico has its own user ids, and the
+    /// address is the one identifier both systems carry for the same person.
+    var expectedEmail: String?
+
+    /// Refuses a token that belongs to somebody else.
+    ///
+    /// **The hole this closes.** `unlink()` drops *our* token, and `endSession`
+    /// calls it — but Indico's own login is a **cookie in the system browser**,
+    /// and no app can clear another app's cookies. So a phone where a 幹部 signed
+    /// out and a member signed in still had the officer's session at
+    /// `/oauth/authorize`; and because this application is registered as trusted
+    /// on Indico, there is no consent screen for the new member to notice it on.
+    /// The browser handed back an authorization for the *previous* person, and
+    /// the app had no way to tell. That is how a member's phone ended up holding
+    /// an organiser's token, which is Indico's answer to who may open a door.
+    ///
+    /// So the token is asked who it belongs to. `/api/user/` wants `read:user`,
+    /// and `_lookup_request_user` in `indico/web/util.py` adds `read:everything`
+    /// to the accepted scopes of every GET — so the token already in hand can
+    /// answer, with no extra grant and no extra prompt.
+    ///
+    /// A mismatch throws the token away rather than keeping it: the member is
+    /// better off with no Indico link than with someone else's.
+    private func verifyOwner() async throws {
+        guard let expected = expectedEmail?.lowercased(), !expected.isEmpty,
+              let url = URL(string: "https://event.stsa.tw/api/user/")
+        else { return }
+
+        let request = try authorizedRequest(for: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        // A null body is an unauthenticated request, and an unreadable one is not
+        // evidence of anything. Neither is grounds to accuse the token.
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let owner = object["email"] as? String
+        else { return }
+
+        guard owner.lowercased() == expected else {
+            unlink()
+            throw LinkError.wrongAccount(indico: owner)
+        }
     }
 
     /// Pulls the code out of the callback, refusing anything whose `state` is not

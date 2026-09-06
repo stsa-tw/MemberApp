@@ -211,8 +211,20 @@
     <string name="error_indico_http">Indico 回應 HTTP %1$d。</string>
     <string name="error_indico_not_linked">尚未連結 Indico 帳號。</string>
     <string name="ticket_fetch_failed">無法取得票券，稍後再試。</string>
+    <string name="indico_wrong_account">活動網站目前登入的是 %1$s，與這裡的 STSA 帳號不同。請在瀏覽器登出活動網站後再試一次。</string>
+    <string name="ticket_title">票券</string>
+    <string name="ticket_holder">持票人</string>
+    <string name="ticket_qr_description">報到 QR code</string>
+    <string name="ticket_open_indico">在 Indico 開啟</string>
+    <string name="ticket_footnote">在入場時出示此 QR code。畫面會自動調亮以便掃描。</string>
+    <string name="ticket_unreadable">票券格式無法讀取。</string>
+    <string name="ticket_add_google_wallet">加到 Google 錢包</string>
     <!-- 報到 -->
     <string name="checkin_title">報到</string>
+    <string name="checkin_organiser_title">幹部功能</string>
+    <string name="checkin_organiser_subtitle">報到與報名名單</string>
+    <string name="checkin_checked_in">已報到</string>
+    <string name="checkin_roster_empty">這場活動還沒有人報名。</string>
     <string name="checkin_denied">此帳號在 Indico 上沒有這場活動的報到權限。</string>
     <string name="checkin_denied_detail">報到權限由 Indico 管理，與 App 內的幹部身分是兩份名單。</string>
     <string name="checkin_failed_to_start">無法開始報到。</string>

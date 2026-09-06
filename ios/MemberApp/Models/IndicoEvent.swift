@@ -27,6 +27,24 @@ struct IndicoEvent: Identifiable, Hashable {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
+    /// When the event runs, written the way a person would say it.
+    ///
+    /// In the event's own time zone, not the reader's: an event in Taipei starts
+    /// at the hour the organiser announced, whatever a phone that travelled says.
+    /// A same-day event collapses to one date and a range of hours, because
+    /// repeating the date on both sides of the dash says nothing.
+    var schedule: String {
+        var day = Date.FormatStyle.dateTime.year().month().day().weekday(.abbreviated)
+        var clock = Date.FormatStyle.dateTime.hour().minute()
+        day.timeZone = timeZone
+        clock.timeZone = timeZone
+
+        let sameDay = Calendar.current.isDate(start, inSameDayAs: end)
+        return sameDay
+            ? "\(start.formatted(day)) \(start.formatted(clock))–\(end.formatted(clock))"
+            : "\(start.formatted(day)) \(start.formatted(clock)) – \(end.formatted(day)) \(end.formatted(clock))"
+    }
+
     /// Small uppercase label above the title on the detail hero.
     var kicker: String {
         switch type {

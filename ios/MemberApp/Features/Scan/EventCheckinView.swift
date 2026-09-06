@@ -40,6 +40,9 @@ struct EventCheckinView: View {
         case ticketRefused(String)
         /// The Indico authorization is read-only and must be widened first.
         case needsAuthorization
+        /// The widening was asked for and refused: the Indico application does
+        /// not allow `registrants`, so no staffer can grant it.
+        case needsScopeOnServer
     }
 
     var body: some View {
@@ -79,7 +82,12 @@ struct EventCheckinView: View {
     // MARK: - Scanning
 
     private var viewfinder: some View {
-        CameraScanner { payload in
+        // Both formats reach this door: a member card, and an Indico ticket,
+        // which `scan` then routes. The prefix clause is what keeps a malformed
+        // member card reportable rather than silently ignored.
+        CameraScanner(accepts: {
+            $0.hasPrefix(MembershipValidator.prefix) || ScannedCode.parse($0) != nil
+        }) { payload in
             Task { await scan(payload) }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -182,8 +190,19 @@ struct EventCheckinView: View {
     private func authorizeWriting() async {
         do {
             try await indico.link(scopes: IndicoAuthConfiguration.checkinScopes)
+            // A grant that comes back without `registrants` means the Indico
+            // application does not allow the scope, which is server config no
+            // staffer can fix from here. Say so, rather than returning to the
+            // viewfinder to scan into the same wall.
+            guard indico.canRecordCheckin else {
+                result = .needsScopeOnServer
+                return
+            }
             result = .scanning
         } catch {
+            // Dismissing the authorization sheet is not a failure; leave the
+            // prompt standing so the staffer can try again.
+            guard !AuthManager.isUserCancellation(error) else { return }
             result = .unreachable(error.localizedDescription)
         }
     }
@@ -243,6 +262,14 @@ struct EventCheckinView: View {
                 }
                 .buttonStyle(.brand)
                 .disabled(indico.isBusy)
+
+            case .needsScopeOnServer:
+                banner(
+                    symbol: "lock.slash.fill",
+                    tint: .red,
+                    title: String(localized: "Indico 沒有開放報到權限"),
+                    detail: String(localized: "請管理員在 Indico 的應用程式設定中勾選「Event registrants」允許範圍，再授權一次。")
+                )
 
             case .notRegistered(let member):
                 banner(

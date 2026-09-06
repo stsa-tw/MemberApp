@@ -62,6 +62,71 @@ suspend fun httpGet(
         }
     }
 
+/**
+ * The same GET, kept as bytes and told where it ended up.
+ *
+ * [httpGet] decodes to a `String`, which a PDF is not, and it throws away the
+ * final URL, which the Google Wallet lookup is entirely about: that endpoint
+ * answers with a redirect to `pay.google.com`, so where the request *landed* is
+ * the answer rather than anything in the body.
+ */
+data class HttpBytes(
+    val status: Int,
+    val bytes: ByteArray,
+    val contentType: String?,
+    /** Where the request ended up, after any redirects were followed. */
+    val finalUrl: String,
+    /** The `Location` header, for a caller that asked not to follow it. */
+    val location: String?,
+) {
+    // ByteArray gives data classes reference equality, which is never what a
+    // caller means. Nothing compares these, so the honest thing is to say so.
+    override fun equals(other: Any?) = this === other
+    override fun hashCode() = System.identityHashCode(this)
+}
+
+/**
+ * @param followRedirects off for the Google Wallet lookup, where the *redirect
+ *   itself is the answer*. Indico answers that endpoint with a `Location` of
+ *   `pay.google.com/gp/v/save/<jwt>`; follow it and Google, seeing a client with
+ *   no session of its own, bounces on to a sign-in page — so the thing worth
+ *   having is gone by the time the request finishes. The member's browser has
+ *   the Google session this client never will, which is where that link is meant
+ *   to be opened anyway.
+ */
+suspend fun httpGetBytes(
+    url: String,
+    headers: Map<String, String> = emptyMap(),
+    readBody: Boolean = true,
+    followRedirects: Boolean = true,
+): HttpBytes =
+    withContext(Dispatchers.IO) {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = TIMEOUT_MS
+            readTimeout = TIMEOUT_MS
+            instanceFollowRedirects = followRedirects
+            headers.forEach { (name, value) -> setRequestProperty(name, value) }
+        }
+        try {
+            val status = connection.responseCode
+            val bytes = if (readBody && status in 200..299) {
+                connection.inputStream.use { it.readBytes() }
+            } else {
+                ByteArray(0)
+            }
+            HttpBytes(
+                status = status,
+                bytes = bytes,
+                contentType = connection.contentType,
+                finalUrl = connection.url.toString(),
+                location = connection.getHeaderField("Location"),
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
 private const val TIMEOUT_MS = 15_000
 
 /**

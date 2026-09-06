@@ -16,8 +16,10 @@ import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.ResponseTypeValues
 import net.openid.appauth.TokenResponse
+import org.json.JSONObject
 import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
+import tw.stsa.memberapp.net.httpGet
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -125,10 +127,76 @@ class IndicoAuthManager(context: Context) {
             adopt(state)
 
             logLinkResult(state)
+            verifyOwner()
         } finally {
             isBusy = false
         }
     }
+
+    /**
+     * Who the member is here, so a token can be checked against them.
+     *
+     * Set from the composition root when the profile is known, the same way
+     * [tw.stsa.memberapp.feature.events.TicketStore.subject] is. Email rather
+     * than `sub`, because the two providers do not share a subject: Indico has
+     * its own user ids, and the address is the one identifier both systems carry
+     * for the same person.
+     */
+    var expectedEmail: String? = null
+
+    /**
+     * Refuses a token that belongs to somebody else.
+     *
+     * **The hole this closes.** [unlink] drops *our* token, and sign-out calls
+     * it — but Indico's own login is a **cookie in the system browser**, and no
+     * app can clear another app's cookies. So a phone where a 幹部 signed out and
+     * a member signed in still had the officer's session at `/oauth/authorize`;
+     * and because this application is registered as trusted on Indico, there is
+     * no consent screen for the new member to notice it on. The browser handed
+     * back an authorization for the *previous* person and the app had no way to
+     * tell. That is how a member's phone ended up holding an organiser's token,
+     * which is Indico's answer to who may open a door.
+     *
+     * So the token is asked who it belongs to. `/api/user/` wants `read:user`,
+     * and `_lookup_request_user` in `indico/web/util.py` adds `read:everything`
+     * to the accepted scopes of every GET — so the token already in hand can
+     * answer, with no extra grant and no extra prompt.
+     *
+     * A mismatch throws the token away rather than keeping it: the member is
+     * better off with no Indico link than with someone else's.
+     */
+    private suspend fun verifyOwner() {
+        val expected = expectedEmail?.lowercase()?.takeIf { it.isNotEmpty() } ?: return
+
+        val response = runCatching {
+            httpGet("https://event.stsa.tw/api/user/", authorizationHeaders())
+        }.getOrNull() ?: return
+        // A null body is an unauthenticated request, and an unreadable one is not
+        // evidence of anything. Neither is grounds to accuse the token.
+        val owner = runCatching {
+            JSONObject(response.body).optString("email").takeIf { it.isNotEmpty() }
+        }.getOrNull() ?: return
+
+        if (owner.lowercase() != expected) {
+            unlink()
+            throw WrongAccountException(
+                owner,
+                appContext.getString(R.string.indico_wrong_account, owner),
+            )
+        }
+    }
+
+    /**
+     * Indico issued a token for somebody other than the member signed in here.
+     *
+     * Carries its own message because it surfaces where every other ticket
+     * failure does, and the generic "無法取得票券" would send someone looking in
+     * the wrong place entirely.
+     */
+    class WrongAccountException(
+        val indicoEmail: String,
+        message: String,
+    ) : Exception(message)
 
     /** Called when the launcher returns without ever starting the flow. */
     fun abandonAuthorization() {
