@@ -12,6 +12,12 @@ struct EventsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 22) {
+                    // Above the events, because it is the reason the ticket rows
+                    // underneath say nothing. Absent entirely once Indico is
+                    // linked and agrees — which is almost always.
+                    indicoStatus
+                        .padding(.horizontal, Theme.Metrics.gutter)
+
                     if !store.upcoming.isEmpty {
                         section("即將舉行", events: store.upcoming, highlightFirst: true)
                     }
@@ -48,6 +54,24 @@ struct EventsView: View {
                     await tickets.loadIfNeeded(eventID: event.id, using: indico)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var indicoStatus: some View {
+        if indico.refused != nil {
+            IndicoStatusBanner(state: .mismatch)
+        } else if !indico.isLinked {
+            IndicoStatusBanner(state: .notLinked) { Task { await link() } }
+        }
+    }
+
+    private func link() async {
+        // Nothing to report on failure: a mismatch turns the banner above into
+        // the mismatch one by itself, and a cancelled sheet is not a failure.
+        try? await indico.link()
+        for event in store.upcoming {
+            await tickets.loadIfNeeded(eventID: event.id, using: indico)
         }
     }
 

@@ -43,6 +43,8 @@ struct EventCheckinView: View {
         /// The widening was asked for and refused: the Indico application does
         /// not allow `registrants`, so no staffer can grant it.
         case needsScopeOnServer
+        /// The browser authorized as somebody else entirely.
+        case wrongAccount
     }
 
     var body: some View {
@@ -192,8 +194,7 @@ struct EventCheckinView: View {
     /// affected.
     private func authorizeWriting() async {
         do {
-            try await indico.link(scopes: IndicoAuthConfiguration.checkinScopes,
-                                  mayReauthenticate: true)
+            try await indico.link(scopes: IndicoAuthConfiguration.checkinScopes)
             // A grant that comes back without `registrants` means the Indico
             // application does not allow the scope, which is server config no
             // staffer can fix from here. Say so, rather than returning to the
@@ -207,6 +208,13 @@ struct EventCheckinView: View {
             // Dismissing the authorization sheet is not a failure; leave the
             // prompt standing so the staffer can try again.
             guard !AuthManager.isUserCancellation(error) else { return }
+            // Same situation as the event page's banner, and it matters more
+            // here: a door that authorized as somebody else would write that
+            // person's name against every scan.
+            if case IndicoAuthManager.LinkError.wrongAccount = error {
+                result = .wrongAccount
+                return
+            }
             result = .unreachable(error.localizedDescription)
         }
     }
@@ -274,6 +282,16 @@ struct EventCheckinView: View {
                     title: String(localized: "Indico 沒有開放報到權限"),
                     detail: String(localized: "請管理員在 Indico 的應用程式設定中勾選「Event registrants」允許範圍，再授權一次。")
                 )
+
+            case .wrongAccount:
+                banner(
+                    symbol: "person.2.badge.key.fill",
+                    tint: .orange,
+                    title: String(localized: "帳號對不上"),
+                    detail: String(localized: "App 和活動網站登入的不是同一個人，所以不能報到。")
+                )
+                NavigationLink { IndicoAccountView() } label: { Text("看看是怎麼回事") }
+                    .buttonStyle(.brand)
 
             case .notRegistered(let member):
                 banner(

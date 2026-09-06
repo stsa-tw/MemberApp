@@ -222,7 +222,10 @@ struct EventDetailView: View {
                 // Indico's application is registered as trusted, so it shows no
                 // consent screen — nothing else in the flow will tell the member
                 // what is being connected. So this line has to.
-                caption("會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。")
+                caption("會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。第一次連結時，活動網站會請你填姓名建立個人資料。")
+
+            case .wrongAccount:
+                IndicoStatusBanner(state: .mismatch)
 
             case .failed(let message):
                 if let url = event.url {
@@ -285,9 +288,7 @@ struct EventDetailView: View {
         defer { isLinking = false }
 
         do {
-            // The member asked and is watching, so a browser holding
-            // somebody else's session can be escaped — see `link`.
-            try await indico.link(mayReauthenticate: true)
+            try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
             await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)

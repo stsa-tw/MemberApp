@@ -47,6 +47,11 @@ final class TicketStore {
         /// Where the ticket lives. Opened in the browser rather than fetched
         /// again — the session there is what authenticates it.
         case available(URL)
+        /// Indico answered as somebody else. Its own case rather than a
+        /// `failed` string: this one has an address in it, a cause the member
+        /// can act on, and a way out — none of which survive being flattened
+        /// into a line of grey caption text.
+        case wrongAccount
         case failed(String)
     }
 
@@ -207,6 +212,13 @@ final class TicketStore {
     /// Records a failure raised outside `load` — the authorization flow — so it
     /// surfaces in the same place as the rest.
     func report(_ error: any Error, for eventID: String) {
+        // The addresses behind this live on `IndicoAuthManager`, which is
+        // where they stay current — copying them per event would be one more
+        // thing to keep in step.
+        if case IndicoAuthManager.LinkError.wrongAccount = error {
+            states[eventID] = .wrongAccount
+            return
+        }
         states[eventID] = .failed(error.localizedDescription)
     }
 
