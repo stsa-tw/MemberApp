@@ -1,8 +1,6 @@
 package tw.stsa.memberapp.feature.deals
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,12 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -124,7 +119,6 @@ fun DealDetailScreen(navController: NavHostController, brand: String) {
  */
 @Composable
 private fun Header(deal: Deal) {
-    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,16 +126,13 @@ private fun Header(deal: Deal) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = painterResource(deal.logo),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .size(width = 108.dp, height = 76.dp)
-                .clip(shape)
-                .background(Color.White)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .padding(10.dp),
+        PartnerLogo(
+            deal = deal,
+            width = 108.dp,
+            height = 76.dp,
+            corner = 14.dp,
+            inset = 10.dp,
+            placeholderStyle = MaterialTheme.typography.titleMedium,
         )
         Column(Modifier.weight(1f)) {
             Text(

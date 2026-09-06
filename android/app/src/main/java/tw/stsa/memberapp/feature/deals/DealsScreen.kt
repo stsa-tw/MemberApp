@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,8 +36,11 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
@@ -178,21 +182,53 @@ private fun DealRow(deal: Deal, onClick: () -> Unit) {
  * too, so a white tile with no edge is not a tile — the marks looked like they
  * had been dropped loose into the row, and the ones with pale artwork
  * (良人食堂, 青鳥旅行) worst of all.
+ *
+ * A partner with no artwork yet gets their name on the same plate, in the same
+ * near-black the real marks are drawn in. The plate does not change with the
+ * scheme, so its contents must not either — a themed colour would be legible in
+ * one mode and washed out in the other on a tile that is white in both.
+ *
+ * The detail screen draws the same plate larger, which is why the metrics are
+ * arguments rather than constants.
  */
 @Composable
-fun PartnerLogo(deal: Deal, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(10.dp)
-    Image(
-        painter = painterResource(deal.logo),
-        contentDescription = deal.brand,
-        contentScale = ContentScale.Fit,
-        modifier = modifier
-            .size(width = 76.dp, height = 52.dp)
-            .clip(shape)
-            .background(Color.White)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-            .padding(7.dp),
-    )
+fun PartnerLogo(
+    deal: Deal,
+    modifier: Modifier = Modifier,
+    width: Dp = 76.dp,
+    height: Dp = 52.dp,
+    corner: Dp = 10.dp,
+    inset: Dp = 7.dp,
+    placeholderStyle: TextStyle = MaterialTheme.typography.labelSmall,
+) {
+    val shape = RoundedCornerShape(corner)
+    val plate = modifier
+        .size(width = width, height = height)
+        .clip(shape)
+        .background(Color.White)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+        .padding(inset)
+
+    if (deal.logo != null) {
+        Image(
+            painter = painterResource(deal.logo),
+            contentDescription = deal.brand,
+            contentScale = ContentScale.Fit,
+            modifier = plate,
+        )
+    } else {
+        Box(modifier = plate, contentAlignment = Alignment.Center) {
+            Text(
+                text = deal.brand,
+                style = placeholderStyle,
+                fontWeight = FontWeight.Bold,
+                color = Theme.InkCard,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 /** "至 2026/6/30", or nothing when the offer has no stated end date. */

@@ -67,11 +67,8 @@ struct DealDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image(deal.logo)
-                .resizable()
-                .scaledToFit()
-                .padding(12)
-                .frame(maxWidth: 220, maxHeight: 76)
+            DealMark(deal: deal, inset: 12, font: .title3.weight(.bold))
+                .frame(width: 220, height: 76)
                 .background(.white)
                 .clipShape(.rect(cornerRadius: 14))
 
