@@ -16,8 +16,17 @@ import SwiftUI
 /// Nothing is ever written without the staffer confirming the name against the
 /// person in front of them. A member card is a bearer credential for its 300
 /// seconds, so a photographed one would otherwise check its owner in silently.
+///
+/// One door is one *form*, not one event. 烤場集合 has a 報名表 and a
+/// 遊覽車報名表, which are separate lists holding separate registrations with
+/// separate `checked_in` flags — so the desk at the park gate and the one at the
+/// coach are two doors, and this screen is opened for whichever of them the
+/// staffer is standing at.
 struct EventCheckinView: View {
     let event: IndicoEvent
+    /// The registration form this door works. A scan is matched inside it, and
+    /// the count on screen is its own.
+    let form: CheckinStore.Form
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(IndicoAuthManager.self) private var indico
@@ -26,13 +35,19 @@ struct EventCheckinView: View {
     @State private var validator = MembershipValidator()
     @State private var access = CameraAccess.current
     @State private var result: Result = .scanning
+    @State private var isPickingByName = false
 
     private enum Result: Equatable {
         case scanning
         case notAMember
         case unreachable(String)
-        /// A member in good standing who is not on this event's list.
+        /// A member in good standing who is not on this form's list.
         case notRegistered(ScannedMember)
+        /// A member whose registration for this event is on another of its forms
+        /// — the coach list rather than the one this door is working. Reads as a
+        /// missing person otherwise, which is how two lists became one confusing
+        /// one in the first place.
+        case registeredElsewhere(ScannedMember, [CheckinStore.Form])
         case found(CheckinRegistration)
         /// Recorded in Indico just now, as opposed to already checked in.
         case recorded(CheckinRegistration)
@@ -82,6 +97,14 @@ struct EventCheckinView: View {
             guard phase == .active else { return }
             access = CameraAccess.current
         }
+        .sheet(isPresented: $isPickingByName) {
+            ManualPicker(
+                entries: checkin.entries(for: event.id, formID: form.id),
+                formTitle: formTitle
+            ) { entry in
+                Task { await present(entry) }
+            }
+        }
     }
 
     // MARK: - Scanning
@@ -108,6 +131,15 @@ struct EventCheckinView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+
+            // Under the hint rather than beside the scanner: scanning is what
+            // this screen is for, and the fallback should be findable without
+            // competing with it.
+            Button("找不到 QR code？改用姓名報到") {
+                isPickingByName = true
+            }
+            .font(.footnote)
+            .padding(.top, 6)
         }
         .padding(.top, 4)
     }
@@ -116,8 +148,18 @@ struct EventCheckinView: View {
         if checkin.isLoadingRoster {
             return String(localized: "正在讀取報名名單…")
         }
-        let count = checkin.entries(for: event.id).count
-        return String(localized: "\(count) 人已報名這場活動。")
+        let count = checkin.expected(eventID: event.id, formID: form.id).count
+        return String(localized: "「\(formTitle)」有 \(count) 人報名。")
+    }
+
+    private var formTitle: String {
+        title(ofFormID: form.id)
+    }
+
+    /// Names a form the way the staffer sees it named in Indico.
+    private func title(ofFormID id: Int) -> String {
+        let title = checkin.forms(for: event.id).first { $0.id == id }?.title ?? ""
+        return title.isEmpty ? String(localized: "報名表") : title
     }
 
     private func scan(_ payload: String) async {
@@ -133,14 +175,19 @@ struct EventCheckinView: View {
 
         switch validator.outcome {
         case .valid(let member):
-            guard let entry = checkin.entry(email: member.email, eventID: event.id) else {
-                result = .notRegistered(member)
+            guard let entry = checkin.entry(email: member.email, eventID: event.id, formID: form.id) else {
+                // Being on another of the event's forms is a different answer
+                // from not having registered, and the one that tells the staffer
+                // what to do next.
+                let elsewhere = checkin.otherForms(
+                    email: member.email, eventID: event.id, excluding: form.id
+                )
+                result = elsewhere.isEmpty
+                    ? .notRegistered(member)
+                    : .registeredElsewhere(member, elsewhere)
                 return
             }
-            // The roster carries no answers; fetch them, and fall back to what
-            // the list already told us rather than showing nothing.
-            let detailed = await checkin.details(for: entry, eventID: event.id, using: indico)
-            result = .found(detailed ?? entry.registration)
+            await present(entry)
 
         case .invalid:
             result = .notAMember
@@ -151,6 +198,16 @@ struct EventCheckinView: View {
         case nil:
             result = .scanning
         }
+    }
+
+    /// Puts a roster entry on screen as a found registration.
+    ///
+    /// The roster carries no answers — Indico leaves them out of the list
+    /// endpoint — so they are fetched here, falling back to what the list
+    /// already told us rather than showing a name with nothing under it.
+    private func present(_ entry: CheckinStore.Entry) async {
+        let detailed = await checkin.details(for: entry, eventID: event.id, using: indico)
+        result = .found(detailed ?? entry.registration)
     }
 
     private func resolve(_ ticket: ScannedCode.Ticket) async {
@@ -234,6 +291,14 @@ struct EventCheckinView: View {
                         ? String(localized: "已經報到過")
                         : String(localized: "已報名")
                 )
+                // A scanned ticket names one registration outright, and it may be
+                // one from another of the event's forms. That is admissible — the
+                // person is here and the row is theirs — but the staffer should
+                // see which list they are about to write to, because this door's
+                // count will not move.
+                if registration.formID != form.id {
+                    note(String(localized: "這筆報名在「\(title(ofFormID: registration.formID))」，報到會記在那張表上。"))
+                }
                 if !registration.answers.isEmpty {
                     answers(registration.answers)
                 }
@@ -298,8 +363,17 @@ struct EventCheckinView: View {
                     symbol: "person.crop.circle.badge.questionmark",
                     tint: .orange,
                     title: member.name,
-                    detail: String(localized: "是會員，但沒有報名這場活動")
+                    detail: String(localized: "是會員，但沒有報名「\(formTitle)」")
                 )
+
+            case .registeredElsewhere(let member, let forms):
+                banner(
+                    symbol: "arrow.triangle.branch",
+                    tint: .orange,
+                    title: member.name,
+                    detail: String(localized: "報名的是\(list(forms))，不是「\(formTitle)」")
+                )
+                note(String(localized: "回上一頁選那張報名表，才能記在正確的名單上。"))
 
             case .notAMember:
                 banner(
@@ -328,6 +402,22 @@ struct EventCheckinView: View {
             .buttonStyle(.brand)
         }
         .padding(.top, 6)
+    }
+
+    /// A quiet line under a banner: something the staffer should know before
+    /// they tap, not an outcome of its own.
+    private func note(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Theme.Metrics.gutter)
+    }
+
+    /// 「報名表」、「遊覽車報名表」 — the forms named the way a sentence needs them.
+    private func list(_ forms: [CheckinStore.Form]) -> String {
+        forms.map { "「\(title(ofFormID: $0.id))」" }.joined(separator: "、")
     }
 
     private func banner(symbol: String, tint: Color, title: String, detail: String) -> some View {
@@ -382,5 +472,114 @@ struct EventCheckinView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(.top, 60)
+    }
+}
+
+/// The door's fallback: find somebody on the list by name, when there is no code
+/// to scan.
+///
+/// Deliberately not the same act as a scan, and worth being clear about. A
+/// member card proves the person authenticated within the last 300 seconds and a
+/// ticket proves they hold the registration; a name picked off a list proves
+/// nothing at all. It is the staffer's judgement, which is exactly what Indico's
+/// own check-in app asks for too.
+///
+/// It exists because the alternative at a real door is worse. A member with a
+/// flat phone, or a ticket in an inbox they cannot reach, and a queue behind
+/// them, is admitted on somebody's word either way — the only question is
+/// whether the app records it or a paper list does.
+///
+/// Nothing is written from here: picking a name opens the same confirmation the
+/// scanner does, with the same 確認報到 button and the same refusal for a
+/// withdrawn registration.
+private struct ManualPicker: View {
+    let entries: [CheckinStore.Entry]
+    let formTitle: String
+    let onPick: (CheckinStore.Entry) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    var body: some View {
+        NavigationStack {
+            List(matches) { entry in
+                Button {
+                    dismiss()
+                    onPick(entry)
+                } label: {
+                    row(entry.registration)
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+            .searchable(
+                text: $query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: Text("搜尋姓名或 email")
+            )
+            .overlay {
+                if matches.isEmpty {
+                    ContentUnavailableView.search(text: query)
+                }
+            }
+            .navigationTitle(Text(verbatim: formTitle))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("取消") { dismiss() }
+                }
+            }
+        }
+    }
+
+    /// Matched on name *and* email, because a staffer reading a name off a
+    /// screen and one reading an address off a member's mouth are the same
+    /// errand. Not checked in first — the people still to come — and anyone
+    /// withdrawn last, where they cannot be tapped by accident.
+    private var matches: [CheckinStore.Entry] {
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return entries
+            .filter {
+                needle.isEmpty
+                    || $0.registration.fullName.lowercased().contains(needle)
+                    || $0.registration.email.contains(needle)
+            }
+            .sorted { left, right in
+                let a = left.registration, b = right.registration
+                if a.isCancelled != b.isCancelled { return b.isCancelled }
+                if a.checkedIn != b.checkedIn { return b.checkedIn }
+                return a.fullName.localizedCompare(b.fullName) == .orderedAscending
+            }
+    }
+
+    private func row(_ registration: CheckinRegistration) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(registration.fullName)
+                    .font(.callout)
+                HStack(spacing: 6) {
+                    Text(registration.email)
+                        .lineLimit(1)
+                    if let state = registration.stateDescription {
+                        Text(state)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color(.tertiarySystemFill))
+                            .clipShape(.rect(cornerRadius: 4))
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+
+            if registration.checkedIn {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .accessibilityLabel("已報到")
+            }
+        }
+        .opacity(registration.isCancelled ? 0.45 : 1)
+        .contentShape(.rect)
     }
 }

@@ -6,17 +6,25 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -28,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -41,6 +50,7 @@ import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.auth.IndicoAuthConfiguration
 import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.BrandTextButton
+import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
 import tw.stsa.memberapp.model.CheckinRegistration
@@ -48,14 +58,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * The 報到 door scanner.
+ * The 報到 door scanner, for one registration form.
  *
  * One camera, two QR formats, one outcome sheet. The worker never chooses which
- * kind of code they are scanning — that is the point of the screen.
+ * kind of code they are scanning — that is the point of the screen. Which form
+ * they are working *is* chosen, on the organiser screen, because an event can
+ * carry several and each keeps its own registrations and its own check-ins.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckinScreen(navController: NavHostController, eventId: String) {
+fun CheckinScreen(navController: NavHostController, eventId: String, formId: Int) {
     val container = LocalAppContainer.current
     val event = container.events.events.firstOrNull { it.id == eventId } ?: return
     val numericId = event.id.toIntOrNull() ?: return
@@ -63,7 +75,7 @@ fun CheckinScreen(navController: NavHostController, eventId: String) {
     val scope = rememberCoroutineScope()
 
     val indico = container.indico
-    val session = remember(numericId) { CheckinSession(numericId, indico) }
+    val session = remember(numericId, formId) { CheckinSession(numericId, formId, indico) }
 
     var hasCamera by remember {
         mutableStateOf(
@@ -76,6 +88,7 @@ fun CheckinScreen(navController: NavHostController, eventId: String) {
     ) { granted -> hasCamera = granted }
 
     var outcome by remember { mutableStateOf<Outcome?>(null) }
+    var isPickingByName by remember { mutableStateOf(false) }
 
     // Widening the grant is an activity result on Android, the same shape the
     // ticket screen uses for the first link. Only this staffer is prompted.
@@ -178,7 +191,7 @@ fun CheckinScreen(navController: NavHostController, eventId: String) {
                             text = stringResource(
                                 R.string.checkin_progress,
                                 session.checkedInCount,
-                                session.registrations.size,
+                                session.expectedCount,
                             ),
                             style = MaterialTheme.typography.titleSmall,
                         )
@@ -187,9 +200,34 @@ fun CheckinScreen(navController: NavHostController, eventId: String) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        // Under the hint rather than beside the camera: scanning
+                        // is what this screen is for, and the fallback should be
+                        // findable without competing with it.
+                        BrandTextButton(
+                            text = stringResource(R.string.checkin_manual),
+                            onClick = { isPickingByName = true },
+                        )
                     }
                 }
             }
+        }
+    }
+
+    if (isPickingByName) {
+        ModalBottomSheet(
+            onDismissRequest = { isPickingByName = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            ManualPicker(
+                registrations = session.registrations,
+                onPick = { registration ->
+                    isPickingByName = false
+                    // Straight into the same confirmation a scan produces, so a
+                    // name picked off a list is still a name read back to the
+                    // person standing there before anything is written.
+                    outcome = Outcome.Found(registration)
+                },
+            )
         }
     }
 
@@ -351,3 +389,133 @@ private sealed interface Outcome {
 
 private const val RESCAN_MS = 3_000L
 
+
+/**
+ * The door's fallback: find somebody on the list by name, when there is no code
+ * to scan.
+ *
+ * Deliberately not the same act as a scan, and worth being clear about. A member
+ * card proves the person authenticated within the last 300 seconds and a ticket
+ * proves they hold the registration; a name picked off a list proves nothing at
+ * all. It is the worker's judgement — which is what Indico's own check-in app
+ * asks for here too.
+ *
+ * It exists because the alternative at a real door is worse. A member with a
+ * flat phone, or a ticket in an inbox they cannot reach, and a queue behind
+ * them, is admitted on somebody's word either way; the only question is whether
+ * the app records it or a paper list does.
+ *
+ * Nothing is written from here. Picking a name opens the same [OutcomeSheet] a
+ * scan does, with the same confirmation and the same refusal for a withdrawn
+ * registration.
+ */
+@Composable
+private fun ManualPicker(
+    registrations: List<CheckinRegistration>,
+    onPick: (CheckinRegistration) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+
+    // Matched on name *and* email, because a worker reading a name off a screen
+    // and one reading an address back to a member are the same errand. Not
+    // checked in first — the people still to come — and anyone withdrawn last,
+    // where they cannot be tapped by accident.
+    val needle = query.trim().lowercase()
+    val matches = registrations
+        .filter {
+            needle.isEmpty() ||
+                it.fullName.lowercase().contains(needle) ||
+                it.email.lowercase().contains(needle)
+        }
+        .sortedWith(
+            compareBy<CheckinRegistration> { it.isCancelled }
+                .thenBy { it.checkedIn }
+                .thenBy { it.fullName },
+        )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Theme.Metrics.gutter)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            singleLine = true,
+            label = { Text(stringResource(R.string.checkin_manual_search)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (matches.isEmpty()) {
+            Text(
+                text = stringResource(R.string.checkin_manual_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+            )
+        } else {
+            LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+                items(matches, key = { it.id }) { registration ->
+                    ManualPickerRow(registration, onPick = { onPick(registration) })
+                    RowSeparator()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualPickerRow(registration: CheckinRegistration, onPick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPick)
+            .alpha(if (registration.isCancelled) 0.45f else 1f)
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = registration.fullName, style = MaterialTheme.typography.bodyLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = registration.email,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                registrationStateLabel(registration)?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.size(8.dp))
+        if (registration.checkedIn) {
+            Text(
+                text = stringResource(R.string.checkin_checked_in),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/**
+ * The state, said out loud, when it is worth saying. `complete` is the ordinary
+ * case and a row that announced it would only be noise.
+ */
+@Composable
+internal fun registrationStateLabel(registration: CheckinRegistration): String? =
+    when (registration.state) {
+        CheckinRegistration.State.UNPAID -> stringResource(R.string.registration_state_unpaid)
+        CheckinRegistration.State.PENDING -> stringResource(R.string.registration_state_pending)
+        CheckinRegistration.State.WITHDRAWN -> stringResource(R.string.registration_state_withdrawn)
+        CheckinRegistration.State.REJECTED -> stringResource(R.string.registration_state_rejected)
+        else -> null
+    }

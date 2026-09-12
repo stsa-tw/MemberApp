@@ -34,7 +34,12 @@ struct MemberAppApp: App {
                 }
                 // onChange does not fire for the initial value, so the launch
                 // case needs its own pass.
-                .task { await auth.refreshIfNeeded() }
+                .task {
+#if DEBUG
+                    applyScreenshotFixtures()
+#endif
+                    await auth.refreshIfNeeded()
+                }
                 .onChange(of: scenePhase) { _, phase in
                     // Coming back from the background is where the token has
                     // usually lapsed; renewing here keeps the first tap instant.
@@ -43,4 +48,28 @@ struct MemberAppApp: App {
                 }
         }
     }
+
+#if DEBUG
+    /// Stands up the fictional member and opens the screen named in the launch
+    /// environment. Inert unless `STSA_SCREENSHOT=1` — see `ScreenshotFixtures`.
+    private func applyScreenshotFixtures() {
+        guard ScreenshotFixtures.isEnabled else { return }
+
+        auth.injectScreenshotFixture(ScreenshotFixtures.member)
+        codes.injectScreenshotFixture(payload: ScreenshotFixtures.membershipCode)
+        // The simulator answers `canEvaluatePolicy` with a passcode prompt no
+        // one can type into from a capture script, so the card would screenshot
+        // as a keyboard. The gate is not what is being photographed.
+        settings.requireBiometricsForCard = false
+
+        switch ScreenshotFixtures.screen {
+        case .home: session.selectedTab = .home
+        case .events: session.selectedTab = .events
+        case .deals: session.selectedTab = .deals
+        case .jobs: session.selectedTab = .jobs
+        case .profile: session.selectedTab = .profile
+        case .card: session.isShowingMemberCard = true
+        }
+    }
+#endif
 }

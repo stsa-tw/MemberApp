@@ -33,8 +33,8 @@ android {
         minSdk = 30
         targetSdk = 37
 
-        versionCode = 2
-        versionName = "0.1"
+        versionCode = 3
+        versionName = "0.2.3"
 
         // AppAuth's RedirectUriReceiverActivity is registered against this in the
         // library manifest. It must match AuthConfiguration.REDIRECT_URI and the

@@ -8,16 +8,24 @@ import tw.stsa.memberapp.model.CheckinRegForm
 import tw.stsa.memberapp.model.CheckinRegistration
 
 /**
- * One worker's 報到 session for one event: the registrant list, and the rules
- * that turn a scan into a registration.
+ * One worker's 報到 session for one registration form: the registrant list, and
+ * the rules that turn a scan into a registration.
  *
  * Holding the whole list is deliberate. A member card names a person, not a
  * registration, so it can only be matched locally — and a venue's wifi is the
  * least reliable thing at any event, so the list is fetched once at the door
  * rather than per scan.
+ *
+ * One session is one *form*, not one event. 烤場集合 runs a 報名表 and a
+ * 遊覽車報名表, which hold separate registrations with separate `checked_in`
+ * flags — two desks, two lists. The form is chosen on the organiser screen and
+ * arrives here as [formId]; this screen used to be handed the event alone and,
+ * when it found more than one form, opened with an empty list and turned
+ * everybody away.
  */
 class CheckinSession(
     val eventId: Int,
+    val formId: Int,
     private val indico: IndicoAuthManager,
     private val client: IndicoCheckinClient = IndicoCheckinClient(indico),
     private val members: MemberCodeResolver = MemberCodeResolver(),
@@ -44,12 +52,22 @@ class CheckinSession(
     var isSubmitting by mutableStateOf(false)
         private set
 
-    val checkedInCount: Int get() = registrations.count { it.checkedIn }
+    /**
+     * How many are expected at this door, and how many have come through.
+     *
+     * Withdrawn and rejected registrations are in neither. They stay on Indico's
+     * list — `~is_deleted` is the only filter the API applies — but nobody is
+     * waiting for them, and counting them made a denominator no door could
+     * reach.
+     */
+    val expectedCount: Int get() = registrations.count { !it.isCancelled }
+
+    val checkedInCount: Int get() = registrations.count { it.checkedIn && !it.isCancelled }
 
     // MARK: - Loading
 
     /**
-     * Loads the forms and, when there is only one, its registrants.
+     * Loads the event's forms and then this door's registrants.
      *
      * The forms call is also the permission check: 403 here is the normal answer
      * for a member who is not staffing this event, so it becomes [Phase.Denied]
@@ -59,16 +77,21 @@ class CheckinSession(
         phase = Phase.Loading
         try {
             regforms = client.regforms(eventId)
-            // Most STSA events have exactly one form, so skip a pointless
-            // choice; when there are several the worker picks.
-            val only = regforms.singleOrNull()
-            if (only != null) select(only) else phase = Phase.Ready
+            // The form was chosen before this screen opened. One that is no
+            // longer on the event is not something a worker can pick their way
+            // out of from behind a camera.
+            val chosen = regforms.firstOrNull { it.id == formId }
+            if (chosen == null) {
+                phase = Phase.Failed(CheckinError.NotFound)
+                return
+            }
+            select(chosen)
         } catch (error: CheckinError) {
             phase = if (error is CheckinError.Forbidden) Phase.Denied else Phase.Failed(error)
         }
     }
 
-    suspend fun select(form: CheckinRegForm) {
+    private suspend fun select(form: CheckinRegForm) {
         regform = form
         registrations = client.registrations(eventId, form.id)
         phase = Phase.Ready
@@ -106,11 +129,38 @@ class CheckinSession(
         return requireAdmissible(registration)
     }
 
-    private fun resolveMember(identity: MemberIdentity): CheckinRegistration {
-        val registration = match(identity.email, registrations)
-            ?: throw CheckinError.NotRegistered(identity.name)
-        return requireAdmissible(registration)
+    private suspend fun resolveMember(identity: MemberIdentity): CheckinRegistration {
+        match(identity.email, registrations)?.let { return requireAdmissible(it) }
+
+        // A miss is worth one more question before it is reported as one. The
+        // member who booked the coach as well is standing at the wrong desk, not
+        // absent, and telling a worker "not registered" about somebody who very
+        // much is registered is how one event's two lists became one confusing
+        // one.
+        val elsewhere = elsewhere(identity.email)
+        throw if (elsewhere.isEmpty()) {
+            CheckinError.NotRegistered(identity.name, formTitle)
+        } else {
+            CheckinError.RegisteredElsewhere(identity.name, elsewhere.map { it.title }, formTitle)
+        }
     }
+
+    private val formTitle: String get() = regform?.title.orEmpty()
+
+    /**
+     * The event's other forms this address is registered in.
+     *
+     * One request per other form, and only when a scan has already missed —
+     * which is rare, and exactly the moment the answer is worth having. A form
+     * that cannot be read is simply not reported; a door that lost its network
+     * should say "not registered", not fail.
+     */
+    private suspend fun elsewhere(email: String): List<CheckinRegForm> =
+        regforms.filter { it.id != formId }
+            .filter { form ->
+                runCatching { match(email, client.registrations(eventId, form.id)) != null }
+                    .getOrDefault(false)
+            }
 
     // MARK: - Recording attendance
 
@@ -149,9 +199,21 @@ class CheckinSession(
             if (wanted.isEmpty()) return null
 
             val matches = registrations.filter { normalised(it.email) == wanted }
-            // A form can hold more than one registration for an address. Prefer
-            // one that can actually be admitted over a withdrawn leftover.
-            return matches.firstOrNull { it.isAdmissible } ?: matches.firstOrNull()
+            // One form can hold more than one registration for an address:
+            // withdrawing and registering again leaves the old row behind, and a
+            // manager adding somebody who had already registered is warned
+            // rather than stopped. So the choice is made deliberately —
+            //
+            // - one that is admissible *and* already checked in, so a second
+            //   scan of the same person reads 已經報到過 instead of quietly
+            //   offering to admit their other copy and counting one arrival
+            //   twice;
+            // - failing that an admissible one, since a withdrawn leftover is
+            //   not the answer to "is this person expected";
+            // - failing that the first, so the screen can explain what it found.
+            return matches.firstOrNull { it.isAdmissible && it.checkedIn }
+                ?: matches.firstOrNull { it.isAdmissible }
+                ?: matches.firstOrNull()
         }
 
         private fun normalised(email: String): String = email.trim().lowercase()

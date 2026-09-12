@@ -1,44 +1,34 @@
 package tw.stsa.memberapp.feature.events
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.Checkin
+import tw.stsa.memberapp.app.EventForm
 import tw.stsa.memberapp.app.LocalAppContainer
-import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
+import tw.stsa.memberapp.designsystem.SectionCard
+import tw.stsa.memberapp.designsystem.SectionRow
 import tw.stsa.memberapp.designsystem.Theme
-import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.feature.checkin.CheckinStore
-import tw.stsa.memberapp.model.CheckinRegistration
+import tw.stsa.memberapp.model.CheckinRegForm
 
 /**
  * What a 幹部 can do with an event, kept off the page everyone else reads.
@@ -50,6 +40,12 @@ import tw.stsa.memberapp.model.CheckinRegistration
  *
  * Reached only when Indico says this account manages the event — the same
  * permission the screen's own calls run on, asked rather than assumed.
+ *
+ * With one registration form this screen *is* that form's screen. With more than
+ * one it is a chooser, because they are not one job: 報名表 and 遊覽車報名表 are
+ * separate lists with separate doors and separate arrivals, and a 幹部 opening
+ * this is already on their way to one of them. Stacking both made them scroll
+ * past the wrong one to reach the right one, every time.
  */
 @Composable
 fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
@@ -69,7 +65,14 @@ fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
     }
 
     val isAllowed = checkin.access(eventId) == CheckinStore.Access.ALLOWED
-    val registrations = if (isAllowed) checkin.registrations(eventId) else emptyList()
+    val forms = if (isAllowed) checkin.forms(eventId) else emptyList()
+
+    // One form: this screen is that form, and a list of one to tap through would
+    // be a step that asks nothing.
+    if (isAllowed && forms.size == 1) {
+        EventFormScreen(navController, eventId, forms[0].id)
+        return
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.checkin_organiser_title),
@@ -79,7 +82,6 @@ fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Theme.Metrics.gutter)
                 .padding(top = 16.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -89,126 +91,50 @@ fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Theme.Metrics.gutter)
+                        .padding(top = 24.dp),
                 )
                 return@Column
             }
 
-            Progress(
-                checkedIn = checkin.checkedInCount(eventId),
-                registered = checkin.registeredCount(eventId),
-            )
-
-            BrandButton(onClick = { navController.navigate(Checkin(event.id)) }) {
-                Icon(
-                    imageVector = Icons.Filled.QrCodeScanner,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = stringResource(R.string.checkin_title),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
+            SectionCard {
+                forms.forEachIndexed { index, form ->
+                    if (index > 0) RowSeparator()
+                    SectionRow(
+                        label = form.title.ifBlank {
+                            stringResource(R.string.checkin_form_fallback)
+                        },
+                        supporting = summary(eventId, form),
+                        onClick = { navController.navigate(EventForm(eventId, form.id)) },
+                        trailing = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
+                }
             }
-
-            Roster(registrations, isLoading = checkin.isLoadingRoster)
         }
     }
 }
 
 /**
- * The number a door actually wants, before anyone opens the scanner: how many
- * are in, out of how many are coming.
+ * The count a 幹部 is choosing between, so the choice can be made from the list
+ * rather than by opening both.
  */
 @Composable
-private fun Progress(checkedIn: Int, registered: Int) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Theme.Radius.card))
-            .background(MaterialTheme.colorScheme.sectionContainer)
-            .padding(vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = "$checkedIn / $registered",
-            style = MaterialTheme.typography.displaySmall.copy(fontSize = 44.sp),
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = stringResource(R.string.checkin_checked_in),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun summary(eventId: String, form: CheckinRegForm): String {
+    val checkin = LocalAppContainer.current.checkin
+    if (checkin.isLoadingRoster && checkin.registrations(eventId).isEmpty()) {
+        return stringResource(R.string.checkin_roster_loading)
     }
-}
-
-@Composable
-private fun Roster(registrations: List<CheckinRegistration>, isLoading: Boolean) {
-    when {
-        isLoading && registrations.isEmpty() -> Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CircularProgressIndicator()
-        }
-
-        registrations.isEmpty() -> Text(
-            text = stringResource(R.string.checkin_roster_empty),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-        )
-
-        else -> Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(Theme.Radius.card))
-                .background(MaterialTheme.colorScheme.sectionContainer),
-        ) {
-            // Not checked in first, which is the list a door is working from —
-            // the people still to come. Alphabetical inside each half so a name
-            // can be found by eye.
-            val sorted = registrations.sortedWith(
-                compareBy<CheckinRegistration> { it.checkedIn }.thenBy { it.fullName }
-            )
-            sorted.forEachIndexed { index, registration ->
-                if (index > 0) RowSeparator()
-                RosterRow(registration)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RosterRow(registration: CheckinRegistration) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Theme.Metrics.gutter, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = registration.fullName,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = registration.email,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
-        Spacer(Modifier.size(8.dp))
-        if (registration.checkedIn) {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = stringResource(R.string.checkin_checked_in),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
+    return stringResource(
+        R.string.checkin_progress,
+        checkin.checkedInCount(eventId, form.id),
+        checkin.registeredCount(eventId, form.id),
+    )
 }

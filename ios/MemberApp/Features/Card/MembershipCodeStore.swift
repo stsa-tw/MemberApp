@@ -114,6 +114,19 @@ final class MembershipCodeStore {
         }
     }
 
+#if DEBUG
+    /// Seeds a code for App Store screenshot capture.
+    ///
+    /// Dated now on purpose: `secondsUntilRefresh` then reports a full window
+    /// left, so `prefetch` and `start` both decline to mint, and the card draws
+    /// this instead of a spinner over a request that has no token to send.
+    func injectScreenshotFixture(payload: String) {
+        self.payload = payload
+        issuedAt = Date()
+        errorMessage = nil
+    }
+#endif
+
     private struct CodeResponse: Decodable {
         let code: String
     }

@@ -48,13 +48,24 @@ data class EventDetail(val id: String)
 @Serializable
 data class EventTicket(val id: String)
 
-/** 幹部功能 for one event: the count, the scanner and the roster. */
+/** 幹部功能 for one event: its registration forms, or the only one it has. */
 @Serializable
 data class EventOrganiser(val id: String)
 
-/** The 報到 scanner for one event. Reached only by a 幹部 — see `EventOrganiserScreen`. */
+/** One registration form: its count, its door and its roster. */
 @Serializable
-data class Checkin(val id: String)
+data class EventForm(val id: String, val formId: Int)
+
+/**
+ * The 報到 scanner for one event's registration *form*. Reached only by a 幹部 —
+ * see `EventOrganiserScreen`, which is where the form is chosen.
+ *
+ * A door is one form, not one event. An event can carry several — 烤場集合 runs a
+ * 報名表 and a 遊覽車報名表 — and they hold separate registrations with separate
+ * `checked_in` flags, so they are separate desks with separate lists.
+ */
+@Serializable
+data class Checkin(val id: String, val formId: Int)
 
 /** Keyed on `Deal.id`, which is the brand name. */
 @Serializable

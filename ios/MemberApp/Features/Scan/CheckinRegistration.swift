@@ -37,6 +37,27 @@ struct CheckinRegistration: Equatable {
     /// removed. `unpaid` is admissible — payment is not the door's problem, and
     /// Indico's own app checks those in too.
     var isAdmissible: Bool { state == "complete" || state == "unpaid" }
+
+    /// Withdrawn or rejected: still on Indico's list, and not somebody the door
+    /// is waiting for.
+    ///
+    /// Indico draws the same line in the same place — `active_registration_count`
+    /// is every registration that is not one of these two — so leaving them out
+    /// of the count here is what makes the number on the roster mean the same
+    /// thing as the number on Indico's own management page.
+    var isCancelled: Bool { state == "withdrawn" || state == "rejected" }
+
+    /// The state, said out loud, when it is worth saying. `complete` is the
+    /// ordinary case and a row that announced it would only be noise.
+    var stateDescription: String? {
+        switch state {
+        case "unpaid": String(localized: "未付款")
+        case "pending": String(localized: "待審核")
+        case "withdrawn": String(localized: "已退出")
+        case "rejected": String(localized: "未通過")
+        default: nil
+        }
+    }
 }
 
 /// Decodes `CheckinRegistrationSchema` and renders its raw answers.

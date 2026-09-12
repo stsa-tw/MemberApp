@@ -130,9 +130,51 @@ class CheckinMatchingTest {
         assertEquals(2, CheckinSession.match("member@u.nus.edu", registrations)?.id)
     }
 
+    /**
+     * Two live rows for one address — a manager adding somebody who had already
+     * registered is warned, not stopped. Whichever one was used to admit them is
+     * the one a second scan has to find, or the door offers to check the same
+     * person in again and counts one arrival twice.
+     */
+    @Test
+    fun `prefers the copy already checked in`() {
+        val registrations = listOf(
+            makeRegistration(id = 1, email = "member@u.nus.edu"),
+            makeRegistration(id = 2, email = "member@u.nus.edu", checkedIn = true),
+        )
+        assertEquals(2, CheckinSession.match("member@u.nus.edu", registrations)?.id)
+    }
+
+    /** A withdrawn row that happens to be checked in is still withdrawn. */
+    @Test
+    fun `does not prefer a checked-in cancellation`() {
+        val registrations = listOf(
+            makeRegistration(id = 1, email = "member@u.nus.edu", state = "withdrawn", checkedIn = true),
+            makeRegistration(id = 2, email = "member@u.nus.edu"),
+        )
+        assertEquals(2, CheckinSession.match("member@u.nus.edu", registrations)?.id)
+    }
+
     @Test
     fun `ignores an empty address`() {
         val registrations = listOf(makeRegistration(id = 1, email = ""))
         assertNull(CheckinSession.match("", registrations))
+    }
+}
+
+/**
+ * Cancelled is the narrower word than inadmissible: a `pending` registration
+ * cannot be checked in either, but that person may yet be approved, so they stay
+ * in the count a door is working towards.
+ */
+class CheckinCancellationTest {
+
+    @Test
+    fun `counts only withdrawn and rejected as cancelled`() {
+        assertTrue(makeRegistration(state = "withdrawn").isCancelled)
+        assertTrue(makeRegistration(state = "rejected").isCancelled)
+        assertFalse(makeRegistration(state = "pending").isCancelled)
+        assertFalse(makeRegistration(state = "unpaid").isCancelled)
+        assertFalse(makeRegistration(state = "complete").isCancelled)
     }
 }

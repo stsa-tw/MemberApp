@@ -176,6 +176,7 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
                 OrganiserRow(
                     checkedIn = checkin.checkedInCount(eventId),
                     registered = checkin.registeredCount(eventId),
+                    forms = checkin.forms(eventId).size,
                     onClick = { navController.navigate(EventOrganiser(event.id)) },
                 )
             }
@@ -293,7 +294,7 @@ private fun Caption(text: String) {
  * it is not what the page is for.
  */
 @Composable
-private fun OrganiserRow(checkedIn: Int, registered: Int, onClick: () -> Unit) {
+private fun OrganiserRow(checkedIn: Int, registered: Int, forms: Int, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .padding(horizontal = Theme.Metrics.gutter)
@@ -316,10 +317,14 @@ private fun OrganiserRow(checkedIn: Int, registered: Int, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                text = if (registered > 0) {
-                    stringResource(R.string.checkin_progress, checkedIn, registered)
-                } else {
-                    stringResource(R.string.checkin_organiser_subtitle)
+                // One form gets the number a door would recognise. Two do not: an
+                // event with a 報名表 and a 遊覽車報名表 holds two lists, and
+                // adding them up counts the member who booked the coach as two
+                // people. The per-form breakdown is one tap away.
+                text = when {
+                    registered == 0 -> stringResource(R.string.checkin_organiser_subtitle)
+                    forms > 1 -> stringResource(R.string.checkin_forms_summary, forms, registered)
+                    else -> stringResource(R.string.checkin_progress, checkedIn, registered)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

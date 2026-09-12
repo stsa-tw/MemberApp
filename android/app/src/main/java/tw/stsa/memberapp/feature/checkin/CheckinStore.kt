@@ -55,19 +55,51 @@ class CheckinStore {
 
     fun registrations(eventId: String): List<CheckinRegistration> = rosters[eventId].orEmpty()
 
+    /** One form's registrants — the list a door actually works from. */
+    fun registrations(eventId: String, formId: Int): List<CheckinRegistration> =
+        registrations(eventId).filter { it.regformId == formId }
+
     /**
-     * How many have arrived, out of how many are coming.
+     * How many have arrived, out of how many are coming — for one form.
+     *
+     * Per form because an event's forms are separate lists: 烤場集合 runs a 報名表
+     * and a 遊覽車報名表, and a member on both is one person holding two
+     * registrations rather than a duplicate of themselves. Added together they
+     * made a denominator no door could reach.
      *
      * Read from the roster once there is one and from the probe's own totals
      * until then. That order matters after a scan: the probe's numbers are a
      * snapshot from before the door opened, while the roster is folded forward
      * by [update] as people are checked in.
+     *
+     * Withdrawn and rejected registrations are in neither half once the roster
+     * lands — nobody is waiting for them at a door. Indico's own
+     * `registration_count` is `existing_registrations_count`, which counts them
+     * and counts accompanying persons as seats, so the number can shift a little
+     * when the list arrives and replaces it.
      */
+    fun checkedInCount(eventId: String, formId: Int): Int =
+        expected(eventId, formId)?.count { it.checkedIn }
+            ?: forms(eventId).firstOrNull { it.id == formId }?.checkedInCount
+            ?: 0
+
+    fun registeredCount(eventId: String, formId: Int): Int =
+        expected(eventId, formId)?.size
+            ?: forms(eventId).firstOrNull { it.id == formId }?.registrationCount
+            ?: 0
+
+    /** The whole event, for the one-line summary on the event page. */
     fun checkedInCount(eventId: String): Int =
-        rosters[eventId]?.count { it.checkedIn } ?: forms(eventId).sumOf { it.checkedInCount }
+        expected(eventId)?.count { it.checkedIn } ?: forms(eventId).sumOf { it.checkedInCount }
 
     fun registeredCount(eventId: String): Int =
-        rosters[eventId]?.size ?: forms(eventId).sumOf { it.registrationCount }
+        expected(eventId)?.size ?: forms(eventId).sumOf { it.registrationCount }
+
+    private fun expected(eventId: String): List<CheckinRegistration>? =
+        rosters[eventId]?.filter { !it.isCancelled }
+
+    private fun expected(eventId: String, formId: Int): List<CheckinRegistration>? =
+        rosters[eventId]?.filter { it.regformId == formId && !it.isCancelled }
 
     /**
      * Asks Indico whether this account runs the event. Asked once per event per

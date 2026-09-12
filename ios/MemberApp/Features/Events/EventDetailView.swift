@@ -173,10 +173,22 @@ struct EventDetailView: View {
     }
 
     private var organiserSummary: String {
-        let entries = checkin.entries(for: event.id)
-        guard !entries.isEmpty else { return String(localized: "報到與報名名單") }
-        let checkedIn = entries.filter(\.registration.checkedIn).count
-        return String(localized: "\(checkedIn) / \(entries.count) 已報到")
+        let forms = checkin.forms(for: event.id)
+        // Withdrawn and rejected registrations stay on Indico's list and out of
+        // this number; nobody is waiting for them at a door.
+        let expected = checkin.entries(for: event.id).filter { !$0.registration.isCancelled }
+        guard !expected.isEmpty else { return String(localized: "報到與報名名單") }
+
+        // One form gets the number a door would recognise. Two do not: an event
+        // with a 報名表 and a 遊覽車報名表 holds two lists, and adding them up
+        // counts the member who booked the coach as two people. The per-form
+        // breakdown is one tap away, where it means something.
+        guard forms.count == 1 else {
+            return String(localized: "\(forms.count) 張報名表 · 共 \(expected.count) 筆報名")
+        }
+
+        let checkedIn = expected.filter(\.registration.checkedIn).count
+        return String(localized: "\(checkedIn) / \(expected.count) 已報到")
     }
 
     // MARK: - Actions
