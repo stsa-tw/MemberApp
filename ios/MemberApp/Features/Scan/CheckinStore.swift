@@ -33,13 +33,32 @@ final class CheckinStore {
         var id: Int { registration.id }
     }
 
+    /// One registration form on an event.
+    ///
+    /// An event can carry several, and Indico keeps them genuinely apart: a
+    /// registration lives inside exactly one form, and `checked_in` is a column
+    /// on the registration. 烤場集合 runs a 報名表 and a 遊覽車報名表, so a member
+    /// who booked the coach as well holds two registrations, two tickets, and
+    /// two check-ins to be made at two different desks.
+    ///
+    /// Which is why a door is opened per form rather than per event. Pouring
+    /// them into one list gave a roster where the same person appeared twice, a
+    /// denominator no door could ever reach, and a scan that recorded
+    /// attendance against whichever of the two Indico happened to return first.
+    struct Form: Identifiable, Equatable {
+        let id: Int
+        let title: String
+    }
+
     private(set) var access: [String: Access] = [:]
     private(set) var roster: [String: [Entry]] = [:]
+    /// The event's forms, learned from the same probe that answers whether this
+    /// member may read the event at all. Observed rather than private because
+    /// the organiser screen shows one section per form and names each one.
+    private(set) var forms: [String: [Form]] = [:]
     private(set) var isLoadingRoster = false
     private(set) var isSubmitting = false
     private(set) var errorMessage: String?
-
-    @ObservationIgnored private var formIDs: [String: [Int]] = [:]
 
     /// How many check-ins this app has written for an event, used only to tell
     /// a refetch that started earlier that it is now out of date.
@@ -50,7 +69,25 @@ final class CheckinStore {
 
     func access(for eventID: String) -> Access { access[eventID] ?? .unknown }
 
+    func forms(for eventID: String) -> [Form] { forms[eventID] ?? [] }
+
     func entries(for eventID: String) -> [Entry] { roster[eventID] ?? [] }
+
+    /// One form's registrants — the list a door actually works from.
+    func entries(for eventID: String, formID: Int) -> [Entry] {
+        entries(for: eventID).filter { $0.formID == formID }
+    }
+
+    /// That list minus the cancelled rows — the people a door is waiting for.
+    ///
+    /// Withdrawn and rejected registrations stay on Indico's list, because
+    /// `~is_deleted` is the only filter its API applies, and out of every count
+    /// the app shows, because nobody is expecting them. Indico's own
+    /// `active_registration_count` draws the line in the same place, which is
+    /// what keeps these numbers comparable with its management page.
+    func expected(eventID: String, formID: Int) -> [Entry] {
+        entries(for: eventID, formID: formID).filter { !$0.registration.isCancelled }
+    }
 
     /// Asks Indico whether this member manages the event, which is the same
     /// request that fetches the form ids the roster needs.
@@ -73,8 +110,12 @@ final class CheckinStore {
                 return
             }
 
-            formIDs[eventID] = forms.compactMap { $0["id"] as? Int }
-            access[eventID] = formIDs[eventID]?.isEmpty == false ? .allowed : .denied
+            self.forms[eventID] = forms.compactMap { raw -> Form? in
+                guard let id = raw["id"] as? Int else { return nil }
+                let title = (raw["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
+                return Form(id: id, title: title)
+            }
+            access[eventID] = self.forms[eventID]?.isEmpty == false ? .allowed : .denied
         } catch {
             access[eventID] = .denied
         }
@@ -101,7 +142,8 @@ final class CheckinStore {
     }
 
     private func fetchRoster(eventID: String, using indico: IndicoAuthManager) async {
-        guard let forms = formIDs[eventID] else { return }
+        let eventForms = forms(for: eventID)
+        guard !eventForms.isEmpty else { return }
 
         isLoadingRoster = true
         defer { isLoadingRoster = false }
@@ -114,9 +156,9 @@ final class CheckinStore {
 
         var entries: [Entry] = []
         var isComplete = true
-        for formID in forms {
+        for form in eventForms {
             guard let url = URL(string:
-                "\(Self.host)/api/checkin/event/\(eventID)/forms/\(formID)/registrations/")
+                "\(Self.host)/api/checkin/event/\(eventID)/forms/\(form.id)/registrations/")
             else { isComplete = false; continue }
 
             do {
@@ -126,7 +168,7 @@ final class CheckinStore {
                     isComplete = false
                     continue
                 }
-                entries += CheckinDecoder.list(data).map { Entry(formID: formID, registration: $0) }
+                entries += CheckinDecoder.list(data).map { Entry(formID: form.id, registration: $0) }
             } catch {
                 isComplete = false
                 errorMessage = error.localizedDescription
@@ -143,17 +185,70 @@ final class CheckinStore {
         roster[eventID] = entries
     }
 
-    /// Finds a scanned member in the roster.
+    /// Finds a scanned member in the list of the form whose door is open.
     ///
     /// Matched on email, which is the only thing MembershipAPI and Indico both
     /// know about a person. Case-insensitive because the two do not agree on it;
     /// someone who registered under a different address than their STSA account
     /// will not be found, and the screen says so rather than implying they never
     /// registered.
-    func entry(email: String, eventID: String) -> Entry? {
-        let needle = email.lowercased().trimmingCharacters(in: .whitespaces)
+    ///
+    /// Scoped to one form on purpose. A member card names a person, and one
+    /// person can hold a registration in several of an event's forms — matching
+    /// across all of them recorded the coach passenger's arrival against the
+    /// 報名表, or the other way about, depending on nothing.
+    func entry(email: String, eventID: String, formID: Int) -> Entry? {
+        Self.match(email: email, in: entries(for: eventID, formID: formID))
+    }
+
+    /// The event's *other* forms this address is registered in.
+    ///
+    /// What the door says instead of "not registered" when the member is in the
+    /// event but standing at the wrong desk — the case that reads as a duplicate
+    /// from the outside and is nothing of the kind.
+    func otherForms(email: String, eventID: String, excluding formID: Int) -> [Form] {
+        let needle = Self.normalised(email)
+        guard !needle.isEmpty else { return [] }
+
+        let found = Set(
+            entries(for: eventID)
+                .filter { $0.formID != formID && Self.normalised($0.registration.email) == needle }
+                .map(\.formID)
+        )
+        return forms(for: eventID).filter { found.contains($0.id) }
+    }
+
+    /// Picks the registration a scan means, out of however many one form holds
+    /// for a single address.
+    ///
+    /// One form can still hold two. Withdrawing and registering again leaves the
+    /// old row behind — Indico allows the second one *because* the first is
+    /// withdrawn — and a manager adding somebody by hand is warned about the
+    /// clash rather than stopped. So the choice is made deliberately instead of
+    /// by list order:
+    ///
+    /// - an admissible one that is already checked in, so a second scan of the
+    ///   same person reads 已經報到過 rather than quietly offering to admit
+    ///   their other copy and counting one arrival twice;
+    /// - failing that an admissible one, since a withdrawn leftover is not the
+    ///   answer to "is this person expected";
+    /// - failing that the first, so the screen can explain what it found instead
+    ///   of claiming they never registered.
+    ///
+    /// Pure and static so it can be tested without a roster to fetch. Android's
+    /// `CheckinSession.match` is the same rule.
+    static func match(email: String, in entries: [Entry]) -> Entry? {
+        let needle = normalised(email)
         guard !needle.isEmpty else { return nil }
-        return entries(for: eventID).first { $0.registration.email == needle }
+
+        let matches = entries.filter { normalised($0.registration.email) == needle }
+        return matches.first { $0.registration.isAdmissible && $0.registration.checkedIn }
+            ?? matches.first { $0.registration.isAdmissible }
+            ?? matches.first
+    }
+
+    private static func normalised(_ email: String) -> String {
+        email.lowercased().trimmingCharacters(in: .whitespaces)
     }
 
     /// Fetches one registrant's answers, which the roster does not carry.
@@ -294,7 +389,7 @@ final class CheckinStore {
     func clear() {
         access.removeAll()
         roster.removeAll()
-        formIDs.removeAll()
+        forms.removeAll()
         writes.removeAll()
         errorMessage = nil
     }

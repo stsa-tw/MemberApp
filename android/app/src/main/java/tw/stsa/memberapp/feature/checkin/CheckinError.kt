@@ -29,8 +29,22 @@ sealed class CheckinError : Exception() {
     /** The member card's code was expired or never real. */
     object ExpiredMemberCode : CheckinError()
 
-    /** A known member with no registration in this form. */
-    data class NotRegistered(val name: String) : CheckinError()
+    /** A known member with no registration on the form this door is working. */
+    data class NotRegistered(val name: String, val form: String) : CheckinError()
+
+    /**
+     * A known member who registered on *another* of the event's forms — the
+     * coach list rather than this one.
+     *
+     * Kept apart from [NotRegistered] because it is a different answer and calls
+     * for a different move: the person is expected at this event, just not at
+     * this desk. Reported as missing, they look like the duplicate they are not.
+     */
+    data class RegisteredElsewhere(
+        val name: String,
+        val otherForms: List<String>,
+        val form: String,
+    ) : CheckinError()
 
     /** Registered, but withdrawn or rejected. */
     data class NotAdmissible(val name: String) : CheckinError()
@@ -53,11 +67,25 @@ sealed class CheckinError : Exception() {
         AccompanyingPerson -> context.getString(R.string.error_checkin_accompanying)
         WrongEvent -> context.getString(R.string.error_checkin_wrong_event)
         ExpiredMemberCode -> context.getString(R.string.error_checkin_expired_code)
-        is NotRegistered -> context.getString(R.string.error_checkin_not_registered, name)
+        is NotRegistered -> context.getString(
+            R.string.error_checkin_not_registered,
+            name,
+            form.orFallback(context),
+        )
+        is RegisteredElsewhere -> context.getString(
+            R.string.error_checkin_registered_elsewhere,
+            name,
+            otherForms.joinToString(context.getString(R.string.list_separator)) { "「$it」" },
+            form.orFallback(context),
+        )
         is NotAdmissible -> context.getString(R.string.error_checkin_not_admissible, name)
         UnrecognisedCode -> context.getString(R.string.error_checkin_unrecognised)
         NeedsAuthorization -> context.getString(R.string.error_checkin_needs_authorization)
     }
+
+    /** Indico requires a form title, but a blank one must not print as 「」. */
+    private fun String.orFallback(context: Context): String =
+        ifBlank { context.getString(R.string.checkin_form_fallback) }
 
     companion object {
         fun of(status: Int, body: String): CheckinError = when (status) {

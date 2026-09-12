@@ -9,111 +9,97 @@ import SwiftUI
 ///
 /// Reached only when Indico says this account manages the event — the same
 /// permission the screen's own calls run on, asked rather than assumed.
+///
+/// With one registration form this screen *is* that form's screen. With more
+/// than one it is a chooser, because they are not one job: 報名表 and
+/// 遊覽車報名表 are separate lists with separate doors and separate arrivals,
+/// and a 幹部 opening this is already on their way to one of them. Stacking both
+/// made them scroll past the wrong one to reach the right one, every time.
 struct EventOrganiserView: View {
     let event: IndicoEvent
 
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(CheckinStore.self) private var checkin
 
-    private var entries: [CheckinStore.Entry] { checkin.entries(for: event.id) }
-    private var checkedIn: Int { entries.filter(\.registration.checkedIn).count }
+    private var forms: [CheckinStore.Form] { checkin.forms(for: event.id) }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                progress
-
-                NavigationLink {
-                    EventCheckinView(event: event)
-                } label: {
-                    Label("報到", systemImage: "qrcode.viewfinder")
-                }
-                .buttonStyle(.brand)
-
-                roster
+        Group {
+            if forms.isEmpty {
+                loading
+            } else if forms.count == 1 {
+                EventFormView(event: event, form: forms[0], title: String(localized: "幹部功能"))
+            } else {
+                chooser
             }
+        }
+    }
+
+    private var loading: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("幹部功能")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Choosing a form
+
+    private var chooser: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(forms.enumerated()), id: \.element.id) { index, form in
+                    if index > 0 { RowSeparator() }
+                    NavigationLink {
+                        EventFormView(event: event, form: form, title: title(of: form))
+                    } label: {
+                        row(form)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(.rect(cornerRadius: Theme.Radius.card))
             .padding(.horizontal, Theme.Metrics.gutter)
             .padding(.top, 16)
-            .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("幹部功能")
         .navigationBarTitleDisplayMode(.inline)
         .task { await checkin.loadRoster(eventID: event.id, using: indico) }
-        // The number here is the one an organiser trusts, and it is not the only
-        // door: another 幹部 on another phone moves it too. Pulling asks Indico
-        // rather than redrawing what this phone happens to remember.
         .refreshable { await checkin.refreshRoster(eventID: event.id, using: indico) }
     }
 
-    /// The number a door actually wants, before anyone opens the scanner: how
-    /// many are in, out of how many are coming.
-    private var progress: some View {
-        VStack(spacing: 6) {
-            Text("\(checkedIn) / \(entries.count)")
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
-                .contentTransition(.numericText())
-            Text("已報到")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: Theme.Radius.card))
-    }
-
-    @ViewBuilder
-    private var roster: some View {
-        if checkin.isLoadingRoster && entries.isEmpty {
-            ProgressView().padding(.top, 24)
-        } else if entries.isEmpty {
-            Text("這場活動還沒有人報名。")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.top, 24)
-        } else {
-            VStack(spacing: 0) {
-                ForEach(Array(sorted.enumerated()), id: \.element.id) { index, entry in
-                    if index > 0 { RowSeparator() }
-                    row(entry)
-                }
-            }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: Theme.Radius.card))
-        }
-    }
-
-    /// Not checked in first, which is the list a door is working from — the
-    /// people still to come. Alphabetical inside each half so a name can be
-    /// found by eye.
-    private var sorted: [CheckinStore.Entry] {
-        entries.sorted {
-            $0.registration.checkedIn == $1.registration.checkedIn
-                ? $0.registration.fullName.localizedCompare($1.registration.fullName) == .orderedAscending
-                : !$0.registration.checkedIn
-        }
-    }
-
-    private func row(_ entry: CheckinStore.Entry) -> some View {
+    private func row(_ form: CheckinStore.Form) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.registration.fullName)
+                Text(title(of: form))
                     .font(.callout)
-                Text(entry.registration.email)
+                    .foregroundStyle(.primary)
+                Text(summary(of: form))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
             Spacer(minLength: 8)
-
-            if entry.registration.checkedIn {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("已報到")
-            }
+            DisclosureChevron()
         }
         .padding(.horizontal, Theme.Metrics.gutter)
-        .padding(.vertical, 11)
+        .padding(.vertical, 12)
+        .contentShape(.rect)
+    }
+
+    private func title(of form: CheckinStore.Form) -> String {
+        form.title.isEmpty ? String(localized: "報名表") : form.title
+    }
+
+    /// The count a 幹部 is choosing between, so the choice can be made from the
+    /// list rather than by opening both.
+    private func summary(of form: CheckinStore.Form) -> String {
+        if checkin.isLoadingRoster && checkin.entries(for: event.id).isEmpty {
+            return String(localized: "正在讀取報名名單…")
+        }
+        let expected = checkin.expected(eventID: event.id, formID: form.id)
+        let arrived = expected.filter(\.registration.checkedIn).count
+        return String(localized: "\(arrived) / \(expected.count) 已報到")
     }
 }

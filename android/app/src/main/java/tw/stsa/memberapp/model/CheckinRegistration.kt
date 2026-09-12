@@ -59,6 +59,18 @@ data class CheckinRegistration(
         get() = state == State.COMPLETE || state == State.UNPAID
 
     /**
+     * Withdrawn or rejected: still on Indico's list, and not somebody a door is
+     * waiting for.
+     *
+     * Indico draws the same line in the same place — `active_registration_count`
+     * is every registration that is not one of these two — so leaving them out
+     * of a count here is what makes it mean the same thing as the number on
+     * Indico's own management page.
+     */
+    val isCancelled: Boolean
+        get() = state == State.WITHDRAWN || state == State.REJECTED
+
+    /**
      * `RegistrationState` in
      * `indico/modules/events/registration/models/registrations.py`. Serialised
      * by name, so [wire] holds the values verbatim.

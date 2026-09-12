@@ -62,6 +62,7 @@ import tw.stsa.memberapp.feature.checkin.CheckinScreen
 import tw.stsa.memberapp.feature.deals.DealDetailScreen
 import tw.stsa.memberapp.feature.deals.DealsScreen
 import tw.stsa.memberapp.feature.events.EventDetailScreen
+import tw.stsa.memberapp.feature.events.EventFormScreen
 import tw.stsa.memberapp.feature.events.EventOrganiserScreen
 import tw.stsa.memberapp.feature.events.EventTicketScreen
 import tw.stsa.memberapp.feature.events.EventsScreen
@@ -265,8 +266,14 @@ fun RootScreen(
                 composable<EventOrganiser> { entry ->
                     EventOrganiserScreen(navController, entry.toRoute<EventOrganiser>().id)
                 }
+                composable<EventForm> { entry ->
+                    val route = entry.toRoute<EventForm>()
+                    EventFormScreen(navController, route.id, route.formId)
+                }
+
                 composable<Checkin> { entry ->
-                    CheckinScreen(navController, entry.toRoute<Checkin>().id)
+                    val route = entry.toRoute<Checkin>()
+                    CheckinScreen(navController, route.id, route.formId)
                 }
                 composable<DealDetail> { entry ->
                     DealDetailScreen(navController, entry.toRoute<DealDetail>().brand)

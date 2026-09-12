@@ -225,12 +225,23 @@
     <string name="checkin_organiser_title">幹部功能</string>
     <string name="checkin_organiser_subtitle">報到與報名名單</string>
     <string name="checkin_checked_in">已報到</string>
-    <string name="checkin_roster_empty">這場活動還沒有人報名。</string>
+    <string name="checkin_roster_empty">這張報名表還沒有人報名。</string>
+    <string name="checkin_roster_loading">正在讀取報名名單…</string>
+    <string name="checkin_form_fallback">報名表</string>
+    <string name="checkin_forms_summary">%1$d 張報名表 · 共 %2$d 筆報名</string>
+    <string name="registration_state_unpaid">未付款</string>
+    <string name="registration_state_pending">待審核</string>
+    <string name="registration_state_withdrawn">已退出</string>
+    <string name="registration_state_rejected">未通過</string>
+    <string name="list_separator">、</string>
     <string name="checkin_denied">此帳號在 Indico 上沒有這場活動的報到權限。</string>
     <string name="checkin_denied_detail">報到權限由 Indico 管理，與 App 內的幹部身分是兩份名單。</string>
     <string name="checkin_failed_to_start">無法開始報到。</string>
     <string name="checkin_progress">%1$d / %2$d 已報到</string>
     <string name="checkin_hint">會員卡或 Indico 票券皆可掃描</string>
+    <string name="checkin_manual">找不到 QR code？改用姓名報到</string>
+    <string name="checkin_manual_search">搜尋姓名或 email</string>
+    <string name="checkin_manual_empty">找不到這個人。</string>
     <string name="checkin_camera_needed">需要相機權限才能掃描。</string>
     <string name="checkin_camera_needed_detail">請到「設定」開啟相機權限。</string>
     <string name="checkin_confirm">確認報到</string>
@@ -252,7 +263,8 @@
     <string name="error_checkin_accompanying">這是隨行人員的票，請用 Indico 官方 App 報到。</string>
     <string name="error_checkin_wrong_event">這張票屬於其他活動。</string>
     <string name="error_checkin_expired_code">會員卡代碼已過期，請對方重新開啟會員卡。</string>
-    <string name="error_checkin_not_registered">%1$s 沒有報名這場活動。</string>
+    <string name="error_checkin_not_registered">%1$s 沒有報名「%2$s」。</string>
+    <string name="error_checkin_registered_elsewhere">%1$s 報名的是%2$s，不是「%3$s」。回上一頁選那張報名表才能報到。</string>
     <string name="error_checkin_not_admissible">%1$s 的報名已取消或未通過。</string>
     <string name="error_checkin_unrecognised">無法辨識這個 QR code。</string>
 </resources>
