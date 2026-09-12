@@ -2,6 +2,7 @@ package tw.stsa.memberapp.auth
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,23 +105,12 @@ class AuthManager(context: Context) {
                 AuthConfiguration.REDIRECT_URI,
             )
                 .setScopes(AuthConfiguration.SCOPES)
-                // Asks authentik for the account, rather than taking the one it
-                // remembers. The flow runs in the browser's session, which is
-                // what makes SSO work and is deliberate — but it also means that
-                // after a sign-out the cookie is still there, /authorize answers
-                // instantly from it, and the tab appears and vanishes before
-                // anyone can read it. A member handing the phone over, or
-                // signing in on their own second account, never got the choice.
-                //
-                // Only after an *explicit* sign-out: a session that merely
-                // expired did not ask to be signed out, and making that member
-                // retype a password for a token that quietly lapsed would be
-                // punishing them for the app's bookkeeping.
-                .apply {
-                    if (prefs.getBoolean(PROMPT_FOR_ACCOUNT_KEY, false)) {
-                        setPrompt(AuthorizationRequest.Prompt.LOGIN)
-                    }
-                }
+                // No `prompt=login` here. Asking authentik the OIDC way makes it
+                // plan the *authentication* flow, and a flow marked
+                // `require_unauthenticated` raises FlowNonApplicableException for
+                // a browser that is still signed in — "Request has been denied.
+                // Flow does not apply to current user." The browser session is
+                // ended before this instead; see [browserSignOutIntent].
                 .build()
 
             // AppAuth drives a Custom Tab here, so the sign-in page runs in the
@@ -131,6 +121,61 @@ class AuthManager(context: Context) {
             isBusy = false
             throw error
         }
+    }
+
+    /**
+     * Whether the next sign-in should ask who is signing in, rather than letting
+     * the browser's cookie answer. Set by an explicit sign-out.
+     */
+    val shouldChooseAccount: Boolean
+        get() = prefs.getBoolean(PROMPT_FOR_ACCOUNT_KEY, false)
+
+    /**
+     * Opens authentik's RP-initiated logout page, so the browser forgets who it
+     * is and the sign-in after it has to ask.
+     *
+     * The sign-in runs in the browser's session, which is what makes SSO work
+     * and is deliberate — but it also means the cookie is already there,
+     * /authorize answers instantly from it, and the tab appears and vanishes
+     * before anyone can read it. A member handing the phone over, or signing in
+     * on their own second account, never got the choice.
+     *
+     * The OIDC way to ask for it back is `prompt=login`, and on this tenant it
+     * cannot work: authentik answers it by planning the authentication flow, and
+     * FlowPlanner._check_authentication refuses a `require_unauthenticated` flow
+     * for a request that is already authenticated. The member gets "Flow does
+     * not apply to current user".
+     *
+     * Nor is it the OIDC `end_session_endpoint`, which on this tenant resolves
+     * to `default-provider-invalidation-flow` — a flow that ships with *no
+     * stages* and a title of "You've logged out of %(app)s". It renders a page
+     * saying the application session ended and leaves the authentik cookie
+     * exactly where it was, so the sign-in after it signs the same person
+     * straight back in. Worse than doing nothing, because it looks like it
+     * worked.
+     *
+     * `/flows/-/default/invalidation/` is the brand's own invalidation flow,
+     * which is the one holding a `user_logout` stage. After it, /authorize meets
+     * an unauthenticated browser, the authentication flow applies, and the login
+     * page appears. Signing in there also leaves the browser holding the account
+     * just chosen.
+     *
+     * iOS does this by denying the browser the cookie outright
+     * (`prefersEphemeralSession`), which is one sheet instead of two. Custom Tabs
+     * have no equivalent, so on Android the member closes the logout tab and the
+     * caller carries on to the sign-in.
+     */
+    suspend fun browserSignOutIntent(): Intent? {
+        val issuer = AuthConfiguration.ISSUER
+        val invalidation = Uri.Builder()
+            .scheme(issuer.scheme)
+            .authority(issuer.authority)
+            .path("/flows/-/default/invalidation/")
+            .build()
+        return authService.createCustomTabsIntentBuilder(invalidation)
+            .build()
+            .intent
+            .setData(invalidation)
     }
 
     /** Exchanges the authorization code and loads the profile. */

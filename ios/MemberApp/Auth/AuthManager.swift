@@ -65,11 +65,16 @@ final class AuthManager {
 
     // MARK: - Session lifecycle
 
-    func login() async throws {
+    /// - Parameter choosingAccount: ask authentik who is signing in, instead of
+    ///   letting it answer from the session cookie it already holds. What the
+    ///   「用其他帳號登入」 button passes.
+    func login(choosingAccount: Bool = false) async throws {
         isBusy = true
         defer { isBusy = false }
 
         let configuration = try await discoverConfiguration()
+
+        let asked = choosingAccount || UserDefaults.standard.bool(forKey: Self.promptForAccountKey)
 
         // The standard initialiser (no clientSecret overload) derives a PKCE
         // code_verifier and an S256 code_challenge on its own. Do not replace
@@ -80,7 +85,7 @@ final class AuthManager {
             scopes: AuthConfiguration.scopes,
             redirectURL: AuthConfiguration.redirectURI,
             responseType: OIDResponseTypeCode,
-            additionalParameters: Self.promptParameters()
+            additionalParameters: nil
         )
 
         let presenter = try topViewController()
@@ -91,7 +96,10 @@ final class AuthManager {
         let state: OIDAuthState = try await withCheckedThrowingContinuation { continuation in
             userAgentSession = OIDAuthState.authState(
                 byPresenting: request,
-                presenting: presenter
+                externalUserAgent: OIDExternalUserAgentIOS(
+                    presenting: presenter,
+                    prefersEphemeralSession: asked
+                )!
             ) { authState, error in
                 if let authState {
                     continuation.resume(returning: authState)
@@ -112,22 +120,50 @@ final class AuthManager {
         logLoginResult(rawUserinfo: rawUserinfo, state: state)
     }
 
-    /// Asks authentik for the account, rather than taking the one it remembers.
-    ///
-    /// The flow runs in the shared Safari session, which is what makes SSO work
-    /// and is deliberate — but it also means that after 登出 the cookie is still
-    /// there, `/authorize` answers instantly from it, and the sheet appears and
-    /// vanishes before anyone can read it. A member handing the phone to someone
-    /// else, or signing in on their own second account, never got the choice.
-    ///
-    /// So an explicit 登出 asks the next sign-in to prompt. Only an explicit one:
-    /// a session that merely expired did not ask to be signed out, and making
-    /// that member retype a password for a token that quietly lapsed would be
-    /// punishing them for the app's bookkeeping.
-    private static func promptParameters() -> [String: String]? {
-        guard UserDefaults.standard.bool(forKey: promptForAccountKey) else { return nil }
-        return ["prompt": "login"]
-    }
+    // MARK: - Asking who is signing in
+    //
+    // The ordinary sign-in runs in the shared Safari session. That is what makes
+    // SSO work and is deliberate — but it also means the cookie is already
+    // there, `/authorize` answers instantly from it, and the sheet appears and
+    // vanishes before anyone can read it. A member handing the phone to someone
+    // else, or signing in on their own second account, never got the choice.
+    //
+    // Getting it back means reaching authentik as somebody it does not
+    // recognise, and a cookie-less browser is the only way this app can. Two
+    // routes were tried against `idms.stsa.tw` first and neither works:
+    //
+    // - `prompt=login`. authentik answers it by planning the *authentication*
+    //   flow, and `FlowPlanner._check_authentication` refuses a flow marked
+    //   `require_unauthenticated` for a request that is authenticated — which
+    //   is this one. The member gets "Request has been denied. Flow does not
+    //   apply to current user." (`max_age` lands in the same place. And the
+    //   prompt mostly hid that behind a second bug: `authorize.py`
+    //   re-authenticates only while its stored `last_login_uid` still equals
+    //   the current login event, it writes that key when it challenges, signing
+    //   in mints a new event, and nothing ever clears it — so every prompt
+    //   after the first in a browser session did nothing at all.)
+    //
+    // - `end_session_endpoint`. On this tenant it resolves to
+    //   `default-provider-invalidation-flow`, which ships with *no stages* and a
+    //   title of "You've logged out of %(app)s" — a page saying the application
+    //   session ended, leaving the authentik cookie exactly where it was. The
+    //   member closed it and the next sheet signed them back in as the same
+    //   person, which is worse than doing nothing because it looks like it
+    //   worked.
+    //
+    // So the browser is simply denied the cookie: `prefersEphemeralSession`
+    // gives AppAuth a web view that shares nothing with Safari and keeps nothing
+    // afterwards, so authentik sees an unauthenticated request, the
+    // authentication flow applies, and the login page appears. One sheet, and it
+    // closes itself on the callback.
+    //
+    // Two things follow. iOS shows its "…Wants to Use idms.stsa.tw to Sign In"
+    // alert only for *non*-ephemeral sessions, so this path skips it. And the
+    // Safari cookie is left untouched, still naming whoever it named before —
+    // which costs nothing here, because Indico is linked from the ticket screen
+    // rather than after sign-in (see `RootView`), and that screen already knows
+    // how to re-authenticate when the browser belongs to somebody else.
+
 
     /// Drops every local credential.
     ///
@@ -348,6 +384,20 @@ final class AuthManager {
     }
 
     private static func profileKey(for sub: String) -> String { "auth.profile.\(sub)" }
+
+    // MARK: - Screenshots
+
+#if DEBUG
+    /// Stands a fictional member up for App Store screenshot capture.
+    ///
+    /// There is no `authState`, so nothing here can reach the network: every
+    /// token call throws `notAuthenticated` before it touches the session, and
+    /// `refreshIfNeeded` returns as soon as it sees a profile already in hand.
+    func injectScreenshotFixture(_ profile: Profile) {
+        self.profile = profile
+        isLoggedIn = true
+    }
+#endif
 
     // MARK: - Verification logging
 

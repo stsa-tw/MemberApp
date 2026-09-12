@@ -27,6 +27,7 @@
     <string name="welcome_highlight_deals_detail">Partner discounts and internships in Singapore</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_links_indico">Signing in also links your Indico account, used to show your registrations and tickets.</string>
+    <string name="sign_in_other_account">Sign in with a different account</string>
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="ok">OK</string>
 

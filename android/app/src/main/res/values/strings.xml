@@ -30,6 +30,7 @@
     <string name="welcome_highlight_deals_detail">合作商家折扣碼、在星實習機會</string>
     <string name="sign_in">登入</string>
     <string name="sign_in_links_indico">登入會一併連結你的 Indico 帳號，用來顯示你的報名與票券。</string>
+    <string name="sign_in_other_account">用其他帳號登入</string>
     <string name="sign_in_failed">登入失敗</string>
     <string name="ok">好</string>
 

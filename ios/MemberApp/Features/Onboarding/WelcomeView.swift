@@ -81,6 +81,17 @@ struct WelcomeView: View {
                 .buttonStyle(.brand)
                 .disabled(auth.isBusy || indico.isBusy)
 
+                // The sign-in above rides the browser's authentik session, which
+                // is what makes it one tap — and, on a phone whose browser is
+                // already somebody's, what makes it one tap into the wrong
+                // account. The page opens and closes again before it can be
+                // read. This is how a member says which account is theirs.
+                Button("用其他帳號登入") {
+                    signIn(choosingAccount: true)
+                }
+                .font(.footnote)
+                .disabled(auth.isBusy || indico.isBusy)
+
                 // Indico's application is registered as trusted, so it shows no
                 // consent screen of its own. Nothing else in the flow will tell
                 // the member their Indico account is being connected, so this
@@ -104,10 +115,10 @@ struct WelcomeView: View {
         }
     }
 
-    private func signIn() {
+    private func signIn(choosingAccount: Bool = false) {
         Task {
             do {
-                try await auth.login()
+                try await auth.login(choosingAccount: choosingAccount)
             } catch {
                 // Dismissing the sign-in sheet is a choice, not a failure.
                 guard !AuthManager.isUserCancellation(error) else { return }
