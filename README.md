@@ -313,6 +313,21 @@ authentik, not Indico, so neither depends on it yet. See
 [its README](tools/oauth-bridge/README.md) for deployment and the caching
 caveats, which matter — the response carries a one-time authorization code.
 
+## Apple Wallet ticket
+
+A member's ticket can go into Apple Wallet, and Indico is what signs it: the
+`.pkpass` comes from `/event/<id>/registrations/<form>/ticket/apple-wallet`,
+which is core Indico rather than a plugin. The app only fetches it and hands it
+to `PKAddPassesViewController` — it neither builds nor could build one, since
+signing needs a Pass Type ID private key and a key shipped in a binary is a key
+given away. `TicketStore.loadWalletPass` probes for it and logs the verdict;
+`WalletPass.add(from:)` presents Wallet's own add sheet.
+
+Nothing about the pass's *design* lives here. Indico hardcodes it, and
+[IndicoSTSA](https://github.com/stsa-tw/IndicoSTSA) replaces it — see section 6
+of that repo's README, and `indico_stsa/EventTicket.pkpasstemplate/`, which is
+the Pass Designer bundle the design is edited in.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
