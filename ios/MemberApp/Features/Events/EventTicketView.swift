@@ -55,6 +55,13 @@ struct EventTicketView: View {
             raiseBrightness()
             await document.load(from: ticket, using: indico)
         }
+        // Asked here as well as on the event screen behind it, because this is
+        // the screen the button is on. There the probe goes last, behind a PDF
+        // render and a pass signing, and someone who taps straight through
+        // arrives before it has answered — or on a visit where it was skipped
+        // or cancelled. `loadWalletPass` is cheap to call twice: it returns at
+        // once wherever the answer is already in.
+        .task { await tickets.loadWalletPass(eventID: event.id, using: indico) }
         .onDisappear(perform: restoreBrightness)
     }
 

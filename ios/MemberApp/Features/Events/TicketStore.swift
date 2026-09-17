@@ -90,7 +90,30 @@ final class TicketStore {
     var subject: String? {
         didSet {
             guard subject != oldValue else { return }
+
+            // `nil` → someone is the profile *arriving*, not a different person.
+            // `AuthManager` restores a session before the claims that name it,
+            // and after a reinstall it has to go and fetch them — so a ticket
+            // can be resolved, and a pass found, before there is a key to file
+            // either under. That was learned about this member, so it is kept,
+            // and now written down.
+            //
+            // Getting this wrong is not theoretical: clearing unconditionally
+            // is what emptied the map out from under a resolved pass and took
+            // the button off the ticket screen.
+            guard oldValue != nil else {
+                remembered = Self.readRemembered(subject: subject)
+                    .merging(remembered) { _, learned in learned }
+                persistRemembered()
+                return
+            }
+
+            // One member replacing another. Nothing of theirs survives — and
+            // `walletURLs` is not persisted, so it has no per-`sub` key of its
+            // own to keep it apart.
             remembered = Self.readRemembered(subject: subject)
+            walletURLs.removeAll()
+            cancelWalletProbes()
         }
     }
 
@@ -98,11 +121,41 @@ final class TicketStore {
 
     /// Where this event's ticket lives as an Apple Wallet pass, once asked.
     ///
-    /// `nil` for an event that was asked and could not produce one — currently
-    /// every event on this instance, which is why the PDF is still the primary
-    /// route. Cached either way so a screen that redraws does not re-ask a
-    /// server that answers 500.
+    /// Three states rather than two, and the difference is the whole point of
+    /// the map: **no entry** means *not asked yet*, `.some(nil)` means Indico
+    /// was asked and said no. A no is cached so a screen that redraws does not
+    /// re-ask a server that answered 500; *not asked* is what a probe that
+    /// never reached an answer must leave behind, so the next visit tries again.
+    ///
+    /// Note `walletURLs[id] = nil` **removes** the entry, which is the one the
+    /// probe wants on failure; recording a no takes `URL?.none` explicitly.
     private var walletURLs: [String: URL?] = [:]
+
+    /// The answer already on its way, per event.
+    ///
+    /// The event screen and the ticket screen both ask, on purpose — but an
+    /// answer only reaches the map when it arrives, so in the slow case the two
+    /// overlap, and the slow case is exactly the one where they do. Without this
+    /// a member who taps straight through asks Indico to sign the same pass
+    /// twice.
+    ///
+    /// It holds the **task**, not a mark, because the second asker has to *wait
+    /// on* that answer rather than walk away from it. A mark made the second call
+    /// return at once — and the first call was a child of the event screen's
+    /// `.task`, which a push cancels. So tapping 查看我的票券 while Indico was
+    /// still signing killed the only probe running, moments after the ticket
+    /// screen had declined to start its own: no answer recorded, nothing in
+    /// flight, and no third asker, so the button was simply missing for as long
+    /// as that screen stayed up. Whether it happened came down to whether the
+    /// pass arrived before the tap, which is why it came and went.
+    ///
+    /// Unstructured on purpose: a `Task` does not inherit its caller's
+    /// cancellation, so the probe now outlives the screen that started it and
+    /// lands for whoever is still looking. Cancelled only where the answer would
+    /// be unwanted — a forget, a logout, a different member.
+    ///
+    /// Not observed: nothing is drawn from it.
+    @ObservationIgnored private var walletProbes: [String: Task<Void, Never>] = [:]
 
     func walletURL(for eventID: String) -> URL? {
         walletURLs[eventID] ?? nil
@@ -233,7 +286,16 @@ final class TicketStore {
         states.removeAll()
         formIDs.removeAll()
         remembered.removeAll()
+        walletURLs.removeAll()
+        cancelWalletProbes()
         if let subject { UserDefaults.standard.removeObject(forKey: Self.rememberedKey(subject)) }
+    }
+
+    /// Drops the answers still on their way, so none of them lands on a map that
+    /// has just stopped being this member's.
+    private func cancelWalletProbes() {
+        for probe in walletProbes.values { probe.cancel() }
+        walletProbes.removeAll()
     }
 
     // MARK: - What is already known
@@ -243,10 +305,23 @@ final class TicketStore {
         var formID: Int?
     }
 
+    /// Kept in memory whether or not there is a `subject` to file it under;
+    /// only *writing it down* needs one.
+    ///
+    /// This used to return early without a subject, which lost the form the
+    /// ticket came from — and `loadWalletPass`, which needs it, was left
+    /// guessing at the first form of an event that may hold two. A reinstall
+    /// opens that window on its own: the keychain survives app deletion and
+    /// UserDefaults does not, so the session comes back before the profile that
+    /// names it does.
     private func remember(eventID: String, hasTicket: Bool, formID: Int?) {
-        guard let subject else { return }
         remembered[eventID] = Remembered(hasTicket: hasTicket, formID: formID)
-        guard let data = try? JSONEncoder().encode(remembered) else { return }
+        persistRemembered()
+    }
+
+    /// Writes the lot down, if there is yet a member to write it down against.
+    private func persistRemembered() {
+        guard let subject, let data = try? JSONEncoder().encode(remembered) else { return }
         UserDefaults.standard.set(data, forKey: Self.rememberedKey(subject))
     }
 
@@ -288,10 +363,37 @@ final class TicketStore {
     /// attended is a record worth keeping rather than something to withhold.
     func loadWalletPass(eventID: String, using indico: IndicoAuthManager) async {
         guard indico.isLinked, walletURLs[eventID] == nil else { return }
-        // Only a ticket that exists can become a pass.
-        guard case .available = state(for: eventID) else { return }
-        guard let formID = remembered[eventID]?.formID ?? formIDs[eventID]?.first else { return }
+        // Only a ticket that exists can become a pass — and only the form that
+        // served it can: an event with a 報名表 and a 遊覽車報名表 holds two, and
+        // the other one has no registration of this member's to issue against.
+        // `remembered` is written wherever `.available` is set, so it is the
+        // form that answered rather than the first one on the list.
+        guard case .available = state(for: eventID),
+              let formID = remembered[eventID]?.formID
+        else { return }
 
+        // Joined, not skipped — see `walletProbes`.
+        if let inFlight = walletProbes[eventID] {
+            await inFlight.value
+            return
+        }
+
+        let probe = Task { [self] in
+            await askIndicoForPass(eventID: eventID, formID: formID, using: indico)
+        }
+        walletProbes[eventID] = probe
+        await probe.value
+
+        // Cleared only if it is still ours: a `forgetWalletPass` mid-request
+        // drops this entry and the next asker files a fresh probe, which this
+        // line would otherwise take down on its way out.
+        if walletProbes[eventID] == probe { walletProbes[eventID] = nil }
+    }
+
+    /// The request itself, awaited only through `walletProbes`.
+    private func askIndicoForPass(eventID: String,
+                                  formID: Int,
+                                  using indico: IndicoAuthManager) async {
         let url = Self.walletURL(eventID: eventID, formID: formID)
         do {
             // A plain GET, like the PDF probe beside it. HEAD looks like the
@@ -299,19 +401,66 @@ final class TicketStore {
             // are written for the methods the route declares, and the saving —
             // a pass is a few kilobytes — was never worth the divergence.
             let request = try indico.authorizedRequest(for: url)
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
             let http = response as? HTTPURLResponse
-            let isPass = http?.statusCode == 200
-                && http?.mimeType == "application/vnd.apple.pkpass"
+            let status = http?.statusCode ?? 0
+
+            // A 5xx is Indico falling over, not Indico answering about this
+            // ticket, so it is not an answer to keep. This endpoint has the
+            // history for it — it served nothing but `RecursionError` 500s when
+            // this store was written — and filing one as "no pass" retired the
+            // button for the rest of the launch over a blip.
+            guard !(500...599).contains(status) else {
+                Self.logWalletProbe(eventID: eventID,
+                                    status: status,
+                                    contentType: http?.mimeType,
+                                    verdict: "server error, not recorded")
+                return
+            }
+
+            // Asked of the bytes, not of the `Content-Type`. `PKPass` is the
+            // authority on whether Wallet will take them, and it is the same
+            // parse `WalletPass.add` runs — so the button appears exactly where
+            // the pass would actually add.
+            let isPass = status == 200 && WalletPass.isPass(data)
             walletURLs[eventID] = isPass ? url : URL?.none
             Self.logWalletProbe(eventID: eventID,
-                                status: http?.statusCode,
+                                status: status,
                                 contentType: http?.mimeType,
-                                error: nil)
+                                verdict: isPass ? "pass offered" : "no pass")
         } catch {
-            walletURLs[eventID] = URL?.none
-            Self.logWalletProbe(eventID: eventID, status: nil, contentType: nil, error: error)
+            // Nothing recorded, deliberately: a request that never reached an
+            // answer is not an answer. This ran `walletURLs[eventID] = URL?.none`
+            // once, and since the probe only runs where nothing is recorded, a
+            // single failure hid the button until the next launch.
+            //
+            // Cancellation lands here too, but now only from a caller that meant
+            // it — logging out, switching member, forgetting a no — and none of
+            // those wants an answer about the session that has just ended. A
+            // screen going away no longer reaches this: `walletProbes` owns the
+            // task, not the screen.
+            Self.logWalletProbe(eventID: eventID,
+                                status: nil,
+                                contentType: nil,
+                                verdict: "request failed, not recorded — \(error)")
         }
+    }
+
+    /// Forgets a no, so it can be asked again.
+    ///
+    /// For the one thing a member can actually do about one: an expired Indico
+    /// session answers this probe with a login page — HTTP 200, `text/html`,
+    /// correctly filed as "no pass" — and re-linking is what fixes it. Without
+    /// this, the probe after `link()` would find an answer already on file and
+    /// skip, leaving the button gone on the one path that repaired its cause.
+    ///
+    /// Drops any request still in flight as well, because it is an answer about
+    /// the session being replaced: joining it would hand the caller the very
+    /// login page it is trying to get past. `walletProbes` holds the task, which
+    /// is the token an earlier note here wished for.
+    func forgetWalletPass(eventID: String) {
+        walletURLs.removeValue(forKey: eventID)
+        walletProbes.removeValue(forKey: eventID)?.cancel()
     }
 
     private func registrationForms(eventID: String, using indico: IndicoAuthManager) async throws -> [Int] {
@@ -371,18 +520,18 @@ final class TicketStore {
     /// Without this a 500, a 404 and "this device cannot hold passes" all look
     /// the same from the outside — the button is simply absent — which is not
     /// enough to tell whether the app or the server is at fault.
+    ///
+    /// The verdict is handed in rather than worked out again here.
+    ///
+    /// It used to be re-derived from the content type, which is how a log meant
+    /// to explain the map came to disagree with it. The content type is still
+    /// printed — it is worth seeing when an instance answers oddly — but it no
+    /// longer decides anything.
     private static func logWalletProbe(eventID: String,
                                        status: Int?,
                                        contentType: String?,
-                                       error: (any Error)?) {
+                                       verdict: String) {
         #if DEBUG
-        if let error {
-            print("[Indico] wallet pass for event \(eventID): request failed — \(error)")
-            return
-        }
-        let verdict = status == 200 && contentType == "application/vnd.apple.pkpass"
-            ? "pass offered"
-            : "no pass"
         print("[Indico] wallet pass for event \(eventID): HTTP \(status.map(String.init) ?? "?")"
             + " \(contentType ?? "no content type") — \(verdict)")
         #endif
