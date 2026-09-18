@@ -15,6 +15,7 @@ struct MemberAppApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .launchScreen()
                 .environment(session)
                 .environment(auth)
                 .environment(indico)
