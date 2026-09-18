@@ -76,9 +76,16 @@ struct CheckinDecoderTests {
         #expect(answers.first { $0.label == "加料" }?.value == "珍珠\n椰果")
     }
 
+    /// Against the localized word, not the Chinese literal.
+    ///
+    /// `display(inputType:data:choices:)` calls `String(localized:)`, so a member
+    /// reading the app in English gets "Yes" — which is the point of it. Pinning
+    /// "是" passed on a machine set to 繁中 and failed on CI, whose simulator
+    /// runs in English. The assertion still earns its keep: what it catches is a
+    /// bool arriving as "true" or "1".
     @Test func rendersABooleanAsAWord() throws {
         let answers = try decoded().answers
-        #expect(answers.first { $0.label == "素食" }?.value == "是")
+        #expect(answers.first { $0.label == "素食" }?.value == String(localized: "是"))
     }
 
     @Test func dropsAFieldWithNoAnswer() throws {
