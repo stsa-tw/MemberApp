@@ -40,7 +40,7 @@ class AppContainer(context: Context) {
     val indico = IndicoAuthManager(appContext)
     val codes = MembershipCodeStore(appContext, scope)
     val events = EventsStore(appContext)
-    val tickets = TicketStore(appContext)
+    val tickets = TicketStore(appContext, scope)
     val checkin = CheckinStore()
 }
 
