@@ -24,7 +24,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "raw_zh")
 # Seconds to let each screen settle. 活動 gets longer: it loads live from the
 # Indico public category export, and a capture that beats the response
 # photographs a spinner.
-SCREENS = [("home", 6), ("card", 7), ("events", 12), ("deals", 6), ("profile", 6)]
+SCREENS = [("home", 6), ("card", 7), ("events", 12), ("deals", 6), ("profile", 6), ("ticket", 7)]
 
 
 def simulator():

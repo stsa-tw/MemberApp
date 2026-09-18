@@ -16,8 +16,15 @@ struct EventFormView: View {
     /// screen; the form's own name when it was chosen from a list.
     let title: String
 
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(CheckinStore.self) private var checkin
+
+    /// Searching the list is the other half of the door. The scanner is faster
+    /// when there is a code to scan, and a name typed here is what a desk falls
+    /// back to when there is not — a flat phone, a ticket in an unreachable
+    /// inbox, or a 幹部 who just wants to know whether somebody has arrived.
+    @State private var query = ""
 
     var body: some View {
         ScrollView {
@@ -42,9 +49,18 @@ struct EventFormView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await checkin.loadRoster(eventID: event.id, using: indico) }
         // The number here is the one an organiser trusts, and this is not the
-        // only door: another 幹部 on another phone moves it too. Pulling asks
-        // Indico rather than redrawing what this phone happens to remember.
+        // only door: another 幹部 on another phone moves it too. So the screen
+        // asks Indico on its own every few seconds rather than redrawing what
+        // this phone happens to remember, and stops while the app is in the
+        // background, where nobody is reading it.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await checkin.autoRefresh(eventID: event.id, using: indico)
+        }
+        // Pulling is the same question asked immediately, for a 幹部 who does
+        // not want to wonder how old the number is.
         .refreshable { await checkin.refreshRoster(eventID: event.id, using: indico) }
+        .searchable(text: $query, prompt: Text("搜尋姓名、email 或標籤"))
     }
 
     // MARK: - The number
@@ -58,11 +74,13 @@ struct EventFormView: View {
     /// `active_registration_count` draws the line in the same place, so this
     /// number and the one on the management page mean the same thing.
     private var progress: some View {
-        let expected = checkin.expected(eventID: event.id, formID: form.id)
-        let arrived = expected.filter(\.registration.checkedIn).count
+        // Answered from the probe's snapshot until the roster lands, so the
+        // number is there on the first frame rather than counting up from 0 / 0.
+        let arrived = checkin.checkedInCount(eventID: event.id, formID: form.id)
+        let total = checkin.registeredCount(eventID: event.id, formID: form.id)
 
         return VStack(spacing: 6) {
-            Text("\(arrived) / \(expected.count)")
+            Text("\(arrived) / \(total)")
                 .font(.system(size: 44, weight: .semibold, design: .rounded))
                 .contentTransition(.numericText())
             Text("已報到")
@@ -79,7 +97,10 @@ struct EventFormView: View {
 
     @ViewBuilder
     private var roster: some View {
-        let entries = sorted(checkin.entries(for: event.id, formID: form.id))
+        let entries = checkin.entries(for: event.id, formID: form.id)
+        let shown = entries
+            .filter { $0.registration.matches(query) }
+            .sorted { CheckinRegistration.isOrderedBefore($0.registration, $1.registration) }
 
         if checkin.isLoadingRoster && entries.isEmpty {
             ProgressView().padding(.top, 24)
@@ -88,63 +109,32 @@ struct EventFormView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.top, 24)
+        } else if shown.isEmpty {
+            // A search that matches nobody is not an empty form, and saying so
+            // is the difference between "nobody registered" and "check the
+            // spelling".
+            ContentUnavailableView.search(text: query)
+                .padding(.top, 12)
         } else {
             VStack(spacing: 0) {
-                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, entry in
                     if index > 0 { RowSeparator() }
-                    row(entry)
+                    NavigationLink {
+                        RegistrationDetailView(
+                            event: event,
+                            form: form,
+                            registrationID: entry.id,
+                            opened: entry.registration
+                        )
+                    } label: {
+                        RegistrationRow(registration: entry.registration, showsChevron: true)
+                            .padding(.horizontal, Theme.Metrics.gutter)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(.rect(cornerRadius: Theme.Radius.card))
         }
-    }
-
-    /// Not checked in first, which is the list a door is working from — the
-    /// people still to come. Alphabetical inside each group so a name can be
-    /// found by eye, and anyone who withdrew at the very bottom: they are kept
-    /// visible, because "where did they go" is a question the roster should
-    /// answer, but they are nobody's next arrival.
-    private func sorted(_ entries: [CheckinStore.Entry]) -> [CheckinStore.Entry] {
-        entries.sorted { left, right in
-            let a = left.registration, b = right.registration
-            if a.isCancelled != b.isCancelled { return b.isCancelled }
-            if a.checkedIn != b.checkedIn { return b.checkedIn }
-            return a.fullName.localizedCompare(b.fullName) == .orderedAscending
-        }
-    }
-
-    private func row(_ entry: CheckinStore.Entry) -> some View {
-        let registration = entry.registration
-
-        return HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(registration.fullName)
-                    .font(.callout)
-                HStack(spacing: 6) {
-                    Text(registration.email)
-                        .lineLimit(1)
-                    if let state = registration.stateDescription {
-                        Text(state)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color(.tertiarySystemFill))
-                            .clipShape(.rect(cornerRadius: 4))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 8)
-
-            if registration.checkedIn {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("已報到")
-            }
-        }
-        .opacity(registration.isCancelled ? 0.45 : 1)
-        .padding(.horizontal, Theme.Metrics.gutter)
-        .padding(.vertical, 11)
     }
 }

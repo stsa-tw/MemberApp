@@ -1,6 +1,6 @@
 # App Store screenshots
 
-The four 繁體中文 screenshots in [`zh-Hant/`](zh-Hant/), sized 1284 × 2778 for
+The 繁體中文 screenshots in [`zh-Hant/`](zh-Hant/), sized 1284 × 2778 for
 App Store Connect's 6.5" slot. Upload them in filename order.
 
 | | Screen | Caption |
@@ -8,7 +8,8 @@ App Store Connect's 6.5" slot. Upload them in filename order.
 | 01 | 會員卡 | 電子會員卡，隨時出示 |
 | 02 | 首頁 | 重要的事，一開就看見 |
 | 03 | 活動 | 活動報名與電子票券 |
-| 04 | 優惠 | 合作商家專屬優惠 |
+| 04 | 票券 | 票券就在手機裡 |
+| 05 | 優惠 | 合作商家專屬優惠 |
 
 ## Regenerating
 
@@ -28,7 +29,10 @@ set whose native framebuffer is 1284 × 2778, so nothing is ever resampled. The
 ## Why the member is fictional
 
 `ScreenshotFixtures` (in `ios/MemberApp/App/`) stands up 王小明 / `demo@u.nus.edu`
-and a `stsa$`-prefixed code that is not valid server-side. It is `#if DEBUG` and
+and a `stsa$`-prefixed code that is not valid server-side. The 票券 capture is
+the same trade in the other direction and matters more: a ticket QR *is* the
+check-in credential, so the fixture carries a secret Indico has never issued and
+`TicketDocument` stops before the fetch rather than after it. It is `#if DEBUG` and
 inert unless `STSA_SCREENSHOT=1` is in the launch environment, so it cannot
 reach a release build.
 

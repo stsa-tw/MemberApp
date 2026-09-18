@@ -14,6 +14,19 @@ struct RootView: View {
     @Environment(MembershipCodeStore.self) private var codes
     @Environment(CheckinStore.self) private var checkin
 
+#if DEBUG
+    /// Raised for the App Store capture of 票券 and nothing else.
+    ///
+    /// Presented rather than pushed because the real screen is reached through
+    /// the events stack, which has no external path to drive. Full-screen rather
+    /// than a sheet so the capture matches what a member sees: a sheet leaves
+    /// the dimmed tab view showing above its rounded corners, and the ticket is
+    /// a pushed screen everywhere in the shipping app.
+    ///
+    /// Kept here rather than in `Session`: production navigation state should
+    /// not grow a case only a fixture uses.
+    @State private var isShowingScreenshotTicket = false
+#endif
 
     var body: some View {
         @Bindable var session = session
@@ -47,6 +60,22 @@ struct RootView: View {
         .sheet(isPresented: $session.isShowingMemberCard) {
             MemberCardView()
         }
+#if DEBUG
+        .fullScreenCover(isPresented: $isShowingScreenshotTicket) {
+            NavigationStack {
+                EventTicketView(event: ScreenshotFixtures.event,
+                                ticket: ScreenshotFixtures.ticketURL)
+            }
+        }
+        .task {
+            isShowingScreenshotTicket =
+                ScreenshotFixtures.isEnabled && ScreenshotFixtures.screen == .ticket
+            if isShowingScreenshotTicket {
+                tickets.seedWalletPass(eventID: ScreenshotFixtures.event.id,
+                                       url: ScreenshotFixtures.walletPassURL)
+            }
+        }
+#endif
         // An expired session drops the app back to Welcome; a card sheet left
         // standing over it would be a dead credential on top of a sign-in screen.
         .onChange(of: auth.isLoggedIn) { _, isLoggedIn in

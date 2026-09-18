@@ -20,11 +20,13 @@ enum WalletPass {
         case server(status: Int)
         case malformed
 
+        /// `String(localized:)` for the same reason as `MembershipCodeStore`'s:
+        /// a bare literal in an `errorDescription` never reaches the catalogue.
         var errorDescription: String? {
             switch self {
-            case .unavailable: "這台裝置無法加入 Apple Wallet。"
-            case .server(let status): "Indico 回應 HTTP \(status)。"
-            case .malformed: "票券格式無法讀取。"
+            case .unavailable: String(localized: "這台裝置無法加入 Apple Wallet。")
+            case .server(let status): String(localized: "Indico 回應 HTTP \(status)。")
+            case .malformed: String(localized: "票券格式無法讀取。")
             }
         }
     }

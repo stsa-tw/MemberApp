@@ -463,6 +463,17 @@ final class TicketStore {
         walletProbes.removeValue(forKey: eventID)?.cancel()
     }
 
+#if DEBUG
+    /// Puts a pass on the ticket screen for an App Store capture.
+    ///
+    /// The probe cannot supply one there — see `ScreenshotFixtures.walletPassURL`
+    /// — and this is the only door into the map, which is otherwise private for
+    /// the good reason that an answer should come from Indico.
+    func seedWalletPass(eventID: String, url: URL) {
+        walletURLs[eventID] = url
+    }
+#endif
+
     private func registrationForms(eventID: String, using indico: IndicoAuthManager) async throws -> [Int] {
         if let cached = formIDs[eventID] { return cached }
         guard let url = URL(string: "\(Self.host)/event/\(eventID)/api/registration-forms") else { return [] }

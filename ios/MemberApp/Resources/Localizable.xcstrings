@@ -2,23 +2,30 @@
   "sourceLanguage" : "zh-Hant",
   "strings" : {
     "（未知）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(unknown)"
+          }
+        }
+      }
     },
     "「%@」有 %lld 人報名。" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "「%1$@」有 %2$lld 人報名。"
+            "state" : "translated",
+            "value" : "%2$lld registered on “%1$@”."
           }
         }
       }
     },
     "%@ · %@" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ · %2$@"
           }
         }
@@ -26,9 +33,9 @@
     },
     "%@ · %@ %@" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ · %2$@ %3$@"
           }
         }
@@ -36,9 +43,9 @@
     },
     "%lld / %lld" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$lld / %2$lld"
           }
         }
@@ -46,10 +53,10 @@
     },
     "%lld / %lld 已報到" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld / %2$lld 已報到"
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld checked in"
           }
         }
       }
@@ -78,10 +85,10 @@
     },
     "%lld 張報名表 · 共 %lld 筆報名" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld 張報名表 · 共 %2$lld 筆報名"
+            "state" : "translated",
+            "value" : "%1$lld forms · %2$lld registrations"
           }
         }
       }
@@ -109,10 +116,24 @@
       }
     },
     "App 和活動網站登入的不是同一個人，所以不能報到。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app and the event site are signed in as different people, so nothing can be checked in."
+          }
+        }
+      }
     },
     "App 和活動網站登入的不是同一個人。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app and the event site are signed in as different people."
+          }
+        }
+      }
     },
     "Bloomberg 企業參訪" : {
       "extractionState" : "manual",
@@ -139,14 +160,45 @@
         }
       }
     },
+    "Indico 上的報到紀錄會被移除，這個人會回到未報到。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The check-in is removed from Indico and this person goes back to not checked in."
+          }
+        }
+      }
+    },
     "Indico 回應 HTTP %lld。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indico answered HTTP %lld."
+          }
+        }
+      }
     },
     "Indico 沒有這張票。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indico has no such ticket."
+          }
+        }
+      }
     },
     "Indico 沒有開放報到權限" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in is not enabled on Indico"
+          }
+        }
+      }
     },
     "Logo 以世學聯兩大主色為起點：象徵美麗海島的海洋藍台灣黑熊，承載著遊子對土地的連結；深紅的獅頭則代表新加坡，也象徵台灣留學生在海外奮鬥的精神。" : {
       "extractionState" : "manual",
@@ -214,7 +266,14 @@
 
     },
     "STSA App 和活動網站登入的不是同一個帳號，所以票券和報到都停住了。**沒有連結任何東西，也沒有讀取任何資料。**" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The STSA app and the event site are signed in as different accounts, so tickets and check-in have stopped. **Nothing has been linked and nothing has been read.**"
+          }
+        }
+      }
     },
     "STSA 官網" : {
       "extractionState" : "manual",
@@ -318,14 +377,45 @@
         }
       }
     },
+    "伺服器錯誤 %lld。%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server error %1$lld. %2$@"
+          }
+        }
+      }
+    },
     "你剛才已經自己登入過活動網站，所以不是「別人還登著」的問題。你手上那個活動網站帳號，**登記的信箱和 App 不同**。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have just signed in to the event site yourself, so this is not somebody else’s session left open. The event-site account you signed in with **has a different email address from the app**."
+          }
+        }
+      }
     },
     "你沒有這場活動的報到權限。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You do not have check-in permission for this event."
+          }
+        }
+      }
     },
     "你的活動網站帳號登記的是 %@，與這裡的 STSA 帳號不同。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your event-site account is registered as %@, which is not the STSA account signed in here."
+          }
+        }
+      }
     },
     "使用 %@ 解鎖" : {
       "extractionState" : "manual",
@@ -405,7 +495,14 @@
       }
     },
     "兩邊的名字一樣，所以這多半是**同一個人的兩個地址**：其中一邊登記的信箱是舊的。這個沒辦法靠重新登入解決，需要有人去改。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The names match, so this is most likely **one person with two addresses** — one side is registered with an old one. Signing in again will not fix it; somebody has to change it."
+          }
+        }
+      }
     },
     "公告" : {
       "extractionState" : "manual",
@@ -440,14 +537,25 @@
         }
       }
     },
-    "再次報到" : {
-
-    },
     "最可能是什麼" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What this usually is"
+          }
+        }
+      }
     },
     "最常見的原因是**這支手機的瀏覽器還留著別人的活動網站登入**。如果上面「活動網站」那個名字你不認得，按它下面的按鈕重新登入就會恢復。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The usual cause is **somebody else’s event-site session still open in this phone’s browser**. If the name shown under “Event site” is not one you recognise, sign in again with the button below it."
+          }
+        }
+      }
     },
     "出示 STSA 電子會員卡" : {
       "extractionState" : "manual",
@@ -527,7 +635,14 @@
       }
     },
     "前往授權" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorize"
+          }
+        }
+      }
     },
     "前往活動" : {
       "extractionState" : "manual",
@@ -573,6 +688,17 @@
         }
       }
     },
+    "加入行事曆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to calendar"
+          }
+        }
+      }
+    },
     "午安" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -596,10 +722,44 @@
       }
     },
     "取消" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "取消報到" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo check-in"
+          }
+        }
+      }
+    },
+    "取消這筆報到？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo this check-in?"
+          }
+        }
+      }
     },
     "只會重新登入活動網站，不影響 App。如果你在活動網站上還沒有帳號，它會先請你填姓名建立個人資料；完成後若沒有自動回到 App，關掉視窗再按一次就好。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This signs in to the event site only — the app is untouched. If you do not have an event-site account yet, it will ask for your name first. If it does not return to the app afterwards, close the window and tap again."
+          }
+        }
+      }
     },
     "各校分會與新生訊息，一次收齊" : {
       "extractionState" : "manual",
@@ -657,10 +817,24 @@
       }
     },
     "否" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        }
+      }
     },
     "回上一頁選那張報名表，才能記在正確的名單上。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back and open that form so the check-in lands on the right list."
+          }
+        }
+      }
     },
     "因此我們成立新加坡台灣學生總會，主要目的是串聯在新加坡的異鄉遊子對家鄉的情感，舉辦各類活動增進台灣學生間的交流、凝聚台灣精神，同時在當地推廣台灣的美食與文化，並歡迎來自世界各地的學生。" : {
       "extractionState" : "manual",
@@ -706,6 +880,17 @@
         }
       }
     },
+    "在地圖開啟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Maps"
+          }
+        }
+      }
+    },
     "地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -729,7 +914,14 @@
       }
     },
     "報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check in"
+          }
+        }
+      }
     },
     "報到 QR code" : {
       "extractionState" : "manual",
@@ -742,8 +934,25 @@
         }
       }
     },
+    "報到狀態" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in"
+          }
+        }
+      }
+    },
     "報到與報名名單" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in and registrant list"
+          }
+        }
+      }
     },
     "報名在 Indico 上完成，使用同一個 STSA 帳號。" : {
       "extractionState" : "manual",
@@ -756,18 +965,45 @@
         }
       }
     },
+    "報名狀態" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registration"
+          }
+        }
+      }
+    },
     "報名的是%@，不是「%@」" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "報名的是%1$@，不是「%2$@」"
+            "state" : "translated",
+            "value" : "Registered on %1$@, not “%2$@”"
           }
         }
       }
     },
     "報名表" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registration form"
+          }
+        }
+      }
+    },
+    "報名資料" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registration details"
+          }
+        }
+      }
     },
     "外觀" : {
       "extractionState" : "manual",
@@ -803,7 +1039,14 @@
       }
     },
     "如果兩個都是你，把下面這段話傳給幹部，請他們把活動網站上的信箱改成和 App 一致：" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If both are you, send the message below to an organiser and ask them to change the email on the event site to match the app:"
+          }
+        }
+      }
     },
     "姓名" : {
       "extractionState" : "manual",
@@ -894,7 +1137,24 @@
       }
     },
     "對準會員卡或 Indico 票券上的 QR code" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point at the QR code on a member card or Indico ticket"
+          }
+        }
+      }
+    },
+    "尚未報到" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not checked in"
+          }
+        }
+      }
     },
     "已取得" : {
       "extractionState" : "manual",
@@ -908,7 +1168,14 @@
       }
     },
     "已報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked in"
+          }
+        }
+      }
     },
     "已報名" : {
       "extractionState" : "manual",
@@ -922,7 +1189,24 @@
       }
     },
     "已完成報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in recorded"
+          }
+        }
+      }
+    },
+    "已於 %@ 報到" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked in at %@"
+          }
+        }
+      }
     },
     "已結束" : {
       "extractionState" : "manual",
@@ -936,13 +1220,34 @@
       }
     },
     "已經報到過" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already checked in"
+          }
+        }
+      }
     },
     "已複製" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        }
+      }
     },
     "已退出" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Withdrawn"
+          }
+        }
+      }
     },
     "已過期" : {
       "extractionState" : "manual",
@@ -989,7 +1294,24 @@
       }
     },
     "帳號對不上" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accounts do not match"
+          }
+        }
+      }
+    },
+    "帳號缺少必要的授權範圍。(403 %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account is missing a required scope. (403 %@)"
+          }
+        }
+      }
     },
     "幫助準留學生適應新加坡的生活環境與文化差異。" : {
       "extractionState" : "manual",
@@ -1014,10 +1336,24 @@
       }
     },
     "幹部功能" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organiser tools"
+          }
+        }
+      }
     },
     "待審核" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending"
+          }
+        }
+      }
     },
     "成立宗旨" : {
       "extractionState" : "manual",
@@ -1043,10 +1379,10 @@
     },
     "我的 STSA App 帳號是 %@，活動網站上的帳號是 %@，兩個對不上，票券和報到無法使用。請幫我把活動網站上的信箱改成 %@。" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "我的 STSA App 帳號是 %1$@，活動網站上的帳號是 %2$@，兩個對不上，票券和報到無法使用。請幫我把活動網站上的信箱改成 %3$@。"
+            "state" : "translated",
+            "value" : "My STSA app account is %1$@ and my event-site account is %2$@. They do not match, so tickets and check-in do not work. Please change the email on the event site to %3$@."
           }
         }
       }
@@ -1063,7 +1399,14 @@
       }
     },
     "找不到 QR code？改用姓名報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No QR code? Check in by name"
+          }
+        }
+      }
     },
     "折扣碼" : {
       "extractionState" : "manual",
@@ -1120,11 +1463,25 @@
         }
       }
     },
-    "搜尋姓名或 email" : {
-
+    "搜尋姓名、email 或標籤" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search name, email or tag"
+          }
+        }
+      }
     },
     "收合" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show less"
+          }
+        }
+      }
     },
     "放眼東南亞" : {
       "extractionState" : "manual",
@@ -1204,10 +1561,24 @@
       }
     },
     "是" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        }
+      }
     },
     "是會員，但沒有報名「%@」" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A member, but not registered on “%@”"
+          }
+        }
+      }
     },
     "時間" : {
       "extractionState" : "manual",
@@ -1276,7 +1647,14 @@
       }
     },
     "會登出這支手機，下次登入時會問你是誰。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signs this phone out. The next sign-in will ask who you are."
+          }
+        }
+      }
     },
     "會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。" : {
       "extractionState" : "manual",
@@ -1285,6 +1663,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Links your Indico account, used only to read your own registrations and tickets."
+          }
+        }
+      }
+    },
+    "會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。第一次連結時，活動網站會請你填姓名建立個人資料。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links your Indico account, and reads only your own registrations and tickets. The first time, the event site will ask for your name to create a profile."
           }
         }
       }
@@ -1312,16 +1700,44 @@
       }
     },
     "未付款" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpaid"
+          }
+        }
+      }
     },
     "未知" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        }
+      }
     },
     "未通過" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejected"
+          }
+        }
+      }
     },
     "查看你的票券" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View your ticket"
+          }
+        }
+      }
     },
     "查看我的票券" : {
       "extractionState" : "manual",
@@ -1368,7 +1784,14 @@
       }
     },
     "正在讀取報名名單…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the registrant list…"
+          }
+        }
+      }
     },
     "此折扣碼已於 %@ 到期。" : {
       "extractionState" : "manual",
@@ -1382,10 +1805,24 @@
       }
     },
     "沒有你報名過的活動。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing you registered for."
+          }
+        }
+      }
     },
     "沒有地址" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No address"
+          }
+        }
+      }
     },
     "活動" : {
       "extractionState" : "manual",
@@ -1432,7 +1869,14 @@
       }
     },
     "活動網站目前登入的是 %@，與這裡的 STSA 帳號不同。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The event site is signed in as %@, which is not the STSA account here."
+          }
+        }
+      }
     },
     "活動網站目前登入的是 %@，與這裡的 STSA 帳號不同。請在瀏覽器登出活動網站後再試一次。" : {
       "extractionState" : "manual",
@@ -1457,7 +1901,14 @@
       }
     },
     "活動頁" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event page"
+          }
+        }
+      }
     },
     "深色" : {
       "extractionState" : "manual",
@@ -1503,6 +1954,17 @@
         }
       }
     },
+    "無法加入行事曆" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can’t add to calendar"
+          }
+        }
+      }
+    },
     "無法取得票券，稍後再試。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1515,13 +1977,34 @@
       }
     },
     "無法報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not check in"
+          }
+        }
+      }
     },
     "無法組出報到網址。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not build the check-in address."
+          }
+        }
+      }
     },
     "無法讀取這張票。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ticket could not be read."
+          }
+        }
+      }
     },
     "無法驗證會員碼" : {
       "extractionState" : "manual",
@@ -1544,9 +2027,6 @@
           }
         }
       }
-    },
-    "用其他帳號登入" : {
-
     },
     "登入" : {
       "extractionState" : "manual",
@@ -1577,6 +2057,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your session has expired — please sign in again."
+          }
+        }
+      }
+    },
+    "登入已失效，請重新登入。(401 %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session has expired — please sign in again. (401 %@)"
           }
         }
       }
@@ -1637,13 +2127,34 @@
       }
     },
     "看看是怎麼回事" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See what happened"
+          }
+        }
+      }
     },
     "看起來都是你" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both look like you"
+          }
+        }
+      }
     },
     "確認報到" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm check-in"
+          }
+        }
+      }
     },
     "票券" : {
       "extractionState" : "manual",
@@ -1767,7 +2278,14 @@
       }
     },
     "複製這段話" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy this message"
+          }
+        }
+      }
     },
     "設定" : {
       "extractionState" : "manual",
@@ -1791,11 +2309,36 @@
         }
       }
     },
+    "請在「設定」中允許 STSA 加入行事曆活動。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow STSA to add calendar events in Settings."
+          }
+        }
+      }
+    },
     "請對方重新開啟會員卡再掃一次。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask them to reopen their member card and scan again."
+          }
+        }
+      }
     },
     "請管理員在 Indico 的應用程式設定中勾選「Event registrants」允許範圍，再授權一次。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask an administrator to tick the “Event registrants” scope in Indico’s application settings, then authorize again."
+          }
+        }
+      }
     },
     "講座" : {
       "extractionState" : "manual",
@@ -1874,38 +2417,145 @@
         }
       }
     },
+    "返回" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
     "這不是我，重新登入 App" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not me — sign in to the app again"
+          }
+        }
+      }
     },
     "這不是我，重新登入活動網站" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not me — sign in to the event site again"
+          }
+        }
+      }
     },
     "這個 Indico 授權只能讀取。授權一次之後就能記錄報到。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Indico authorization is read-only. Grant once and check-ins can be recorded."
+          }
+        }
+      }
+    },
+    "這台裝置無法加入 Apple Wallet。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device cannot add passes to Apple Wallet."
+          }
+        }
+      }
     },
     "這張報名表還沒有人報名。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody has registered on this form yet."
+          }
+        }
+      }
     },
     "這張票屬於其他活動。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ticket belongs to a different event."
+          }
+        }
+      }
     },
     "這張票是 %@ 發出的。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ticket was issued by %@."
+          }
+        }
+      }
     },
     "這支手機上有兩個不同的人" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two different people on this phone"
+          }
+        }
+      }
     },
     "這是隨行人員的票，請用 Indico 官方 App 報到。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is an accompanying person’s ticket — use the official Indico app."
+          }
+        }
+      }
     },
     "這筆報名在「%@」，報到會記在那張表上。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This registration is on “%@”, so the check-in is recorded there."
+          }
+        }
+      }
+    },
+    "這筆報名已取消或未通過，不能報到。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This registration was withdrawn or rejected, so it cannot be checked in."
+          }
+        }
+      }
     },
     "這筆報名已取消或未通過。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This registration was withdrawn or rejected."
+          }
+        }
+      }
     },
     "連結活動網站帳號，就能在這裡看到自己的報名與票券。第一次連結時，活動網站會請你建立個人資料。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link your event-site account to see your own registrations and tickets here. The first time, the event site will ask you to create a profile."
+          }
+        }
+      }
     },
     "連線狀態（DEBUG）" : {
       "extractionState" : "manual",
@@ -2007,7 +2657,14 @@
       }
     },
     "需要報到權限" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in permission needed"
+          }
+        }
+      }
     },
     "需要相機權限才能掃描" : {
       "extractionState" : "manual",
@@ -2054,7 +2711,14 @@
       }
     },
     "顯示更多" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
+          }
+        }
+      }
     },
     "首頁" : {
       "extractionState" : "manual",

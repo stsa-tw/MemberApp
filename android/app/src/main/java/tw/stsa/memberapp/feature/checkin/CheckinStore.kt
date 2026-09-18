@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import tw.stsa.memberapp.auth.IndicoAuthManager
 import tw.stsa.memberapp.model.CheckinRegForm
 import tw.stsa.memberapp.model.CheckinRegistration
@@ -46,7 +48,23 @@ class CheckinStore {
     private val forms = mutableStateMapOf<String, List<CheckinRegForm>>()
     private val rosters = mutableStateMapOf<String, List<CheckinRegistration>>()
 
+    /**
+     * How many check-ins this app has written for an event, used only to tell a
+     * refetch that started earlier that it is now out of date.
+     */
+    private val writes = mutableMapOf<String, Int>()
+
+    /**
+     * The events with a roster fetch already in flight, so a poll coming round
+     * again does not start a second one behind it.
+     */
+    private val inFlight = mutableSetOf<String>()
+
     var isLoadingRoster by mutableStateOf(false)
+        private set
+
+    /** True while a check-in written from the roster is in flight. */
+    var isSubmitting by mutableStateOf(false)
         private set
 
     fun access(eventId: String): Access = access[eventId] ?: Access.UNKNOWN
@@ -130,17 +148,95 @@ class CheckinStore {
     /** The list itself, which only the organiser screen needs. */
     suspend fun loadRoster(eventId: String, indico: IndicoAuthManager) {
         if (rosters.containsKey(eventId)) return
+        fetchRoster(eventId, indico)
+    }
+
+    /**
+     * Asks Indico again, for the door that is not the only one.
+     *
+     * The count on this phone moved when *this* phone recorded a check-in, and
+     * that was all it knew: a second 幹部 on a second phone, or anyone using
+     * Indico's own app, moved a number this one never saw. The list was fetched
+     * once per launch and believed for the rest of the event.
+     */
+    suspend fun refreshRoster(eventId: String, indico: IndicoAuthManager) {
+        fetchRoster(eventId, indico)
+    }
+
+    /**
+     * Keeps one event's roster current for as long as the calling coroutine
+     * lives.
+     *
+     * A loop the caller owns rather than a timer the store owns: a screen going
+     * away, or the app leaving the foreground, cancels the coroutine and the
+     * polling stops with it. Nothing re-asks Indico about a door nobody is
+     * standing at.
+     *
+     * Asks before it waits, because the caller restarts this every time the app
+     * returns to the foreground — and a phone that has been in a pocket for ten
+     * minutes is holding the worst list in the building. Waiting first would
+     * show it for five more seconds to somebody already reading it. The extra
+     * request this costs on the way in is usually not made at all: every screen
+     * here also fetches on appear, and [inFlight] folds the two together.
+     */
+    suspend fun autoRefresh(eventId: String, indico: IndicoAuthManager) {
+        while (true) {
+            fetchRoster(eventId, indico)
+            delay(REFRESH_INTERVAL_MS)
+        }
+    }
+
+    private suspend fun fetchRoster(eventId: String, indico: IndicoAuthManager) {
         val numericId = eventId.toIntOrNull() ?: return
         val known = forms(eventId).ifEmpty { return }
 
-        isLoadingRoster = true
+        // One fetch per event at a time. Polling on a venue's wifi will sooner
+        // or later come round before the last request landed, and stacking them
+        // buys nothing: they all ask the same question, and the slowest would
+        // answer it last.
+        if (!inFlight.add(eventId)) return
+
+        // The flag behind a first-load spinner, and nothing else: once there is
+        // a list on screen, a refresh must not take it away and put a spinner
+        // there — least of all one arriving every five seconds.
+        val isFirstLoad = !rosters.containsKey(eventId)
+        if (isFirstLoad) isLoadingRoster = true
+
+        // Read before the requests go out and compared after they come back: a
+        // check-in recorded while this was in flight is newer than anything the
+        // response can contain, and letting a stale list land on top of it would
+        // take the person back off the screen they were just admitted on.
+        val generation = writes[eventId] ?: 0
+
         try {
             val client = IndicoCheckinClient(indico)
-            rosters[eventId] = known.flatMap { form ->
-                runCatching { client.registrations(numericId, form.id) }.getOrDefault(emptyList())
+            var isComplete = true
+            val entries = known.flatMap { form ->
+                try {
+                    client.registrations(numericId, form.id)
+                } catch (cancelled: CancellationException) {
+                    // Routine now that this is polled: a screen going away or
+                    // the app backgrounding cancels mid-request. Swallowed as an
+                    // ordinary failure it would read as a venue with no wifi,
+                    // and on a first load store the empty list that produced.
+                    throw cancelled
+                } catch (error: Exception) {
+                    isComplete = false
+                    emptyList()
+                }
             }
+
+            if ((writes[eventId] ?: 0) != generation) return
+
+            // A refresh that could not read every form must not shorten a list
+            // the door is working from — the venue's wifi dropping should cost
+            // the count its freshness, not its rows.
+            if (!isComplete && !isFirstLoad) return
+
+            rosters[eventId] = entries
         } finally {
-            isLoadingRoster = false
+            inFlight.remove(eventId)
+            if (isFirstLoad) isLoadingRoster = false
         }
     }
 
@@ -152,8 +248,40 @@ class CheckinStore {
      */
     fun update(registration: CheckinRegistration) {
         val eventId = registration.eventId.toString()
+        writes[eventId] = (writes[eventId] ?: 0) + 1
         val current = rosters[eventId] ?: return
         rosters[eventId] = current.map { if (it.id == registration.id) registration else it }
+    }
+
+    /**
+     * Records attendance, or takes it back, from the roster rather than a door.
+     *
+     * [CheckinSession] does this for a scan; this is the same write for the list
+     * on 幹部功能, where a name is tapped instead. Deliberately the same flag and
+     * the same endpoint — a check-in made from the list is not a second kind of
+     * check-in, and Indico cannot tell them apart.
+     *
+     * A withdrawn registration can be *un*-checked-in but not checked in: the
+     * one thing this is for is correcting somebody who should never have been
+     * marked as arrived.
+     */
+    suspend fun setCheckedIn(
+        registration: CheckinRegistration,
+        checkedIn: Boolean,
+        indico: IndicoAuthManager,
+    ): CheckinRegistration {
+        if (!indico.canRecordCheckin) throw CheckinError.NeedsAuthorization
+        if (checkedIn && !registration.isAdmissible) {
+            throw CheckinError.NotAdmissible(registration.fullName)
+        }
+        isSubmitting = true
+        try {
+            val updated = IndicoCheckinClient(indico).checkIn(registration, checkedIn)
+            update(updated)
+            return updated
+        } finally {
+            isSubmitting = false
+        }
     }
 
     /**
@@ -165,5 +293,22 @@ class CheckinStore {
         access.clear()
         forms.clear()
         rosters.clear()
+        writes.clear()
+        inFlight.clear()
+    }
+
+    companion object {
+        /**
+         * How often a roster on screen re-asks Indico.
+         *
+         * Five seconds because of what the staleness actually costs: a 幹部 waves
+         * somebody through believing they are the first to admit them, and no
+         * screen anywhere will later disagree. It is one request per
+         * registration form — two for 烤場集合 — and only while a 幹部 is looking
+         * at the list or standing at the door, so the traffic is a handful of
+         * phones for the hours an event is being run, not every member in the
+         * app. iOS's `CheckinStore.refreshInterval` is the same number.
+         */
+        const val REFRESH_INTERVAL_MS = 5_000L
     }
 }

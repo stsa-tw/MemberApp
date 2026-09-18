@@ -69,6 +69,9 @@ struct MemberAppApp: App {
         case .jobs: session.selectedTab = .jobs
         case .profile: session.selectedTab = .profile
         case .card: session.isShowingMemberCard = true
+        // The ticket is a pushed screen, not a tab, so `RootView` raises it —
+        // this only picks the tab it is raised over.
+        case .ticket: session.selectedTab = .events
         }
     }
 #endif

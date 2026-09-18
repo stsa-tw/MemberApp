@@ -3,6 +3,8 @@ package tw.stsa.memberapp.feature.checkin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import tw.stsa.memberapp.auth.IndicoAuthManager
 import tw.stsa.memberapp.model.CheckinRegForm
 import tw.stsa.memberapp.model.CheckinRegistration
@@ -53,6 +55,12 @@ class CheckinSession(
         private set
 
     /**
+     * How many check-ins this session has written, used only to tell a refresh
+     * that started earlier that it is now out of date.
+     */
+    private var writes = 0
+
+    /**
      * How many are expected at this door, and how many have come through.
      *
      * Withdrawn and rejected registrations are in neither. They stay on Indico's
@@ -95,6 +103,59 @@ class CheckinSession(
         regform = form
         registrations = client.registrations(eventId, form.id)
         phase = Phase.Ready
+    }
+
+    /**
+     * Re-asks Indico for this door's list, without disturbing the screen.
+     *
+     * Deliberately not [load]: that announces [Phase.Loading], which would pull
+     * the camera down and put a spinner in its place — every five seconds, while
+     * a 幹部 is trying to point it at a QR code. This changes nothing but the
+     * list and the count drawn from it.
+     *
+     * A door that loses its network keeps the list it has. The list is what a
+     * member card is matched against, so the wifi going out should cost the
+     * count its freshness, not the desk its ability to admit anybody.
+     */
+    suspend fun refresh() {
+        if (phase != Phase.Ready) return
+        val form = regform ?: return
+
+        // Read before the request goes out and compared after it comes back: a
+        // check-in recorded while this was in flight is newer than anything the
+        // response can contain, and letting a stale list land on top of it would
+        // take the person back off the screen they were just admitted on.
+        val generation = writes
+        val fresh = try {
+            client.registrations(eventId, form.id)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            return
+        }
+        if (writes != generation) return
+        registrations = fresh
+    }
+
+    /**
+     * Keeps this door's list current for as long as the calling coroutine lives.
+     *
+     * The door is the screen that most needs it: it stays open for hours, the
+     * other doors do not stop while it is, and without this the count under the
+     * viewfinder is the one the screen started with — so a member another 幹部
+     * already admitted scans here as a first arrival.
+     *
+     * Asks before it waits, because the screen restarts this every time the app
+     * returns to the foreground, and a phone that has been in a pocket for ten
+     * minutes is holding the worst list at the door. On the way in that first
+     * call costs nothing: [load] is still running, and [refresh] declines to
+     * touch a session that is not yet [Phase.Ready].
+     */
+    suspend fun autoRefresh() {
+        while (true) {
+            refresh()
+            delay(CheckinStore.REFRESH_INTERVAL_MS)
+        }
     }
 
     // MARK: - Resolving a scan
@@ -165,17 +226,25 @@ class CheckinSession(
     // MARK: - Recording attendance
 
     /**
-     * Records attendance and folds Indico's answer back into the local list, so
-     * the running count and any later scan of the same person are right without
-     * re-fetching.
+     * Records attendance — or takes it back — and folds Indico's answer into the
+     * local list, so the running count and any later scan of the same person are
+     * right without re-fetching.
+     *
+     * `checkedIn = false` is the undo, and the same endpoint: Indico clears
+     * `checked_in_dt` with the flag, so a mistake at the door leaves no trace of
+     * an arrival that did not happen.
      */
-    suspend fun checkIn(registration: CheckinRegistration): CheckinRegistration {
+    suspend fun checkIn(
+        registration: CheckinRegistration,
+        checkedIn: Boolean = true,
+    ): CheckinRegistration {
         // Reading a roster needs only `read:everything`; writing needs the wider
         // grant, which is asked for on this screen and nowhere else.
         if (!indico.canRecordCheckin) throw CheckinError.NeedsAuthorization
         isSubmitting = true
         try {
-            val updated = client.checkIn(registration)
+            val updated = client.checkIn(registration, checkedIn)
+            writes += 1
             registrations = registrations.map { if (it.id == updated.id) updated else it }
             return updated
         } finally {

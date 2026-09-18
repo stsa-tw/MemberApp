@@ -17,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.Checkin
@@ -72,6 +75,19 @@ fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
     if (isAllowed && forms.size == 1) {
         EventFormScreen(navController, eventId, forms[0].id)
         return
+    }
+
+    // Below the delegation on purpose: EventFormScreen runs its own poll, and
+    // two loops on one event would only ask the same question twice as often.
+    //
+    // Each row carries its form's arrivals, and both doors are being worked by
+    // somebody else — so the counts a 幹部 is choosing between keep asking Indico
+    // rather than ageing while the chooser sits open.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(eventId, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            checkin.autoRefresh(eventId, container.indico)
+        }
     }
 
     ScreenScaffold(

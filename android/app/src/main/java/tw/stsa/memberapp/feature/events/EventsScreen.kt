@@ -79,6 +79,7 @@ private const val EVENTS_WEBSITE = "https://event.stsa.tw"
 fun EventsScreen(navController: NavHostController) {
     val container = LocalAppContainer.current
     val store = container.events
+    val auth = container.auth
     val indico = container.indico
     val tickets = container.tickets
     val uriHandler = LocalUriHandler.current
@@ -170,9 +171,8 @@ fun EventsScreen(navController: NavHostController) {
                     )
                 }
                 if (past.isNotEmpty()) {
-                    // Collapsed by default, and once open it lists only the
-                    // events this member actually registered for — the archive is
-                    // long and almost none of it is theirs.
+                    // Collapsed by default, and once open it lists the archive
+                    // this member has a reason to see — see [archive] below.
                     item(key = "past-header") {
                         Spacer(Modifier.size(16.dp))
                         Row(
@@ -198,17 +198,19 @@ fun EventsScreen(navController: NavHostController) {
                     }
 
                     if (isShowingPast) {
-                        val attended = past.filter { tickets.holdsTicket(it.id) }
+                        val archive = archive(past, auth.profile?.isOfficer == true, tickets)
+                        // Only ever reached by a member: a 幹部's archive is the
+                        // whole of `past` and has nothing to wait for.
                         val probing = past.any { !tickets.isSettled(it.id) }
                         when {
-                            attended.isNotEmpty() -> items(attended, key = { it.id }) { event ->
+                            archive.isNotEmpty() -> items(archive, key = { it.id }) { event ->
                                 EventRow(
                                     event = event,
                                     isNext = false,
-                                    isRegistered = true,
+                                    isRegistered = tickets.holdsTicket(event.id),
                                     onClick = { navController.navigate(EventDetail(event.id)) },
                                 )
-                                if (event.id != attended.last().id) {
+                                if (event.id != archive.last().id) {
                                     RowSeparator(inset = Theme.Metrics.gutter)
                                 }
                             }
@@ -273,6 +275,31 @@ private fun LazyListScope.section(
         if (event.id != events.last().id) RowSeparator(inset = Theme.Metrics.gutter)
     }
 }
+
+/**
+ * What the 已結束 section lists.
+ *
+ * A member gets the events they registered for, because the archive is long and
+ * almost none of it is theirs. A 幹部 gets all of it: they are asked about events
+ * they did not attend — someone wants last year's slides, or the attendance for
+ * a report — and the app used to answer by hiding every event they had not
+ * personally signed up for.
+ *
+ * `isOfficer` is a self-reported claim, and [EventDetailScreen] deliberately does
+ * *not* gate 幹部功能 on it. The difference is what the claim stands for. There it
+ * meant "Indico will let me write check-ins to this event", which Indico enforces
+ * and which is false for a 幹部 of some other event — so the honest answer came
+ * from asking it. Here it decides how much of a list to show, and the list came
+ * from an endpoint that answers anonymously: a wrong claim reveals nothing that
+ * `event.stsa.tw` does not already hand to a stranger, and everything the rows
+ * lead to is checked again when it is opened.
+ */
+private fun archive(
+    past: List<IndicoEvent>,
+    isOfficer: Boolean,
+    tickets: TicketStore,
+): List<IndicoEvent> =
+    if (isOfficer) past else past.filter { tickets.holdsTicket(it.id) }
 
 @Composable
 private fun EventRow(

@@ -1,18 +1,39 @@
 {
-  "fill" : "system-light",
+  "fill-specializations" : [
+    {
+      "value" : "system-light"
+    },
+    {
+      "appearance" : "dark",
+      "value" : "system-dark"
+    }
+  ],
   "groups" : [
     {
       "layers" : [
         {
+          "glass" : false,
+          "hidden" : false,
           "image-name" : "favicon-removebg-preview (1) (1).png",
           "name" : "favicon-removebg-preview (1) (1)",
           "position" : {
-            "scale" : 1,
+            "scale" : 1.25,
             "translation-in-points" : [
               0,
-              -27.5
+              -34.375
             ]
-          }
+          },
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "srgb:1.00000,0.38431,0.34902,1.00000",
+                  "srgb:0.35294,0.78431,0.98039,1.00000"
+                ]
+              }
+            }
+          ]
         }
       ],
       "shadow" : {
@@ -22,7 +43,16 @@
       "translucency" : {
         "enabled" : true,
         "value" : 0.5
-      }
+      },
+      "translucency-specializations" : [
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : false,
+            "value" : 0
+          }
+        }
+      ]
     }
   ],
   "supported-platforms" : {

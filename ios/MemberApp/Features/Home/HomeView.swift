@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(Session.self) private var session
-    @Environment(AuthManager.self) private var auth
     @Environment(EventsStore.self) private var events
 
     private let announcements = Announcement.samples
@@ -77,16 +76,12 @@ struct HomeView: View {
     }
 
     private var greeting: String {
-        // Prefer the nickname: authentik fills given_name with the full name, and
-        // trimming a surname by character count breaks on two-character ones.
-        let name = auth.profile.map { $0.nickname ?? $0.givenName ?? $0.displayName } ?? ""
         let hour = Calendar.current.component(.hour, from: Date())
-        let time = switch hour {
+        return switch hour {
         case 5..<12: String(localized: "早安")
         case 12..<18: String(localized: "午安")
         default: String(localized: "晚安")
         }
-        return "\(time)，\(name)"
     }
 }
 

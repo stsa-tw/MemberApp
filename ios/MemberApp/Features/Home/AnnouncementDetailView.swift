@@ -31,18 +31,7 @@ struct AnnouncementDetailView: View {
                         .padding(.bottom, 14)
                 }
 
-                VStack(spacing: 0) {
-                    DetailRow(label: "時間", value: announcement.when)
-                    RowSeparator()
-                    DetailRow(label: "地點", value: announcement.place)
-                    if let contact = announcement.contact {
-                        RowSeparator()
-                        DetailRow(label: "聯絡", value: contact)
-                    }
-                }
-                .background(Color(.systemGroupedBackground))
-                .clipShape(.rect(cornerRadius: Theme.Radius.card))
-                .padding(.top, 6)
+                facts
 
                 // Inline rather than pinned — see Theme.Metrics.accessoryClearance.
                 eventLink
@@ -59,6 +48,31 @@ struct AnnouncementDetailView: View {
 }
 
 private extension AnnouncementDetailView {
+    /// The card of stated facts, or nothing at all.
+    ///
+    /// A notice that is not about a gathering — the app going live, say — has no
+    /// time and no place, and an empty rounded box under the text reads as a
+    /// loading failure. Built from whichever rows exist so the separators land
+    /// between them rather than around a gap.
+    @ViewBuilder
+    var facts: some View {
+        let rows: [(label: LocalizedStringKey, value: String)] =
+            [("時間", announcement.when), ("地點", announcement.place), ("聯絡", announcement.contact)]
+            .compactMap { label, value in value.map { (label, $0) } }
+
+        if !rows.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                    if index > 0 { RowSeparator() }
+                    DetailRow(label: row.label, value: row.value)
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .clipShape(.rect(cornerRadius: Theme.Radius.card))
+            .padding(.top, 6)
+        }
+    }
+
     /// Prefers pushing the event inside the app; falls back to the web only when
     /// the event is not in the loaded window or has left the category.
     @ViewBuilder

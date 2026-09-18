@@ -65,16 +65,15 @@ final class AuthManager {
 
     // MARK: - Session lifecycle
 
-    /// - Parameter choosingAccount: ask authentik who is signing in, instead of
-    ///   letting it answer from the session cookie it already holds. What the
-    ///   「用其他帳號登入」 button passes.
-    func login(choosingAccount: Bool = false) async throws {
+    /// Asks authentik who is signing in — rather than letting it answer from the
+    /// session cookie it already holds — when `logout()` set the flag below.
+    func login() async throws {
         isBusy = true
         defer { isBusy = false }
 
         let configuration = try await discoverConfiguration()
 
-        let asked = choosingAccount || UserDefaults.standard.bool(forKey: Self.promptForAccountKey)
+        let asked = UserDefaults.standard.bool(forKey: Self.promptForAccountKey)
 
         // The standard initialiser (no clientSecret overload) derives a PKCE
         // code_verifier and an S256 code_challenge on its own. Do not replace

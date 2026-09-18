@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EventsView: View {
     @Environment(EventsStore.self) private var store
+    @Environment(AuthManager.self) private var auth
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(TicketStore.self) private var tickets
     @Environment(\.openURL) private var openURL
@@ -75,9 +76,8 @@ struct EventsView: View {
         }
     }
 
-    /// Collapsed by default, and once open it lists only the events this member
-    /// actually registered for — the archive is long and almost none of it is
-    /// theirs.
+    /// Collapsed by default, and once open it lists the archive a member has a
+    /// reason to see: their own events, or all of them for a 幹部.
     ///
     /// Nothing is probed until it is opened. Asking Indico whether a ticket
     /// exists makes it generate one, so doing it for every past event on every
@@ -88,10 +88,10 @@ struct EventsView: View {
             DisclosureCardHeader(title: "已結束", isExpanded: $isShowingPast)
 
             if isShowingPast {
-                if attended.isEmpty && isProbingPast {
+                if archive.isEmpty && isProbingPast {
                     ProgressView()
                         .padding(.vertical, 18)
-                } else if attended.isEmpty {
+                } else if archive.isEmpty {
                     Text("沒有你報名過的活動。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -100,12 +100,16 @@ struct EventsView: View {
                         .padding(.vertical, 6)
                 } else {
                     GroupedCard {
-                        ForEach(Array(attended.enumerated()), id: \.element.id) { index, event in
+                        ForEach(Array(archive.enumerated()), id: \.element.id) { index, event in
                             if index > 0 { RowSeparator(inset: 0) }
                             NavigationLink {
                                 EventDetailView(event: event)
                             } label: {
-                                EventRow(event: event, isNext: false, isRegistered: true)
+                                EventRow(
+                                    event: event,
+                                    isNext: false,
+                                    isRegistered: tickets.holdsTicket(for: event.id)
+                                )
                             }
                             .buttonStyle(.plain)
                         }
@@ -126,10 +130,30 @@ struct EventsView: View {
         }
     }
 
-    private var attended: [IndicoEvent] {
-        store.past.filter { tickets.holdsTicket(for: $0.id) }
+    /// What the 已結束 section lists.
+    ///
+    /// A member gets the events they registered for, because the archive is long
+    /// and almost none of it is theirs. A 幹部 gets all of it: they are asked
+    /// about events they did not attend — someone wants last year's slides, or
+    /// the attendance for a report — and the app used to answer by hiding every
+    /// event they had not personally signed up for.
+    ///
+    /// `isOfficer` is a self-reported claim, and `EventDetailView` deliberately
+    /// does *not* gate 幹部功能 on it. The difference is what the claim stands
+    /// for. There it meant "Indico will let me write check-ins to this event",
+    /// which Indico enforces and which is false for a 幹部 of some other event —
+    /// so the honest answer came from asking it. Here it decides how much of a
+    /// list to show, and the list came from an endpoint that answers anonymously:
+    /// a wrong claim reveals nothing that `event.stsa.tw` does not already hand
+    /// to a stranger, and everything the rows lead to is checked again when it is
+    /// opened.
+    private var archive: [IndicoEvent] {
+        guard auth.profile?.isOfficer != true else { return store.past }
+        return store.past.filter { tickets.holdsTicket(for: $0.id) }
     }
 
+    /// Only ever shown to a member: a 幹部's archive is the whole of `store.past`
+    /// and has nothing to wait for.
     private var isProbingPast: Bool {
         store.past.contains { !tickets.isSettled(for: $0.id) }
     }

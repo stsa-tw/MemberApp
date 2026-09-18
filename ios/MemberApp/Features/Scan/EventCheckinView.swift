@@ -36,6 +36,9 @@ struct EventCheckinView: View {
     @State private var access = CameraAccess.current
     @State private var result: Result = .scanning
     @State private var isPickingByName = false
+    /// Undo is one tap from the same screen that admits people, so it asks
+    /// first. Nothing else here can take an arrival back off the record.
+    @State private var isConfirmingUndo = false
 
     private enum Result: Equatable {
         case scanning
@@ -93,6 +96,17 @@ struct EventCheckinView: View {
             // done, and it is two requests for most events.
             await checkin.refreshRoster(eventID: event.id, using: indico)
         }
+        // And re-asked every few seconds after that. A door stays open for
+        // hours, and the other doors do not stop while it is: without this, the
+        // count under the viewfinder is the one this phone started with, and a
+        // member another 幹部 already admitted scans here as a first arrival.
+        //
+        // Keyed on the scene phase so it stops when the app leaves the
+        // foreground, where nobody is holding a phone up to a QR code.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await checkin.autoRefresh(eventID: event.id, using: indico)
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             access = CameraAccess.current
@@ -104,6 +118,29 @@ struct EventCheckinView: View {
             ) { entry in
                 Task { await present(entry) }
             }
+        }
+        .confirmationDialog(
+            "取消這筆報到？",
+            isPresented: $isConfirmingUndo,
+            titleVisibility: .visible
+        ) {
+            if let registration = shownRegistration {
+                Button("取消報到", role: .destructive) {
+                    Task { await record(registration, checkedIn: false) }
+                }
+            }
+            Button("返回", role: .cancel) {}
+        } message: {
+            Text("Indico 上的報到紀錄會被移除，這個人會回到未報到。")
+        }
+    }
+
+    /// The registration the panel is showing, whichever verdict put it there.
+    /// Both a found row and a just-recorded one can be taken back.
+    private var shownRegistration: CheckinRegistration? {
+        switch result {
+        case .found(let registration), .recorded(let registration): registration
+        default: nil
         }
     }
 
@@ -231,10 +268,15 @@ struct EventCheckinView: View {
         }
     }
 
-    private func record(_ registration: CheckinRegistration) async {
-        switch await checkin.checkIn(registration, eventID: event.id, using: indico) {
+    /// Writes the flag, in either direction, and lets Indico's answer choose the
+    /// panel: an undo lands back on 已報名 with 確認報到 under it, which is the
+    /// screen a staffer who undid the wrong person needs next.
+    private func record(_ registration: CheckinRegistration, checkedIn: Bool = true) async {
+        switch await checkin.checkIn(
+            registration, checkedIn: checkedIn, eventID: event.id, using: indico
+        ) {
         case .recorded(let updated):
-            result = .recorded(updated)
+            result = updated.checkedIn ? .recorded(updated) : .found(updated)
         case .notAdmissible:
             result = .ticketRefused(String(localized: "這筆報名已取消或未通過。"))
         case .needsAuthorization:
@@ -288,8 +330,10 @@ struct EventCheckinView: View {
                     tint: registration.checkedIn ? .orange : .green,
                     title: registration.fullName,
                     detail: registration.checkedIn
-                        ? String(localized: "已經報到過")
-                        : String(localized: "已報名")
+                        ? alreadyCheckedIn(registration)
+                        : String(localized: "已報名"),
+                    live: true,
+                    tags: registration.tags
                 )
                 // A scanned ticket names one registration outright, and it may be
                 // one from another of the event's forms. That is admissible — the
@@ -303,12 +347,18 @@ struct EventCheckinView: View {
                     answers(registration.answers)
                 }
 
-                if registration.isAdmissible {
-                    Button(registration.checkedIn ? "再次報到" : "確認報到") {
+                if registration.isAdmissible, !registration.checkedIn {
+                    Button("確認報到") {
                         Task { await record(registration) }
                     }
                     .buttonStyle(.brand)
                     .disabled(checkin.isSubmitting)
+                }
+                // Where 再次報到 used to be. PATCHing a flag that is already true
+                // changes nothing and said so to nobody; the thing a staffer
+                // actually reaches for on a second scan is the way back out.
+                if registration.checkedIn {
+                    undoButton
                 }
 
             case .recorded(let registration):
@@ -316,8 +366,13 @@ struct EventCheckinView: View {
                     symbol: "checkmark.circle.fill",
                     tint: .green,
                     title: registration.fullName,
-                    detail: String(localized: "已完成報到")
+                    detail: String(localized: "已完成報到"),
+                    live: true,
+                    tags: registration.tags
                 )
+                // The wrong person is admitted at the moment the tick appears,
+                // not five screens later, so the correction lives here too.
+                undoButton
 
             case .ticketRefused(let reason):
                 banner(
@@ -404,6 +459,17 @@ struct EventCheckinView: View {
         .padding(.top, 6)
     }
 
+    /// Takes an arrival back off Indico's record.
+    ///
+    /// Quiet rather than prominent, and behind a confirmation: this screen is
+    /// for admitting people, and the button that undoes that should not be the
+    /// one a thumb finds by habit between two scans.
+    private var undoButton: some View {
+        Button("取消報到") { isConfirmingUndo = true }
+            .buttonStyle(.brandPlain)
+            .disabled(checkin.isSubmitting)
+    }
+
     /// A quiet line under a banner: something the staffer should know before
     /// they tap, not an outcome of its own.
     private func note(_ text: String) -> some View {
@@ -420,11 +486,38 @@ struct EventCheckinView: View {
         forms.map { "「\(title(ofFormID: $0.id))」" }.joined(separator: "、")
     }
 
-    private func banner(symbol: String, tint: Color, title: String, detail: String) -> some View {
+    /// - Parameter live: draws the mark as a `LiveCheckmark`, for the verdicts a
+    ///   screenshot could be passed off as — see that view for why.
+    /// When Indico knows the moment, say it: a staffer looking at a repeat scan
+    /// wants to know whether this person came through an hour ago or ten
+    /// seconds ago, which is the difference between a queue-jumper and a
+    /// double-tap.
+    private func alreadyCheckedIn(_ registration: CheckinRegistration) -> String {
+        guard let moment = registration.checkedInAt else {
+            return String(localized: "已經報到過")
+        }
+        return String(localized: "已於 \(moment.formatted(date: .omitted, time: .shortened)) 報到")
+    }
+
+    /// - Parameter tags: the organiser's own marks on this registration, drawn
+    ///   under the verdict because they are what the desk acts on next — a 素食
+    ///   chip decides which bag the person is handed.
+    private func banner(
+        symbol: String,
+        tint: Color,
+        title: String,
+        detail: String,
+        live: Bool = false,
+        tags: [RegistrationTag] = []
+    ) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: symbol)
-                .font(.largeTitle)
-                .foregroundStyle(tint)
+            if live {
+                LiveCheckmark(symbol: symbol, tint: tint, size: 34)
+            } else {
+                Image(systemName: symbol)
+                    .font(.largeTitle)
+                    .foregroundStyle(tint)
+            }
             Text(title)
                 .font(.title3.weight(.semibold))
                 .multilineTextAlignment(.center)
@@ -432,6 +525,9 @@ struct EventCheckinView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            RegistrationTagChips(tags: tags, isCentred: true)
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 22)
@@ -507,7 +603,7 @@ private struct ManualPicker: View {
                     dismiss()
                     onPick(entry)
                 } label: {
-                    row(entry.registration)
+                    RegistrationRow(registration: entry.registration)
                 }
                 .buttonStyle(.plain)
             }
@@ -515,7 +611,7 @@ private struct ManualPicker: View {
             .searchable(
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: Text("搜尋姓名或 email")
+                prompt: Text("搜尋姓名、email 或標籤")
             )
             .overlay {
                 if matches.isEmpty {
@@ -532,54 +628,12 @@ private struct ManualPicker: View {
         }
     }
 
-    /// Matched on name *and* email, because a staffer reading a name off a
-    /// screen and one reading an address off a member's mouth are the same
-    /// errand. Not checked in first — the people still to come — and anyone
-    /// withdrawn last, where they cannot be tapped by accident.
+    /// Searched and sorted the same way the roster on 幹部功能 is — see
+    /// `CheckinRegistration.matches(_:)` and `isOrderedBefore(_:_:)`, which are
+    /// the one copy of both rules.
     private var matches: [CheckinStore.Entry] {
-        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
-        return entries
-            .filter {
-                needle.isEmpty
-                    || $0.registration.fullName.lowercased().contains(needle)
-                    || $0.registration.email.contains(needle)
-            }
-            .sorted { left, right in
-                let a = left.registration, b = right.registration
-                if a.isCancelled != b.isCancelled { return b.isCancelled }
-                if a.checkedIn != b.checkedIn { return b.checkedIn }
-                return a.fullName.localizedCompare(b.fullName) == .orderedAscending
-            }
-    }
-
-    private func row(_ registration: CheckinRegistration) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(registration.fullName)
-                    .font(.callout)
-                HStack(spacing: 6) {
-                    Text(registration.email)
-                        .lineLimit(1)
-                    if let state = registration.stateDescription {
-                        Text(state)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color(.tertiarySystemFill))
-                            .clipShape(.rect(cornerRadius: 4))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 8)
-
-            if registration.checkedIn {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("已報到")
-            }
-        }
-        .opacity(registration.isCancelled ? 0.45 : 1)
-        .contentShape(.rect)
+        entries
+            .filter { $0.registration.matches(query) }
+            .sorted { CheckinRegistration.isOrderedBefore($0.registration, $1.registration) }
     }
 }

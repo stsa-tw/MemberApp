@@ -135,9 +135,16 @@ private struct ResultPanel: View {
     var body: some View {
         VStack(spacing: 20) {
             VStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 72))
-                    .foregroundStyle(tint)
+                // Only the affirmative verdict sweeps. A refusal is nobody's
+                // prize to forge, and a spinning red cross would read as the
+                // screen still working rather than as an answer.
+                if case .valid = outcome {
+                    LiveCheckmark(symbol: symbol, tint: tint, size: 72)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 72))
+                        .foregroundStyle(tint)
+                }
                 Text(headline)
                     .font(.title2.weight(.semibold))
                     .multilineTextAlignment(.center)

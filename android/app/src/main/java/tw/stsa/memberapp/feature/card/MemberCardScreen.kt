@@ -63,7 +63,7 @@ import tw.stsa.memberapp.designsystem.sectionContainer
 import java.time.Instant
 import kotlin.math.max
 
-private const val QR_SIZE_DP = 152
+private const val QR_SIZE_DP = 220
 
 @Composable
 fun MemberCardScreen(navController: NavHostController) {

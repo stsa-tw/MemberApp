@@ -30,7 +30,6 @@
     <string name="welcome_highlight_deals_detail">合作商家折扣碼、在星實習機會</string>
     <string name="sign_in">登入</string>
     <string name="sign_in_links_indico">登入會一併連結你的 Indico 帳號，用來顯示你的報名與票券。</string>
-    <string name="sign_in_other_account">用其他帳號登入</string>
     <string name="sign_in_failed">登入失敗</string>
     <string name="ok">好</string>
 
@@ -38,7 +37,6 @@
     <string name="greeting_morning">早安</string>
     <string name="greeting_afternoon">午安</string>
     <string name="greeting_evening">晚安</string>
-    <string name="greeting_format">%1$s，%2$s</string>
     <string name="home_shortcut_events">活動報名</string>
     <string name="home_shortcut_deals">會員優惠</string>
     <plurals name="events_upcoming_count">
@@ -91,6 +89,10 @@
     <string name="event_ticket_link_note">會連結你的 Indico 帳號，只用來讀取你自己的報名與票券。</string>
     <string name="event_registered">已報名</string>
     <string name="event_ticket_open">查看票券</string>
+    <string name="event_add_to_calendar">加入行事曆</string>
+    <string name="event_open_in_maps">在地圖開啟</string>
+    <string name="event_calendar_unavailable">找不到行事曆 App</string>
+    <string name="event_map_unavailable">找不到地圖 App</string>
     <string name="event_kicker_conference">活動</string>
     <string name="event_kicker_meeting">聚會</string>
     <string name="event_kicker_lecture">講座</string>
@@ -240,18 +242,24 @@
     <string name="checkin_progress">%1$d / %2$d 已報到</string>
     <string name="checkin_hint">會員卡或 Indico 票券皆可掃描</string>
     <string name="checkin_manual">找不到 QR code？改用姓名報到</string>
-    <string name="checkin_manual_search">搜尋姓名或 email</string>
+    <string name="checkin_manual_search">搜尋姓名、email 或標籤</string>
+    <string name="checkin_roster_search">搜尋姓名、email 或標籤</string>
     <string name="checkin_manual_empty">找不到這個人。</string>
     <string name="checkin_camera_needed">需要相機權限才能掃描。</string>
     <string name="checkin_camera_needed_detail">請到「設定」開啟相機權限。</string>
     <string name="checkin_confirm">確認報到</string>
-    <string name="checkin_confirm_again">再次報到</string>
     <string name="checkin_done">已報到</string>
     <string name="checkin_continue">繼續掃描</string>
     <string name="checkin_failed">無法報到</string>
     <string name="checkin_already">已經報到過。</string>
     <string name="checkin_already_at">已於 %1$s 報到。</string>
     <string name="checkin_authorize">前往授權</string>
+    <string name="checkin_not_yet">尚未報到</string>
+    <string name="checkin_not_admissible_detail">這筆報名已取消或未通過，不能報到。</string>
+    <string name="checkin_undo">取消報到</string>
+    <string name="checkin_undo_title">取消這筆報到？</string>
+    <string name="checkin_undo_detail">Indico 上的報到紀錄會被移除，這個人會回到未報到。</string>
+    <string name="checkin_undo_cancel">返回</string>
     <string name="error_checkin_needs_authorization">這個 Indico 授權只能讀取。授權一次之後就能記錄報到。</string>
 
     <string name="error_checkin_401">Indico 登入已失效，請重新登入。</string>
