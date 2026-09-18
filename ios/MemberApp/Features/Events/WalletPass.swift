@@ -35,6 +35,20 @@ enum WalletPass {
         PKAddPassesViewController.canAddPasses()
     }
 
+    /// Whether these bytes are a pass Wallet would take.
+    ///
+    /// The one honest test, and deliberately the same parse `add` performs.
+    /// A `Content-Type` is what a server *claims*; `TicketStore`'s probe used to
+    /// decide the button on that header alone, which put the answer at the mercy
+    /// of how one instance, one proxy or one login redirect spells a string.
+    /// `PKPass` reads the signed archive, so the button now appears where the
+    /// pass would genuinely add, and nowhere else.
+    ///
+    /// The bytes are not kept, for the reason at the top of this file.
+    static func isPass(_ data: Data) -> Bool {
+        (try? PKPass(data: data)) != nil
+    }
+
     /// Fetches the pass and presents Wallet's own add sheet.
     @MainActor
     static func add(from url: URL, using indico: IndicoAuthManager) async throws {

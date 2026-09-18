@@ -302,6 +302,9 @@ struct EventDetailView: View {
         do {
             try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
+            // Whatever the probe decided while the session was stale — a login
+            // page reads as "no pass" — was decided about the old session.
+            tickets.forgetWalletPass(eventID: event.id)
             await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)
         } catch {

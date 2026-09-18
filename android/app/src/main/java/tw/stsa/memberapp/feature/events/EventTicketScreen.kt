@@ -88,6 +88,16 @@ fun EventTicketScreen(navController: NavHostController, eventId: String) {
 
     LaunchedEffect(eventId) { document.load(ticketUrl, indico) }
 
+    // Asked here as well as on the event screen behind it, because this is the
+    // screen the button is on. There the probe goes last, behind a PDF render and
+    // a pass signing, and someone who taps straight through arrives before it has
+    // answered — or on a visit where it was skipped. `loadWalletPass` is cheap to
+    // call twice: it returns at once wherever the answer is already in, and waits
+    // on the one in flight where it is not.
+    LaunchedEffect(eventId, indico.isLinked) {
+        container.tickets.loadWalletPass(eventId, indico)
+    }
+
     // Brightened for the whole screen, not just once the code has arrived:
     // someone who opened this is already holding the phone out, and a screen
     // that brightens a beat after the code appears is brightening after the

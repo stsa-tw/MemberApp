@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.core.content.edit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import org.json.JSONArray
 import org.json.JSONObject
 import tw.stsa.memberapp.BuildConfig
@@ -46,7 +49,7 @@ import tw.stsa.memberapp.net.httpGetBytes
  * app keeps only the URL and hands it to the browser, which already has the
  * member's Indico session.
  */
-class TicketStore(context: Context) {
+class TicketStore(context: Context, private val scope: CoroutineScope) {
 
     private val appContext = context.applicationContext
 
@@ -79,11 +82,39 @@ class TicketStore(context: Context) {
     /**
      * Where this event's ticket lives as a Google Wallet pass, once asked.
      *
-     * Null for an event that was asked and could not produce one. Cached either
-     * way — including the negative — so a screen that recomposes does not re-ask
-     * a server that answered no.
+     * Only the yeses. A no is not recorded — the entry stays absent and the next
+     * visit asks again, which costs a request against an event that will keep
+     * saying no, and is the trade that keeps a login page or a blip from
+     * retiring the button for the rest of the launch. iOS caches its no because
+     * it can tell one from a 5xx by parsing the pass itself; this endpoint
+     * answers with a redirect, where "no" and "not today" look alike.
+     *
+     * Not persisted, and deliberately: the save link *carries the signed
+     * ticket*, which is the credential.
      */
     private val walletUrls = mutableStateMapOf<String, String>()
+
+    /**
+     * The answer already on its way, per event.
+     *
+     * The event screen and the ticket screen both ask, on purpose — but an
+     * answer only reaches the map when it arrives, so in the slow case the two
+     * overlap, and the slow case is exactly the one where they do. Without this
+     * a member who taps straight through asks Indico to sign the same pass
+     * twice.
+     *
+     * It holds the *job*, not a mark, because the second asker has to **wait on**
+     * that answer rather than walk away from it: a mark would make the second
+     * call return at once, and the first call belongs to the event screen's
+     * `LaunchedEffect`, which navigation cancels. Tapping through while Indico
+     * was still signing would then kill the only probe running, moments after
+     * the ticket screen had declined to start its own — and the button would be
+     * missing for as long as that screen stayed up.
+     *
+     * Run on the container's scope for the same reason: it outlives the screen
+     * that started it, so the answer lands for whoever is still looking.
+     */
+    private val walletProbes = mutableMapOf<String, Deferred<Unit>>()
 
     fun walletUrl(eventId: String): String? = walletUrls[eventId]
 
@@ -115,9 +146,28 @@ class TicketStore(context: Context) {
     var subject: String? = null
         set(value) {
             if (field == value) return
+            // `null` → the profile *arriving*, not a different person: the
+            // session is restored before the claims that name it, so a pass can
+            // be resolved before there is a key to file anything under. Clearing
+            // then would take the button off a ticket screen that had it.
+            val replaced = field != null
             field = value
             remembered = readRemembered(value)
+
+            if (replaced) {
+                // One member replacing another. `walletUrls` has no per-`sub` key
+                // of its own to keep them apart, and each entry is a signed
+                // ticket — so nothing of theirs survives, in flight or landed.
+                walletUrls.clear()
+                cancelWalletProbes()
+            }
         }
+
+    /** Drops the answers still on their way, before they land on somebody else. */
+    private fun cancelWalletProbes() {
+        walletProbes.values.forEach { it.cancel() }
+        walletProbes.clear()
+    }
 
     fun state(eventId: String): State = states[eventId] ?: State.Idle
 
@@ -232,6 +282,27 @@ class TicketStore(context: Context) {
         if (state(eventId) !is State.Available) return
         val formId = remembered[eventId]?.second ?: formIds[eventId]?.firstOrNull() ?: return
 
+        // Joined, not skipped — see [walletProbes].
+        walletProbes[eventId]?.let { inFlight ->
+            inFlight.join()
+            return
+        }
+
+        val probe = scope.async { askIndicoForPass(eventId, formId, indico) }
+        walletProbes[eventId] = probe
+        probe.join()
+
+        // Removed only if it is still ours: a probe dropped mid-request leaves
+        // the next asker's in this map, and that one is not this one's to take.
+        if (walletProbes[eventId] === probe) walletProbes.remove(eventId)
+    }
+
+    /** The request itself, awaited only through [walletProbes]. */
+    private suspend fun askIndicoForPass(
+        eventId: String,
+        formId: Int,
+        indico: IndicoAuthManager,
+    ) {
         runCatching {
             val response = httpGetBytes(
                 googleWalletUrl(eventId, formId),
@@ -296,6 +367,7 @@ class TicketStore(context: Context) {
         states.clear()
         formIds.clear()
         walletUrls.clear()
+        cancelWalletProbes()
         remembered.clear()
         subject?.let { prefs.edit { remove(rememberedKey(it)) } }
     }
