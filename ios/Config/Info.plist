@@ -2,22 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Everything else is generated (GENERATE_INFOPLIST_FILE / INFOPLIST_KEY_*).
-	     This file exists only for keys the build settings cannot express.
-
-	     The redirect URI is tw.stsa.membership://callback. AppAuth hands the
-	     authorization code back through this scheme, and MemberAppApp resumes
-	     the flow from .onOpenURL. -->
-	<!-- Required before any LocalAuthentication call: the app terminates on the
-	     first Face ID evaluation without it. Shown in the system prompt. -->
-	<key>NSFaceIDUsageDescription</key>
-	<string>用於在出示電子會員卡前確認是你本人。</string>
-
-	<!-- Only the 幹部 card scanner opens the camera; ordinary members never see
-	     the prompt because the row that leads there is hidden from them. -->
-	<key>NSCameraUsageDescription</key>
-	<string>用於掃描其他會員的電子會員卡 QR code。</string>
-
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -17,19 +17,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -62,7 +68,11 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
     val container = LocalAppContainer.current
     val event = container.events.events.firstOrNull { it.id == eventId } ?: return
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val noCalendarApp = stringResource(R.string.event_calendar_unavailable)
+    val noMapApp = stringResource(R.string.event_map_unavailable)
 
     val indico = container.indico
     val tickets = container.tickets
@@ -127,6 +137,7 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
                 }
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -137,7 +148,19 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
             Hero(event)
 
             Spacer(Modifier.size(16.dp))
-            InfoCard(event)
+            InfoCard(
+                event = event,
+                onAddToCalendar = {
+                    if (!EventLinks.addToCalendar(context, event)) {
+                        scope.launch { snackbarHostState.showSnackbar(noCalendarApp) }
+                    }
+                },
+                onOpenMap = { query ->
+                    if (!EventLinks.openMap(context, query)) {
+                        scope.launch { snackbarHostState.showSnackbar(noMapApp) }
+                    }
+                },
+            )
 
             // Inline, directly under the key facts, rather than pinned to the
             // bottom — see Theme.Metrics.fabClearance. This also puts the action
@@ -375,8 +398,22 @@ private fun heroBrush(id: String): Brush {
     )
 }
 
+/**
+ * The facts, and the two of them that are also doors.
+ *
+ * Both the venue and the address open the same map — they are one place
+ * described twice, and a member who taps the half they happened to read should
+ * not get a different answer for it.
+ */
 @Composable
-private fun InfoCard(event: IndicoEvent) {
+private fun InfoCard(
+    event: IndicoEvent,
+    onAddToCalendar: () -> Unit,
+    onOpenMap: (String) -> Unit,
+) {
+    val openMapLabel = stringResource(R.string.event_open_in_maps)
+    val mapQuery = event.mapQuery
+
     Column(
         modifier = Modifier
             .padding(horizontal = Theme.Metrics.gutter)
@@ -384,14 +421,32 @@ private fun InfoCard(event: IndicoEvent) {
             .clip(RoundedCornerShape(Theme.Radius.card))
             .background(MaterialTheme.colorScheme.sectionContainer),
     ) {
-        FactRow(stringResource(R.string.label_time), schedule(event))
+        FactRow(
+            label = stringResource(R.string.label_time),
+            value = schedule(event),
+            icon = Icons.Filled.EditCalendar,
+            onClickLabel = stringResource(R.string.event_add_to_calendar),
+            onClick = onAddToCalendar,
+        )
         event.place?.let {
             RowSeparator()
-            FactRow(stringResource(R.string.label_venue), it)
+            FactRow(
+                label = stringResource(R.string.label_venue),
+                value = it,
+                icon = Icons.Filled.Place,
+                onClickLabel = openMapLabel,
+                onClick = mapQuery?.let { query -> { onOpenMap(query) } },
+            )
         }
         event.address?.takeIf { it.isNotEmpty() }?.let {
             RowSeparator()
-            FactRow(stringResource(R.string.label_address), it)
+            FactRow(
+                label = stringResource(R.string.label_address),
+                value = it,
+                icon = Icons.Filled.Place,
+                onClickLabel = openMapLabel,
+                onClick = mapQuery?.let { query -> { onOpenMap(query) } },
+            )
         }
     }
 }

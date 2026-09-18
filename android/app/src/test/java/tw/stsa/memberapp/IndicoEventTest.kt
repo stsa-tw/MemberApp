@@ -14,6 +14,7 @@ private fun makeEvent(
     title: String = "工作坊",
     location: String? = "i2Hub",
     room: String? = "#04-32",
+    address: String? = null,
     description: String? = null,
     type: String? = "conference",
 ): IndicoEvent {
@@ -24,6 +25,7 @@ private fun makeEvent(
         add(""""endDate": {"date": "2026-08-15", "time": "15:30:00", "tz": "Asia/Singapore"}""")
         if (location != null) add(""""location": "$location"""")
         if (room != null) add(""""room": "$room"""")
+        if (address != null) add(""""address": "$address"""")
         if (description != null) add(""""description": "$description"""")
         if (type != null) add(""""type": "$type"""")
     }
@@ -185,6 +187,96 @@ class IndicoEventPlaceTest {
     @Test
     fun `is null when neither field is present`() {
         assertNull(makeEvent(location = null, room = null).place)
+    }
+}
+
+/**
+ * What the map is searched for. It is not what any row prints, so nothing on
+ * screen would show it going wrong.
+ */
+class IndicoEventMapQueryTest {
+
+    /**
+     * The venue name alone. The room is where to go inside the building and
+     * means nothing to a map; the address is precision the app has not earned,
+     * since Indico's is free text an organiser typed.
+     */
+    @Test
+    fun `searches for the venue name`() {
+        assertEquals("i2Hub", makeEvent(address = "21 Heng Mui Keng Terrace").mapQuery)
+    }
+
+    /** The one case where an address is all there is to go on. */
+    @Test
+    fun `falls back to the address when there is no venue`() {
+        assertEquals(
+            "21 Heng Mui Keng Terrace",
+            makeEvent(location = null, room = "#04-32", address = "21 Heng Mui Keng Terrace")
+                .mapQuery,
+        )
+    }
+
+    /**
+     * Blank is not absent in Indico's export, and a map searched for " " lands
+     * wherever it likes.
+     */
+    @Test
+    fun `treats blank fields as absent`() {
+        assertEquals(
+            "21 Heng Mui Keng Terrace",
+            makeEvent(location = "  ", address = "21 Heng Mui Keng Terrace").mapQuery,
+        )
+        assertNull(makeEvent(location = "  ", address = "   ").mapQuery)
+    }
+
+    /** Nothing to search for means the row must not offer a map at all. */
+    @Test
+    fun `is null when there is no location at all`() {
+        assertNull(makeEvent(location = null, room = null, address = null).mapQuery)
+    }
+}
+
+/** The one line a calendar entry holds — everything, unlike the map query. */
+class IndicoEventLocationLineTest {
+
+    @Test
+    fun `puts the venue before the address`() {
+        assertEquals(
+            "i2Hub · #04-32, 21 Heng Mui Keng Terrace",
+            makeEvent(address = "21 Heng Mui Keng Terrace").locationLine,
+        )
+    }
+
+    /**
+     * Indico fills in one or the other far more often than both, and a venue
+     * with no address is still worth searching for.
+     */
+    @Test
+    fun `uses whichever half is present`() {
+        assertEquals("i2Hub · #04-32", makeEvent(address = null).locationLine)
+        assertEquals(
+            "21 Heng Mui Keng Terrace",
+            makeEvent(location = null, room = null, address = "21 Heng Mui Keng Terrace")
+                .locationLine,
+        )
+    }
+
+    /**
+     * Blank is not absent in Indico's export. A whitespace-only address would
+     * otherwise leave a trailing comma in the map query.
+     */
+    @Test
+    fun `treats a blank address as absent`() {
+        assertEquals("i2Hub · #04-32", makeEvent(address = "   ").locationLine)
+    }
+
+    /**
+     * Nothing to search for means no tappable row, so the screen has to be able
+     * to ask.
+     */
+    @Test
+    fun `is null when there is no location at all`() {
+        assertNull(makeEvent(location = null, room = null, address = null).locationLine)
     }
 }
 

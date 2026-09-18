@@ -1,4 +1,6 @@
+import EventKit
 import SwiftUI
+import UIKit
 
 struct EventDetailView: View {
     let event: IndicoEvent
@@ -11,6 +13,8 @@ struct EventDetailView: View {
 
     @State private var isLinking = false
     @State private var isShowingDescription = false
+    @State private var calendarDraft: CalendarDraft?
+    @State private var isCalendarBlocked = false
 
     var body: some View {
         ScrollView {
@@ -84,6 +88,56 @@ struct EventDetailView: View {
             async let ticket: Void = loadTicket()
             _ = await (door, ticket)
         }
+        // A sheet rather than a push: this is the system's screen, it belongs to
+        // Calendar rather than to this app's navigation, and it comes back here.
+        .sheet(item: $calendarDraft) { draft in
+            CalendarEventEditor(event: event, store: draft.store) {
+                calendarDraft = nil
+            }
+            .ignoresSafeArea()
+        }
+        .alert("無法加入行事曆", isPresented: $isCalendarBlocked) {
+            Button("前往設定") {
+                if let settings = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(settings)
+                }
+            }
+            Button("好", role: .cancel) {}
+        } message: {
+            Text("請在「設定」中允許 STSA 加入行事曆活動。")
+        }
+    }
+
+    /// The live `EKEventStore` the member just granted access to, on its way to
+    /// the sheet. Identifiable only so `sheet(item:)` will carry it; the id is
+    /// never read.
+    private struct CalendarDraft: Identifiable {
+        let id = UUID()
+        let store: EKEventStore
+    }
+
+    // MARK: - Time and place
+
+    private func addToCalendar() async {
+        guard let store = await EventCalendar.openStore() else {
+            isCalendarBlocked = true
+            return
+        }
+        calendarDraft = CalendarDraft(store: store)
+    }
+
+    /// Apple Maps, searched for the venue — see `IndicoEvent.mapQuery` for why a
+    /// search and not a pin.
+    ///
+    /// `.alphanumerics` is a blunter allowed set than `.urlQueryAllowed`, and
+    /// that is the point: a venue with an `&` or a `#` in its name would
+    /// otherwise be cut in half by a query separator the app did not intend.
+    private func openMap() {
+        guard let term = event.mapQuery,
+              let query = term.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              let url = URL(string: "https://maps.apple.com/?q=\(query)")
+        else { return }
+        openURL(url)
     }
 
     /// Whether the member holds a ticket, and where it lives as a pass.
@@ -176,19 +230,19 @@ struct EventDetailView: View {
         let forms = checkin.forms(for: event.id)
         // Withdrawn and rejected registrations stay on Indico's list and out of
         // this number; nobody is waiting for them at a door.
-        let expected = checkin.entries(for: event.id).filter { !$0.registration.isCancelled }
-        guard !expected.isEmpty else { return String(localized: "報到與報名名單") }
+        let total = checkin.registeredCount(eventID: event.id)
+        guard total > 0 else { return String(localized: "報到與報名名單") }
 
         // One form gets the number a door would recognise. Two do not: an event
         // with a 報名表 and a 遊覽車報名表 holds two lists, and adding them up
         // counts the member who booked the coach as two people. The per-form
         // breakdown is one tap away, where it means something.
         guard forms.count == 1 else {
-            return String(localized: "\(forms.count) 張報名表 · 共 \(expected.count) 筆報名")
+            return String(localized: "\(forms.count) 張報名表 · 共 \(total) 筆報名")
         }
 
-        let checkedIn = expected.filter(\.registration.checkedIn).count
-        return String(localized: "\(checkedIn) / \(expected.count) 已報到")
+        let checkedIn = checkin.checkedInCount(eventID: event.id)
+        return String(localized: "\(checkedIn) / \(total) 已報到")
     }
 
     // MARK: - Actions
@@ -244,7 +298,7 @@ struct EventDetailView: View {
                     Button(primaryLabel) { openURL(url) }
                         .buttonStyle(.brand)
                 }
-                caption(message)
+                caption(verbatim: message)
 
             case .idle, .loading, .unavailable:
                 // "unavailable" could be "not registered", "awaiting approval" or
@@ -279,8 +333,16 @@ struct EventDetailView: View {
         event.isUpcoming ? "前往報名" : "查看活動頁"
     }
 
-    private func caption(_ text: String) -> some View {
-        Text(text)
+    /// The error one, spelled `verbatim:` on purpose.
+    ///
+    /// It used to be an overload taking `String`, which quietly swallowed every
+    /// literal on this screen: Swift prefers `String` over `LocalizedStringKey`
+    /// for a string literal, so 報名在 Indico 上完成… reached `Text(_: S)` — the
+    /// initialiser that does *not* localise — and shipped in Chinese to somebody
+    /// reading the app in English, with a perfectly good translation sitting in
+    /// the catalogue.
+    private func caption(verbatim text: String) -> some View {
+        Text(verbatim: text)
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
@@ -302,6 +364,9 @@ struct EventDetailView: View {
         do {
             try await indico.link()
             await tickets.load(eventID: event.id, using: indico)
+            // Whatever the probe decided while the session was stale — a login
+            // page reads as "no pass" — was decided about the old session.
+            tickets.forgetWalletPass(eventID: event.id)
             await tickets.loadWalletPass(eventID: event.id, using: indico)
             await checkin.probe(eventID: event.id, using: indico)
         } catch {
@@ -344,16 +409,28 @@ struct EventDetailView: View {
         )
     }
 
+    /// The facts, and the two of them that are also doors.
+    ///
+    /// Both the venue and the address open the same map — they are one place,
+    /// described twice, and a member who taps the half they happened to read
+    /// should not get a different answer for it.
     private var infoCard: some View {
         VStack(spacing: 0) {
-            FactRow("時間", value: event.schedule)
+            FactRow("時間", value: event.schedule,
+                    symbol: "calendar.badge.plus",
+                    hint: "加入行事曆") {
+                Task { await addToCalendar() }
+            }
+
             if let place = event.place {
                 RowSeparator()
-                FactRow("地點", value: place)
+                FactRow("地點", value: place,
+                        symbol: "map", hint: "在地圖開啟", action: openMap)
             }
             if let address = event.address, !address.isEmpty {
                 RowSeparator()
-                FactRow("地址", value: address)
+                FactRow("地址", value: address,
+                        symbol: "map", hint: "在地圖開啟", action: openMap)
             }
         }
         .background(Color(.secondarySystemGroupedBackground))

@@ -134,14 +134,17 @@ final class MembershipCodeStore {
     enum CodeError: LocalizedError {
         case server(status: Int, body: String)
 
+        /// Spelled `String(localized:)` rather than left as a bare literal:
+        /// `errorDescription` returns a `String`, so a literal here is a literal
+        /// all the way to the banner — Chinese on an English phone.
         var errorDescription: String? {
             switch self {
             case .server(let status, let body) where status == 401:
-                "登入已失效,請重新登入。(401 \(body.prefix(120)))"
+                String(localized: "登入已失效，請重新登入。(401 \(String(body.prefix(120))))")
             case .server(let status, let body) where status == 403:
-                "帳號缺少必要的授權範圍。(403 \(body.prefix(120)))"
+                String(localized: "帳號缺少必要的授權範圍。(403 \(String(body.prefix(120))))")
             case .server(let status, let body):
-                "伺服器錯誤 \(status)。\(body.prefix(120))"
+                String(localized: "伺服器錯誤 \(status)。\(String(body.prefix(120)))")
             }
         }
     }

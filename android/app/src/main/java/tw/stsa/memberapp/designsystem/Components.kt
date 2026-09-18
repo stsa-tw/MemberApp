@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -118,12 +119,39 @@ fun RowSeparator(inset: Dp = 16.dp) {
  * with a headline and supporting text underneath. This is two columns on one
  * baseline, and the value is the half that wraps — an address runs to three
  * lines and its label should stay level with the first of them.
+ *
+ * Some facts are also doors — a time you can put in your calendar, a place you
+ * can get directions to — and those pass [onClick] with the [icon] that says so.
+ * A tinted glyph rather than a trailing chevron, because a chevron in this app
+ * means "another screen of ours is behind this" and these hand off to a
+ * different app entirely. [onClickLabel] is what TalkBack announces the tap as;
+ * the glyph itself is decorative and stays unlabelled.
  */
 @Composable
-fun FactRow(label: String, value: String, modifier: Modifier = Modifier) {
+fun FactRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    onClickLabel: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Before the padding, so the ripple covers the whole row rather than
+            // stopping short of the gutter it is inset by.
+            .then(
+                if (onClick == null) {
+                    Modifier
+                } else {
+                    Modifier.clickable(
+                        role = Role.Button,
+                        onClickLabel = onClickLabel,
+                        onClick = onClick,
+                    )
+                }
+            )
             .padding(horizontal = Theme.Metrics.gutter, vertical = 11.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -138,6 +166,14 @@ fun FactRow(label: String, value: String, modifier: Modifier = Modifier) {
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f),
         )
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

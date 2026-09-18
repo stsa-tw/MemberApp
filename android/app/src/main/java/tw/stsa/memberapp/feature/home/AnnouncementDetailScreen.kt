@@ -79,22 +79,31 @@ fun AnnouncementDetailScreen(navController: NavHostController, index: Int) {
                 Spacer(Modifier.size(14.dp))
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(Theme.Radius.card))
-                    .background(MaterialTheme.colorScheme.sectionContainer),
-            ) {
-                DetailRow(stringResource(R.string.label_time), announcement.whenText)
-                RowSeparator()
-                DetailRow(stringResource(R.string.label_venue), announcement.place)
-                announcement.contact?.let { contact ->
-                    RowSeparator()
-                    DetailRow(stringResource(R.string.label_contact), contact)
+            // The card of stated facts, or nothing at all. A notice that is not
+            // about a gathering — the app going live, say — has no time and no
+            // place, and an empty rounded box under the text reads as a loading
+            // failure. Built from whichever rows exist so the separators land
+            // between them rather than around a gap.
+            val facts = listOfNotNull(
+                announcement.whenText?.let { stringResource(R.string.label_time) to it },
+                announcement.place?.let { stringResource(R.string.label_venue) to it },
+                announcement.contact?.let { stringResource(R.string.label_contact) to it },
+            )
+            if (facts.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Theme.Radius.card))
+                        .background(MaterialTheme.colorScheme.sectionContainer),
+                ) {
+                    facts.forEachIndexed { index, (label, value) ->
+                        if (index > 0) RowSeparator()
+                        DetailRow(label, value)
+                    }
                 }
-            }
 
-            Spacer(Modifier.size(20.dp))
+                Spacer(Modifier.size(20.dp))
+            }
 
             // Prefers pushing the event inside the app; falls back to the web
             // only when the event is not in the loaded window or has left the

@@ -13,6 +13,10 @@ struct MemberCardView: View {
 
     private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
+    /// Side of the QR, in points. The placeholder and error states match it so
+    /// the card does not resize as the code loads, expires, or fails.
+    private static let qrSize: CGFloat = 220
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -148,12 +152,12 @@ struct MemberCardView: View {
 
     @ViewBuilder
     private var qrPanel: some View {
-        if let payload = codes.payload, let image = QRCode.image(for: payload, size: 152) {
+        if let payload = codes.payload, let image = QRCode.image(for: payload, size: Self.qrSize) {
             VStack(spacing: 10) {
                 image
                     .interpolation(.none)
                     .resizable()
-                    .frame(width: 152, height: 152)
+                    .frame(width: Self.qrSize, height: Self.qrSize)
                     // Always on white, in both appearances: scanners expect
                     // dark modules on a light field, and the generator's output
                     // would otherwise sit on a dark card in Dark Mode.
@@ -191,10 +195,10 @@ struct MemberCardView: View {
                 }
                 .font(.subheadline)
             }
-            .frame(height: 152)
+            .frame(height: Self.qrSize)
         } else {
             ProgressView()
-                .frame(height: 152)
+                .frame(height: Self.qrSize)
         }
     }
 

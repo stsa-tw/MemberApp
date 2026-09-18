@@ -42,6 +42,17 @@ final class TicketDocument {
     func load(from url: URL, using indico: IndicoAuthManager) async {
         state = .loading
 
+#if DEBUG
+        // The App Store capture has no Indico session and no ticket to fetch,
+        // and the screen is the thing being photographed. Stops before the
+        // request rather than after it: the fixture member holds no
+        // authorization, so the real path could only ever reach `.failed`.
+        if ScreenshotFixtures.isEnabled {
+            state = .ready(.code(ScreenshotFixtures.ticketCode))
+            return
+        }
+#endif
+
         do {
             let request = try indico.authorizedRequest(for: url)
             let (data, response) = try await URLSession.shared.data(for: request)

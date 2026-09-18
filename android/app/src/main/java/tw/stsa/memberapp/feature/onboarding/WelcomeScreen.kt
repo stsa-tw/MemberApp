@@ -109,13 +109,12 @@ fun WelcomeScreen() {
         }
     }
 
-    // One entry point for both buttons: whether the member asked to choose an
-    // account or merely signed out last time, the step before signing in is the
-    // same one — end the browser's session so authentik has to ask.
-    val startSignIn: (Boolean) -> Unit = { choosingAccount ->
+    // When the member signed out last time, the step before signing in is to end
+    // the browser's session so authentik has to ask who is signing in.
+    val startSignIn: () -> Unit = {
         scope.launch {
             try {
-                val signOut = if (choosingAccount || auth.shouldChooseAccount) {
+                val signOut = if (auth.shouldChooseAccount) {
                     auth.browserSignOutIntent()
                 } else {
                     null
@@ -191,7 +190,7 @@ fun WelcomeScreen() {
         // ever authenticates an existing one.
         BrandButton(
             enabled = !auth.isBusy && !indico.isBusy,
-            onClick = { startSignIn(false) },
+            onClick = { startSignIn() },
         ) {
             if (auth.isBusy || indico.isBusy) {
                 Box(contentAlignment = Alignment.Center) {
@@ -203,19 +202,6 @@ fun WelcomeScreen() {
             } else {
                 Text(stringResource(R.string.sign_in))
             }
-        }
-
-        // The sign-in above rides the browser's authentik session, which is what
-        // makes it one tap — and, on a phone whose browser is already somebody's,
-        // what makes it one tap into the wrong account. The tab opens and closes
-        // again before it can be read. This is how a member says which account is
-        // theirs.
-        TextButton(
-            enabled = !auth.isBusy && !indico.isBusy,
-            onClick = { startSignIn(true) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.sign_in_other_account))
         }
 
         Spacer(Modifier.size(8.dp))

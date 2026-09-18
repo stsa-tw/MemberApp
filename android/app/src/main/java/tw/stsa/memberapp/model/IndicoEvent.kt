@@ -49,6 +49,40 @@ data class IndicoEvent(
             return if (parts.isEmpty()) null else parts.joinToString(" · ")
         }
 
+    /**
+     * What to search a map for.
+     *
+     * The venue *name*, not the postal address. A name is the thing a map is good
+     * at: it lands on the place itself, with its page and its entrances, and
+     * where the name is ambiguous it offers a choice. An address an organiser
+     * typed into Indico is often partial or stale, and geocoding it exactly drops
+     * a confident pin on whatever happened to match — being precisely wrong,
+     * which is worse than a short list.
+     *
+     * The room is left out for the same reason: `#04-32` is where to go once you
+     * are inside the building and means nothing to a map.
+     *
+     * The address stands in only where there is no name, which is the one case
+     * where it is all there is to go on.
+     */
+    val mapQuery: String?
+        get() = location?.trim()?.takeIf { it.isNotEmpty() }
+            ?: address?.trim()?.takeIf { it.isNotEmpty() }
+
+    /**
+     * Where the event is, as the one line a calendar entry can hold.
+     *
+     * Everything the screen shows, room included, because this is text a person
+     * reads back a month later — "which building, and which floor" is exactly
+     * what they are opening the entry for. Not what [mapQuery] searches for: that
+     * is a different job and wants less.
+     */
+    val locationLine: String?
+        get() {
+            val parts = listOfNotNull(place, address?.trim()).filter { it.isNotEmpty() }
+            return if (parts.isEmpty()) null else parts.joinToString(", ")
+        }
+
     /** Small uppercase label above the title on the detail hero. */
     @get:StringRes
     val kickerRes: Int

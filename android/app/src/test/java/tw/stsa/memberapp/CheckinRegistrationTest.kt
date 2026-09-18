@@ -20,6 +20,7 @@ private fun makeRegistration(
     eventId: Int = 12,
     regformId: Int = 3,
     checkinSecret: String? = "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+    tags: String? = null,
 ): CheckinRegistration {
     val fields = buildList {
         add(""""id": $id""")
@@ -31,6 +32,7 @@ private fun makeRegistration(
         add(""""checked_in": $checkedIn""")
         if (checkedInAt != null) add(""""checked_in_dt": "$checkedInAt"""")
         if (checkinSecret != null) add(""""checkin_secret": "$checkinSecret"""")
+        if (tags != null) add(""""tags": $tags""")
     }
     return CheckinRegistration.decode("{${fields.joinToString(",")}}")
 }
@@ -159,6 +161,81 @@ class CheckinMatchingTest {
     fun `ignores an empty address`() {
         val registrations = listOf(makeRegistration(id = 1, email = ""))
         assertNull(CheckinSession.match("", registrations))
+    }
+}
+
+/**
+ * Tags are the organiser's own marks on a registration, and the door reads them
+ * out loud — 素食 decides what somebody is handed at the desk.
+ */
+class RegistrationTagTest {
+
+    private val tagged = makeRegistration(
+        tags = """[{"id": 7, "title": "素食", "color": "green"},
+                   {"id": 9, "title": "講者", "color": "violet"},
+                   {"id": 11, "title": "   ", "color": "red"}]""",
+    )
+
+    @Test
+    fun `decodes the organisers tags`() {
+        assertEquals(listOf("素食", "講者"), tagged.tags.map { it.title })
+        assertEquals("green", tagged.tags.first().color)
+    }
+
+    /**
+     * An untitled tag would draw as an empty chip, which reads as a rendering
+     * bug rather than as the empty tag it is.
+     */
+    @Test
+    fun `drops a tag with no title`() {
+        assertFalse(tagged.tags.any { it.id == 11 })
+    }
+
+    /** Most registrations carry none, and the field is absent when they do not. */
+    @Test
+    fun `tolerates no tags at all`() {
+        assertTrue(makeRegistration().tags.isEmpty())
+    }
+}
+
+/**
+ * The search behind 手動報到: a 幹部 types a name, an address, or the tag the
+ * organiser sorted people by.
+ */
+class RegistrationSearchTest {
+
+    private val registration = makeRegistration(
+        fullName = "陳小明",
+        email = "member@u.nus.edu",
+        tags = """[{"id": 7, "title": "素食", "color": "green"}]""",
+    )
+
+    @Test
+    fun `searches name email and tags`() {
+        assertTrue(registration.matches("小明"))
+        assertTrue(registration.matches("MEMBER@u.nus"))
+        assertTrue(registration.matches("素食"))
+        assertFalse(registration.matches("蛋奶素"))
+    }
+
+    /** A search field nobody has typed into hides nobody. */
+    @Test
+    fun `an empty needle matches everyone`() {
+        assertTrue(registration.matches("  "))
+    }
+
+    /**
+     * The order every roster reads in: the people still to come first, the
+     * withdrawn last where they cannot be tapped by accident.
+     */
+    @Test
+    fun `sorts the people still to come first`() {
+        val order = listOf(
+            makeRegistration(id = 1, fullName = "王五", state = "withdrawn"),
+            makeRegistration(id = 2, fullName = "李四", checkedIn = true),
+            makeRegistration(id = 3, fullName = "張三"),
+        ).sortedWith(CheckinRegistration.ROSTER_ORDER).map { it.id }
+        assertEquals(listOf(3, 2, 1), order)
     }
 }
 

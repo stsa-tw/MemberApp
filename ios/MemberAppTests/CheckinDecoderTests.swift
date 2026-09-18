@@ -13,6 +13,11 @@ private let payload = """
   "email": "Kimi@example.com",
   "state": "complete",
   "checked_in": false,
+  "tags": [
+    {"id": 7, "title": "素食", "color": "green"},
+    {"id": 9, "title": "講者", "color": "violet"},
+    {"id": 11, "title": "   ", "color": "red"}
+  ],
   "registration_data": [
     {
       "id": 1, "position": 1, "title": "個人資料", "description": "",
@@ -91,6 +96,32 @@ struct CheckinDecoderTests {
     /// vanishing — a staffer reading a raw value beats a row that is not there.
     @Test func fallsBackRatherThanDroppingAnUnknownShape() {
         #expect(CheckinDecoder.display(inputType: "sessions", data: ["早上", "下午"], choices: []) == "早上\n下午")
+    }
+
+    /// Tags are the organiser's own marks on a registration, and the door reads
+    /// them out loud — 素食 decides what somebody is handed at the desk.
+    @Test func readsTheOrganisersTags() throws {
+        let tags = try decoded().tags
+        #expect(tags.map(\.title) == ["素食", "講者"])
+        #expect(tags.first?.color == "green")
+    }
+
+    /// An untitled tag would draw as an empty chip, which reads as a rendering
+    /// bug rather than as the empty tag it is.
+    @Test func dropsATagWithNoTitle() throws {
+        #expect(try decoded().tags.contains { $0.id == 11 } == false)
+    }
+
+    /// The search behind 手動報到: a 幹部 types a name, an address, or the tag
+    /// the organiser sorted people by.
+    @Test func searchesNameEmailAndTags() throws {
+        let registration = try decoded()
+        #expect(registration.matches("楊"))
+        #expect(registration.matches("KIMI@example"))
+        #expect(registration.matches("素食"))
+        #expect(registration.matches("蛋奶素") == false)
+        // An empty field hides nobody.
+        #expect(registration.matches("  "))
     }
 
     @Test func readsAList() {

@@ -1,31 +1,28 @@
 package tw.stsa.memberapp.feature.checkin
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,13 +33,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
@@ -89,6 +88,9 @@ fun CheckinScreen(navController: NavHostController, eventId: String, formId: Int
 
     var outcome by remember { mutableStateOf<Outcome?>(null) }
     var isPickingByName by remember { mutableStateOf(false) }
+    // Undo is one tap from the screen that admits people, so it asks first.
+    // Nothing else here can take an arrival back off the record.
+    var undoing by remember { mutableStateOf<CheckinRegistration?>(null) }
 
     // Widening the grant is an activity result on Android, the same shape the
     // ticket screen uses for the first link. Only this staffer is prompted.
@@ -110,6 +112,16 @@ fun CheckinScreen(navController: NavHostController, eventId: String, formId: Int
     LaunchedEffect(Unit) {
         if (!hasCamera) permission.launch(Manifest.permission.CAMERA)
         session.load()
+    }
+
+    // And re-asked every few seconds after that, because this is not the only
+    // door: without it the count below the viewfinder is the one this phone
+    // started with, and a member another 幹部 already admitted scans here as a
+    // first arrival. Tied to RESUMED so it stops while the app is in the
+    // background, where the camera is down and nobody is at the desk.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(session, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) { session.autoRefresh() }
     }
 
     ScreenScaffold(
@@ -231,6 +243,29 @@ fun CheckinScreen(navController: NavHostController, eventId: String, formId: Int
         }
     }
 
+    undoing?.let { registration ->
+        UndoDialog(
+            onDismiss = { undoing = null },
+            onConfirm = {
+                undoing = null
+                scope.launch {
+                    outcome = try {
+                        val updated = session.checkIn(registration, checkedIn = false)
+                        container.checkin.update(updated)
+                        // Back to the screen a worker who undid the wrong person
+                        // needs next: the same name, with 確認報到 under it.
+                        Outcome.Found(updated)
+                    } catch (error: CheckinError) {
+                        Outcome.Failed(
+                            error.message(context),
+                            error is CheckinError.NeedsAuthorization,
+                        )
+                    }
+                }
+            },
+        )
+    }
+
     val current = outcome
     if (current != null) {
         ModalBottomSheet(
@@ -257,6 +292,7 @@ fun CheckinScreen(navController: NavHostController, eventId: String, formId: Int
                         }
                     }
                 },
+                onUndo = { undoing = it },
                 onDismiss = { outcome = null },
                 onAuthorize = {
                     authorize.launch(
@@ -280,6 +316,7 @@ private fun OutcomeSheet(
     outcome: Outcome,
     isSubmitting: Boolean,
     onConfirm: (CheckinRegistration) -> Unit,
+    onUndo: (CheckinRegistration) -> Unit,
     onDismiss: () -> Unit,
     onAuthorize: () -> Unit,
 ) {
@@ -293,6 +330,10 @@ private fun OutcomeSheet(
         when (outcome) {
             is Outcome.Found -> {
                 Message(outcome.registration.fullName, outcome.registration.email)
+                // The organiser's own marks, under the name because they are
+                // what the desk acts on next — a 素食 chip decides which bag
+                // somebody is handed.
+                RegistrationTagChips(outcome.registration.tags)
                 if (outcome.registration.checkedIn) {
                     Text(
                         text = alreadyLabel(outcome.registration),
@@ -300,25 +341,37 @@ private fun OutcomeSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                BrandButton(
-                    onClick = { onConfirm(outcome.registration) },
-                    enabled = !isSubmitting,
-                ) {
-                    Text(
-                        stringResource(
-                            if (outcome.registration.checkedIn) {
-                                R.string.checkin_confirm_again
-                            } else {
-                                R.string.checkin_confirm
-                            },
-                        ),
+                if (outcome.registration.isAdmissible && !outcome.registration.checkedIn) {
+                    BrandButton(
+                        onClick = { onConfirm(outcome.registration) },
+                        enabled = !isSubmitting,
+                    ) {
+                        Text(stringResource(R.string.checkin_confirm))
+                    }
+                }
+                // Where 再次報到 used to be. PATCHing a flag that is already true
+                // changes nothing and said so to nobody; what a worker actually
+                // reaches for on a second scan is the way back out.
+                if (outcome.registration.checkedIn) {
+                    BrandTextButton(
+                        text = stringResource(R.string.checkin_undo),
+                        onClick = { onUndo(outcome.registration) },
+                        enabled = !isSubmitting,
                     )
                 }
             }
 
             is Outcome.Done -> {
                 Message(stringResource(R.string.checkin_done), outcome.registration.fullName)
+                RegistrationTagChips(outcome.registration.tags)
                 BrandButton(onClick = onDismiss) { Text(stringResource(R.string.checkin_continue)) }
+                // The wrong person is admitted at the moment the sheet says so,
+                // not five screens later, so the correction lives here too.
+                BrandTextButton(
+                    text = stringResource(R.string.checkin_undo),
+                    onClick = { onUndo(outcome.registration) },
+                    enabled = !isSubmitting,
+                )
             }
 
             is Outcome.Failed -> {
@@ -332,6 +385,29 @@ private fun OutcomeSheet(
             }
         }
     }
+}
+
+/**
+ * Asked before an arrival is taken back off Indico's record — the one thing on
+ * this screen that undoes rather than records.
+ */
+@Composable
+internal fun UndoDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.checkin_undo_title)) },
+        text = { Text(stringResource(R.string.checkin_undo_detail)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.checkin_undo))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.checkin_undo_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -416,27 +492,16 @@ private fun ManualPicker(
 ) {
     var query by remember { mutableStateOf("") }
 
-    // Matched on name *and* email, because a worker reading a name off a screen
-    // and one reading an address back to a member are the same errand. Not
-    // checked in first — the people still to come — and anyone withdrawn last,
-    // where they cannot be tapped by accident.
-    val needle = query.trim().lowercase()
+    // Searched and sorted the same way the roster on 幹部功能 is — see
+    // CheckinRegistration.matches() and ROSTER_ORDER, which are the one copy of
+    // both rules.
     val matches = registrations
-        .filter {
-            needle.isEmpty() ||
-                it.fullName.lowercase().contains(needle) ||
-                it.email.lowercase().contains(needle)
-        }
-        .sortedWith(
-            compareBy<CheckinRegistration> { it.isCancelled }
-                .thenBy { it.checkedIn }
-                .thenBy { it.fullName },
-        )
+        .filter { it.matches(query) }
+        .sortedWith(CheckinRegistration.ROSTER_ORDER)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Theme.Metrics.gutter)
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -445,7 +510,9 @@ private fun ManualPicker(
             onValueChange = { query = it },
             singleLine = true,
             label = { Text(stringResource(R.string.checkin_manual_search)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Theme.Metrics.gutter),
         )
 
         if (matches.isEmpty()) {
@@ -459,63 +526,10 @@ private fun ManualPicker(
         } else {
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 items(matches, key = { it.id }) { registration ->
-                    ManualPickerRow(registration, onPick = { onPick(registration) })
+                    RegistrationRow(registration, onClick = { onPick(registration) })
                     RowSeparator()
                 }
             }
         }
     }
 }
-
-@Composable
-private fun ManualPickerRow(registration: CheckinRegistration, onPick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onPick)
-            .alpha(if (registration.isCancelled) 0.45f else 1f)
-            .padding(vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = registration.fullName, style = MaterialTheme.typography.bodyLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = registration.email,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-                registrationStateLabel(registration)?.let { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.size(8.dp))
-        if (registration.checkedIn) {
-            Text(
-                text = stringResource(R.string.checkin_checked_in),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
-}
-
-/**
- * The state, said out loud, when it is worth saying. `complete` is the ordinary
- * case and a row that announced it would only be noise.
- */
-@Composable
-internal fun registrationStateLabel(registration: CheckinRegistration): String? =
-    when (registration.state) {
-        CheckinRegistration.State.UNPAID -> stringResource(R.string.registration_state_unpaid)
-        CheckinRegistration.State.PENDING -> stringResource(R.string.registration_state_pending)
-        CheckinRegistration.State.WITHDRAWN -> stringResource(R.string.registration_state_withdrawn)
-        CheckinRegistration.State.REJECTED -> stringResource(R.string.registration_state_rejected)
-        else -> null
-    }

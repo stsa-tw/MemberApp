@@ -20,11 +20,13 @@ enum WalletPass {
         case server(status: Int)
         case malformed
 
+        /// `String(localized:)` for the same reason as `MembershipCodeStore`'s:
+        /// a bare literal in an `errorDescription` never reaches the catalogue.
         var errorDescription: String? {
             switch self {
-            case .unavailable: "這台裝置無法加入 Apple Wallet。"
-            case .server(let status): "Indico 回應 HTTP \(status)。"
-            case .malformed: "票券格式無法讀取。"
+            case .unavailable: String(localized: "這台裝置無法加入 Apple Wallet。")
+            case .server(let status): String(localized: "Indico 回應 HTTP \(status)。")
+            case .malformed: String(localized: "票券格式無法讀取。")
             }
         }
     }
@@ -33,6 +35,20 @@ enum WalletPass {
     /// restricted, where offering the button would be a dead end.
     static var isAvailable: Bool {
         PKAddPassesViewController.canAddPasses()
+    }
+
+    /// Whether these bytes are a pass Wallet would take.
+    ///
+    /// The one honest test, and deliberately the same parse `add` performs.
+    /// A `Content-Type` is what a server *claims*; `TicketStore`'s probe used to
+    /// decide the button on that header alone, which put the answer at the mercy
+    /// of how one instance, one proxy or one login redirect spells a string.
+    /// `PKPass` reads the signed archive, so the button now appears where the
+    /// pass would genuinely add, and nowhere else.
+    ///
+    /// The bytes are not kept, for the reason at the top of this file.
+    static func isPass(_ data: Data) -> Bool {
+        (try? PKPass(data: data)) != nil
     }
 
     /// Fetches the pass and presents Wallet's own add sheet.

@@ -62,9 +62,6 @@ fun HomeScreen(navController: NavHostController) {
     val events = container.events
     val announcements = Announcement.samples
 
-    // Prefer the nickname: authentik fills given_name with the full name, and
-    // trimming a surname by character count breaks on two-character ones.
-    val name = auth.profile?.let { it.nickname ?: it.givenName ?: it.displayName }.orEmpty()
     val timeOfDay = stringResource(
         when (LocalTime.now().hour) {
             in 5..11 -> R.string.greeting_morning
@@ -90,7 +87,7 @@ fun HomeScreen(navController: NavHostController) {
     )
 
     ScreenScaffold(
-        title = stringResource(R.string.greeting_format, timeOfDay, name),
+        title = timeOfDay,
         large = true,
         actions = {
             IconButton(onClick = { navController.navigate(Channels) }) {

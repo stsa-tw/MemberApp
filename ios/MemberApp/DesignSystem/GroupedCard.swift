@@ -103,22 +103,72 @@ struct DisclosureChevron: View {
 /// `.top` alignment rather than centred, because the value is the half that
 /// wraps: an address runs to three lines and its label should stay level with
 /// the first of them.
+///
+/// Some facts are also doors — a time you can put in your calendar, a place you
+/// can get directions to — and those take the second initialiser. They get a
+/// tinted glyph rather than a `DisclosureChevron`, because a chevron in this app
+/// means "another screen of ours is behind this" and these hand off to a
+/// different app entirely.
 struct FactRow: View {
     let label: LocalizedStringKey
     let value: String
+    private let tap: Tap?
+
+    /// What a tappable row carries beyond a plain one.
+    private struct Tap {
+        let symbol: String
+        /// Read by VoiceOver after the row itself, so it says what the tap does
+        /// — the glyph alone is silent and the value gives no clue.
+        let hint: LocalizedStringKey
+        let action: () -> Void
+    }
 
     init(_ label: LocalizedStringKey, value: String) {
         self.label = label
         self.value = value
+        self.tap = nil
+    }
+
+    init(
+        _ label: LocalizedStringKey,
+        value: String,
+        symbol: String,
+        hint: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) {
+        self.label = label
+        self.value = value
+        self.tap = Tap(symbol: symbol, hint: hint, action: action)
     }
 
     var body: some View {
+        if let tap {
+            Button(action: tap.action) {
+                row(symbol: tap.symbol)
+                    // A plain-styled button hit-tests only what it draws, and
+                    // most of this row is the gap between label and value — the
+                    // obvious place to aim would otherwise swallow the tap.
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(tap.hint)
+        } else {
+            row(symbol: nil)
+        }
+    }
+
+    private func row(symbol: String?) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(label)
                 .foregroundStyle(.secondary)
             Spacer(minLength: 12)
             Text(value)
                 .multilineTextAlignment(.trailing)
+            if let symbol {
+                Image(systemName: symbol)
+                    .foregroundStyle(Theme.Palette.brand)
+                    .accessibilityHidden(true)
+            }
         }
         .font(.subheadline)
         .padding(.horizontal, Theme.Metrics.gutter)

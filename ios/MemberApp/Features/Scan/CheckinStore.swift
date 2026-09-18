@@ -48,6 +48,17 @@ final class CheckinStore {
     struct Form: Identifiable, Equatable {
         let id: Int
         let title: String
+        /// Whether Indico is still taking registrations on it.
+        let isOpen: Bool
+        /// Indico's own numbers, as of the probe.
+        ///
+        /// `registration_count` is `existing_registrations_count`: it counts the
+        /// withdrawn and rejected rows that [expected] drops, and counts an
+        /// accompanying person as a seat. So it is the right number to show
+        /// before the roster lands and the wrong one to keep once it has, which
+        /// is why the count helpers prefer the roster and fall back to this.
+        let registrationCount: Int
+        let checkedInCount: Int
     }
 
     private(set) var access: [String: Access] = [:]
@@ -63,6 +74,10 @@ final class CheckinStore {
     /// How many check-ins this app has written for an event, used only to tell
     /// a refetch that started earlier that it is now out of date.
     @ObservationIgnored private var writes: [String: Int] = [:]
+
+    /// The events with a roster fetch already in flight, so a poll coming round
+    /// again does not start a second one behind it.
+    @ObservationIgnored private var inFlight: Set<String> = []
 
     private static let indicoHost = "event.stsa.tw"
     private static let host = "https://\(indicoHost)"
@@ -89,6 +104,56 @@ final class CheckinStore {
         entries(for: eventID, formID: formID).filter { !$0.registration.isCancelled }
     }
 
+    // MARK: - The numbers
+
+    /// The counts a screen shows, answered from the roster when there is one and
+    /// from the probe's snapshot until then.
+    ///
+    /// The order matters after a scan: the probe's numbers were taken before the
+    /// door opened, while the roster is folded forward by [checkIn] as people
+    /// come through. It also means the number can shift slightly when the list
+    /// lands and replaces it — see [Form.registrationCount] for why.
+    func checkedInCount(eventID: String, formID: Int) -> Int {
+        if let loaded = loadedExpected(eventID: eventID, formID: formID) {
+            return loaded.filter(\.registration.checkedIn).count
+        }
+        return form(eventID: eventID, formID: formID)?.checkedInCount ?? 0
+    }
+
+    func registeredCount(eventID: String, formID: Int) -> Int {
+        if let loaded = loadedExpected(eventID: eventID, formID: formID) { return loaded.count }
+        return form(eventID: eventID, formID: formID)?.registrationCount ?? 0
+    }
+
+    /// The whole event, for the one-line summary on the event screen.
+    func checkedInCount(eventID: String) -> Int {
+        if roster[eventID] != nil {
+            return entries(for: eventID)
+                .filter { !$0.registration.isCancelled && $0.registration.checkedIn }
+                .count
+        }
+        return forms(for: eventID).reduce(0) { $0 + $1.checkedInCount }
+    }
+
+    func registeredCount(eventID: String) -> Int {
+        if roster[eventID] != nil {
+            return entries(for: eventID).filter { !$0.registration.isCancelled }.count
+        }
+        return forms(for: eventID).reduce(0) { $0 + $1.registrationCount }
+    }
+
+    /// The form's expected list, or nil when the roster has not landed — the
+    /// difference between "nobody" and "not known yet", which is the whole
+    /// question the fallback turns on. An empty roster is an answer.
+    private func loadedExpected(eventID: String, formID: Int) -> [Entry]? {
+        guard roster[eventID] != nil else { return nil }
+        return expected(eventID: eventID, formID: formID)
+    }
+
+    private func form(eventID: String, formID: Int) -> Form? {
+        forms(for: eventID).first { $0.id == formID }
+    }
+
     /// Asks Indico whether this member manages the event, which is the same
     /// request that fetches the form ids the roster needs.
     func probe(eventID: String, using indico: IndicoAuthManager) async {
@@ -113,7 +178,13 @@ final class CheckinStore {
             self.forms[eventID] = forms.compactMap { raw -> Form? in
                 guard let id = raw["id"] as? Int else { return nil }
                 let title = (raw["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
-                return Form(id: id, title: title)
+                return Form(
+                    id: id,
+                    title: title,
+                    isOpen: raw["is_open"] as? Bool ?? false,
+                    registrationCount: raw["registration_count"] as? Int ?? 0,
+                    checkedInCount: raw["checked_in_count"] as? Int ?? 0
+                )
             }
             access[eventID] = self.forms[eventID]?.isEmpty == false ? .allowed : .denied
         } catch {
@@ -134,19 +205,60 @@ final class CheckinStore {
     /// The count on this phone moves when *this* phone records a check-in, and
     /// that is all it knew: a second 幹部 on a second phone, or anyone using
     /// Indico's own app, moved a number this one never saw. So the list is
-    /// re-asked when the door screen opens and whenever the roster is pulled
-    /// down, rather than being fetched once and believed for the rest of the
-    /// event.
+    /// re-asked when the door screen opens, whenever the roster is pulled down,
+    /// and every few seconds while either is on screen — rather than being
+    /// fetched once and believed for the rest of the event.
     func refreshRoster(eventID: String, using indico: IndicoAuthManager) async {
         await fetchRoster(eventID: eventID, using: indico)
+    }
+
+    /// How often a roster on screen re-asks Indico.
+    ///
+    /// Five seconds because of what the staleness actually costs: a 幹部 waves
+    /// somebody through believing they are the first to admit them, and no
+    /// screen anywhere will later disagree. It is one request per registration
+    /// form — two for 烤場集合 — and only while a 幹部 is looking at the list or
+    /// standing at the door, so the traffic is a handful of phones for the hours
+    /// an event is being run, not every member in the app.
+    static let refreshInterval: Duration = .seconds(5)
+
+    /// Keeps one event's roster current for as long as the calling task lives.
+    ///
+    /// A loop the caller owns rather than a timer the store owns: a screen going
+    /// away, or the app leaving the foreground, cancels the task and the polling
+    /// stops with it. Nothing re-asks Indico about a door nobody is standing at.
+    ///
+    /// Asks before it waits, because the caller restarts this every time the app
+    /// returns to the foreground — and a phone that has been in a pocket for ten
+    /// minutes is holding the worst list in the building. Waiting first would
+    /// show it for five more seconds to somebody already reading it. The extra
+    /// request this costs on the way in is usually not made at all: every screen
+    /// here also fetches on appear, and `inFlight` folds the two together.
+    func autoRefresh(eventID: String, using indico: IndicoAuthManager) async {
+        while !Task.isCancelled {
+            await fetchRoster(eventID: eventID, using: indico)
+            try? await Task.sleep(for: Self.refreshInterval)
+        }
     }
 
     private func fetchRoster(eventID: String, using indico: IndicoAuthManager) async {
         let eventForms = forms(for: eventID)
         guard !eventForms.isEmpty else { return }
 
-        isLoadingRoster = true
-        defer { isLoadingRoster = false }
+        // One fetch per event at a time. Polling on a venue's wifi will sooner
+        // or later come round before the last request landed, and stacking them
+        // buys nothing: they all ask the same question, and the slowest would
+        // answer it last.
+        guard !inFlight.contains(eventID) else { return }
+        inFlight.insert(eventID)
+        defer { inFlight.remove(eventID) }
+
+        // The flag behind a first-load spinner, and nothing else: once there is
+        // a list on screen, a refresh must not take it away and put a spinner
+        // there — least of all one arriving every five seconds.
+        let isFirstLoad = roster[eventID] == nil
+        if isFirstLoad { isLoadingRoster = true }
+        defer { if isFirstLoad { isLoadingRoster = false } }
 
         // Read before the requests go out and compared after they come back: a
         // check-in recorded while this was in flight is newer than anything the
@@ -174,6 +286,12 @@ final class CheckinStore {
                 errorMessage = error.localizedDescription
             }
         }
+
+        // Cancellation is routine now that this is polled — a screen going away
+        // or the app backgrounding takes every request in the loop above down
+        // with it. Those all landed in `catch` and read as a venue with no wifi,
+        // which on a first load would store the empty list they produced.
+        guard !Task.isCancelled else { return }
 
         guard writes[eventID, default: 0] == generation else { return }
 
@@ -321,17 +439,25 @@ final class CheckinStore {
         case unreachable(String)
     }
 
-    /// Records attendance, and folds Indico's answer back into the roster so the
-    /// count and any later scan of the same person are right without refetching.
+    /// Records attendance — or takes it back — and folds Indico's answer into
+    /// the roster so the count and any later scan of the same person are right
+    /// without refetching.
     ///
     /// Idempotent: PATCHing `checked_in` that is already true is accepted and
     /// keeps the original `checked_in_dt`, so a double scan costs nothing.
+    ///
+    /// `checkedIn: false` is the undo, and the same endpoint: Indico clears
+    /// `checked_in_dt` with the flag, so a mistake at the door leaves no trace
+    /// of an arrival that did not happen. It is allowed on a withdrawn
+    /// registration where checking one *in* is not — somebody already marked as
+    /// arrived who should not have been is exactly who this is for.
     func checkIn(
         _ registration: CheckinRegistration,
+        checkedIn: Bool = true,
         eventID: String,
         using indico: IndicoAuthManager
     ) async -> CheckinResult {
-        guard registration.isAdmissible else { return .notAdmissible }
+        guard !checkedIn || registration.isAdmissible else { return .notAdmissible }
         guard indico.canRecordCheckin else { return .needsAuthorization }
 
         guard let url = URL(string:
@@ -346,7 +472,7 @@ final class CheckinStore {
             var request = try indico.authorizedRequest(for: url)
             request.httpMethod = "PATCH"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: ["checked_in": true])
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["checked_in": checkedIn])
 
             let (data, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -366,6 +492,8 @@ final class CheckinStore {
     }
 
     enum CheckinResult: Equatable {
+        /// Indico took the write. Whether that was an arrival or an undo is on
+        /// the registration it hands back, not on the case.
         case recorded(CheckinRegistration)
         /// Withdrawn or rejected — not someone to admit.
         case notAdmissible
@@ -391,6 +519,7 @@ final class CheckinStore {
         roster.removeAll()
         forms.removeAll()
         writes.removeAll()
+        inFlight.removeAll()
         errorMessage = nil
     }
 }

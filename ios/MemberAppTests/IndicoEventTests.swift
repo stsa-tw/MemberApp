@@ -8,6 +8,7 @@ private func makeEvent(
     title: String = "工作坊",
     location: String? = "i2Hub",
     room: String? = "#04-32",
+    address: String? = nil,
     description: String? = nil,
     type: String? = "conference"
 ) throws -> IndicoEvent {
@@ -19,6 +20,7 @@ private func makeEvent(
     ]
     if let location { fields.append(#""location": "\#(location)""#) }
     if let room { fields.append(#""room": "\#(room)""#) }
+    if let address { fields.append(#""address": "\#(address)""#) }
     if let description { fields.append(#""description": "\#(description)""#) }
     if let type { fields.append(#""type": "\#(type)""#) }
 
@@ -129,6 +131,65 @@ struct IndicoEventPlaceTests {
 
     @Test func isNilWhenNeitherFieldIsPresent() throws {
         #expect(try makeEvent(location: nil, room: nil).place == nil)
+    }
+}
+
+/// What Maps is searched for. It is not what any row prints, so nothing on
+/// screen would show it going wrong.
+struct IndicoEventMapQueryTests {
+    /// The venue name alone. The room is where to go inside the building and
+    /// means nothing to a map; the address is precision the app has not earned,
+    /// since Indico's is free text an organiser typed.
+    @Test func searchesForTheVenueName() throws {
+        let event = try makeEvent(address: "21 Heng Mui Keng Terrace")
+        #expect(event.mapQuery == "i2Hub")
+    }
+
+    /// The one case where an address is all there is to go on.
+    @Test func fallsBackToTheAddressWhenThereIsNoVenue() throws {
+        let event = try makeEvent(location: nil, room: "#04-32", address: "21 Heng Mui Keng Terrace")
+        #expect(event.mapQuery == "21 Heng Mui Keng Terrace")
+    }
+
+    /// Blank is not absent in Indico's export, and a map searched for " " lands
+    /// wherever it likes.
+    @Test func treatsBlankFieldsAsAbsent() throws {
+        #expect(try makeEvent(location: "  ", address: "21 Heng Mui Keng Terrace")
+            .mapQuery == "21 Heng Mui Keng Terrace")
+        #expect(try makeEvent(location: "  ", address: "   ").mapQuery == nil)
+    }
+
+    /// Nothing to search for means the row must not offer a map at all.
+    @Test func isNilWhenThereIsNoLocationAtAll() throws {
+        #expect(try makeEvent(location: nil, room: nil, address: nil).mapQuery == nil)
+    }
+}
+
+/// The one line a calendar entry holds — everything, unlike the map query.
+struct IndicoEventLocationLineTests {
+    @Test func putsTheVenueBeforeTheAddress() throws {
+        let event = try makeEvent(address: "21 Heng Mui Keng Terrace")
+        #expect(event.locationLine == "i2Hub · #04-32, 21 Heng Mui Keng Terrace")
+    }
+
+    /// Indico fills in one or the other far more often than both, and a venue
+    /// with no address is still worth searching for.
+    @Test func usesWhicheverHalfIsPresent() throws {
+        #expect(try makeEvent(address: nil).locationLine == "i2Hub · #04-32")
+        #expect(try makeEvent(location: nil, room: nil, address: "21 Heng Mui Keng Terrace")
+            .locationLine == "21 Heng Mui Keng Terrace")
+    }
+
+    /// Blank is not absent in Indico's export. A whitespace-only address would
+    /// otherwise leave a trailing comma in the map query.
+    @Test func treatsABlankAddressAsAbsent() throws {
+        #expect(try makeEvent(address: "   ").locationLine == "i2Hub · #04-32")
+    }
+
+    /// Nothing to search for means no tappable row, so the screen has to be able
+    /// to ask.
+    @Test func isNilWhenThereIsNoLocationAtAll() throws {
+        #expect(try makeEvent(location: nil, room: nil, address: nil).locationLine == nil)
     }
 }
 

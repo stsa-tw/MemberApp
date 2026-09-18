@@ -27,6 +27,40 @@ struct IndicoEvent: Identifiable, Hashable {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
+    /// What to search a map for.
+    ///
+    /// The venue *name*, not the postal address. A name is the thing a map is
+    /// good at: it lands on the place itself, with its page and its entrances,
+    /// and where the name is ambiguous it offers a choice. An address an
+    /// organiser typed into Indico is often partial or stale, and geocoding it
+    /// exactly drops a confident pin on whatever happened to match — being
+    /// precisely wrong, which is worse than a short list.
+    ///
+    /// The room is left out for the same reason: `#04-32` is where to go once
+    /// you are inside the building and means nothing to a map.
+    ///
+    /// The address stands in only where there is no name, which is the one case
+    /// where it is all there is to go on.
+    var mapQuery: String? {
+        let name = location?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let name, !name.isEmpty { return name }
+        let postal = address?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return postal?.isEmpty == false ? postal : nil
+    }
+
+    /// Where the event is, as the one line a calendar entry can hold.
+    ///
+    /// Everything the screen shows, room included, because this is text a person
+    /// reads back a month later — "which building, and which floor" is exactly
+    /// what they are opening the entry for. Not what [mapQuery] searches for:
+    /// that is a different job and wants less.
+    var locationLine: String? {
+        let parts = [place, address?.trimmingCharacters(in: .whitespacesAndNewlines)]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     /// When the event runs, written the way a person would say it.
     ///
     /// In the event's own time zone, not the reader's: an event in Taipei starts

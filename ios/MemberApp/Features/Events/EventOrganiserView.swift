@@ -18,6 +18,7 @@ import SwiftUI
 struct EventOrganiserView: View {
     let event: IndicoEvent
 
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(CheckinStore.self) private var checkin
 
@@ -67,6 +68,13 @@ struct EventOrganiserView: View {
         .navigationTitle("幹部功能")
         .navigationBarTitleDisplayMode(.inline)
         .task { await checkin.loadRoster(eventID: event.id, using: indico) }
+        // Each row carries its form's arrivals, and both doors are being worked
+        // by somebody else — so the counts a 幹部 is choosing between keep asking
+        // Indico rather than ageing while the chooser sits open.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await checkin.autoRefresh(eventID: event.id, using: indico)
+        }
         .refreshable { await checkin.refreshRoster(eventID: event.id, using: indico) }
     }
 

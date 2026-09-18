@@ -27,7 +27,6 @@
     <string name="welcome_highlight_deals_detail">Partner discounts and internships in Singapore</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_links_indico">Signing in also links your Indico account, used to show your registrations and tickets.</string>
-    <string name="sign_in_other_account">Sign in with a different account</string>
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="ok">OK</string>
 
@@ -35,7 +34,6 @@
     <string name="greeting_morning">Good morning</string>
     <string name="greeting_afternoon">Good afternoon</string>
     <string name="greeting_evening">Good evening</string>
-    <string name="greeting_format">%1$s, %2$s</string>
     <string name="home_shortcut_events">Events</string>
     <string name="home_shortcut_deals">Member offers</string>
     <plurals name="events_upcoming_count">
@@ -86,6 +84,10 @@
     <string name="event_ticket_link_note">Links your Indico account, used only to read your own registrations and tickets.</string>
     <string name="event_registered">Registered</string>
     <string name="event_ticket_open">Show ticket</string>
+    <string name="event_add_to_calendar">Add to calendar</string>
+    <string name="event_open_in_maps">Open in maps</string>
+    <string name="event_calendar_unavailable">No calendar app found</string>
+    <string name="event_map_unavailable">No maps app found</string>
     <string name="event_kicker_conference">Event</string>
     <string name="event_kicker_meeting">Meetup</string>
     <string name="event_kicker_lecture">Talk</string>
@@ -209,7 +211,7 @@
     <string name="ticket_unreadable">The ticket couldn\u2019t be read.</string>
     <string name="ticket_add_google_wallet">Add to Google Wallet</string>
     <!-- Check-in -->
-    <string name="checkin_title">Check-in</string>
+    <string name="checkin_title">Check in</string>
     <string name="checkin_organiser_title">Organiser tools</string>
     <string name="checkin_organiser_subtitle">Check-in and registrant list</string>
     <string name="checkin_checked_in">Checked in</string>
@@ -228,18 +230,24 @@
     <string name="checkin_progress">%1$d / %2$d checked in</string>
     <string name="checkin_hint">Scan a member card or an Indico ticket</string>
     <string name="checkin_manual">No QR code? Check in by name</string>
-    <string name="checkin_manual_search">Search name or email</string>
+    <string name="checkin_manual_search">Search name, email or tag</string>
+    <string name="checkin_roster_search">Search name, email or tag</string>
     <string name="checkin_manual_empty">No match on this list.</string>
     <string name="checkin_camera_needed">Scanning needs camera access.</string>
     <string name="checkin_camera_needed_detail">Grant camera access in Settings.</string>
-    <string name="checkin_confirm">Check in</string>
-    <string name="checkin_confirm_again">Check in again</string>
+    <string name="checkin_confirm">Confirm check-in</string>
     <string name="checkin_done">Checked in</string>
     <string name="checkin_continue">Keep scanning</string>
     <string name="checkin_failed">Could not check in</string>
     <string name="checkin_already">Already checked in.</string>
     <string name="checkin_already_at">Checked in at %1$s.</string>
     <string name="checkin_authorize">Authorize</string>
+    <string name="checkin_not_yet">Not checked in</string>
+    <string name="checkin_not_admissible_detail">This registration was withdrawn or rejected, so it cannot be checked in.</string>
+    <string name="checkin_undo">Undo check-in</string>
+    <string name="checkin_undo_title">Undo this check-in?</string>
+    <string name="checkin_undo_detail">The check-in is removed from Indico and this person goes back to not checked in.</string>
+    <string name="checkin_undo_cancel">Back</string>
     <string name="error_checkin_needs_authorization">This Indico authorization is read-only. Grant once and check-ins can be recorded.</string>
 
     <string name="error_checkin_401">Your Indico session has expired — please sign in again.</string>
