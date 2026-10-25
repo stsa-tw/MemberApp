@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
+import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
+import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.SectionHeader
@@ -46,6 +48,8 @@ import tw.stsa.memberapp.model.Deal
 fun DealDetailScreen(navController: NavHostController, brand: String) {
     val deal = Deal.samples.firstOrNull { it.id == brand } ?: return
     val uriHandler = LocalUriHandler.current
+    val auth = LocalAppContainer.current.auth
+    val signIn = rememberSignIn()
 
     ScreenScaffold(
         title = deal.brand,
@@ -81,9 +85,14 @@ fun DealDetailScreen(navController: NavHostController, brand: String) {
                         Text(deal.linkTitle ?: stringResource(R.string.deal_visit_website))
                     }
                     Note(stringResource(R.string.deal_opens_partner_site))
-                } else {
+                } else if (auth.isLoggedIn) {
                     BrandButton(onClick = { navController.navigate(MemberCard) }) {
                         Text(stringResource(R.string.deal_show_card))
+                    }
+                    Note(stringResource(R.string.deal_show_card_note))
+                } else {
+                    BrandButton(onClick = signIn) {
+                        Text(stringResource(R.string.deal_sign_in_show_card))
                     }
                     Note(stringResource(R.string.deal_show_card_note))
                 }

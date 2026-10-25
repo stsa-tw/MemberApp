@@ -58,6 +58,7 @@ import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
 import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.auth.AuthManager
+import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.model.IndicoEvent
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -74,8 +75,10 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
     val noCalendarApp = stringResource(R.string.event_calendar_unavailable)
     val noMapApp = stringResource(R.string.event_map_unavailable)
 
+    val auth = container.auth
     val indico = container.indico
     val tickets = container.tickets
+    val signIn = rememberSignIn()
     val checkin = container.checkin
 
     // Nothing here is gated on the date, because Indico gates none of it.
@@ -172,7 +175,9 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
                 eventUrl = event.url,
                 isUpcoming = event.isUpcoming(),
                 isBusy = indico.isBusy,
+                isSignedIn = auth.isLoggedIn,
                 onOpenUrl = { uriHandler.openUri(it) },
+                onSignIn = signIn,
                 onLink = { linkLauncher.launch(indico.authorizationIntent()) },
                 onShowTicket = { navController.navigate(EventTicket(eventId)) },
             )
@@ -235,7 +240,9 @@ private fun Actions(
     eventUrl: String?,
     isUpcoming: Boolean,
     isBusy: Boolean,
+    isSignedIn: Boolean,
     onOpenUrl: (String) -> Unit,
+    onSignIn: () -> Unit,
     onLink: () -> Unit,
     onShowTicket: () -> Unit,
 ) {
@@ -259,7 +266,20 @@ private fun Actions(
                     Text(stringResource(R.string.event_ticket_open))
                 }
 
-            TicketStore.State.NeedsLinking -> {
+            // A visitor lands here too — an unlinked Indico is all the ticket
+            // store can see — but there is nothing to link without an STSA
+            // session. Signing in links Indico from RootScreen and brings them
+            // back to the ticket on this same page.
+            TicketStore.State.NeedsLinking -> if (!isSignedIn) {
+                eventUrl?.let { url ->
+                    BrandButton(onClick = { onOpenUrl(url) }) { Text(primaryLabel) }
+                }
+                BrandTextButton(
+                    text = stringResource(R.string.event_sign_in_for_ticket),
+                    onClick = onSignIn,
+                )
+                Caption(stringResource(R.string.event_registration_note))
+            } else {
                 eventUrl?.let { url ->
                     BrandButton(onClick = { onOpenUrl(url) }) { Text(primaryLabel) }
                 }

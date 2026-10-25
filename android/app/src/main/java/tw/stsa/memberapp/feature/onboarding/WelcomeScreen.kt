@@ -1,7 +1,5 @@
 package tw.stsa.memberapp.feature.onboarding
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,18 +17,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,11 +30,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.LocalAppContainer
-import tw.stsa.memberapp.auth.AuthManager
 import tw.stsa.memberapp.designsystem.BrandButton
+import tw.stsa.memberapp.designsystem.BrandTextButton
 
 private class Highlight(
     val icon: ImageVector,
@@ -76,60 +66,7 @@ fun WelcomeScreen() {
     val container = LocalAppContainer.current
     val auth = container.auth
     val indico = container.indico
-    val scope = rememberCoroutineScope()
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        scope.launch {
-            try {
-                auth.completeAuthorization(result.data)
-            } catch (error: Throwable) {
-                // Dismissing the sign-in tab is a choice, not a failure.
-                if (!AuthManager.isUserCancellation(error)) errorMessage = error.message
-            }
-            // The Indico link is chained on in RootScreen, not here: a successful
-            // sign-in swaps this screen away immediately.
-        }
-    }
-
-    // The logout page has nothing to call back with, so whatever the member did
-    // on it — closed it, pressed back — the next step is the sign-in itself.
-    val browserSignOut = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { _ ->
-        scope.launch {
-            try {
-                launcher.launch(auth.authorizationIntent())
-            } catch (error: Throwable) {
-                auth.abandonAuthorization()
-                if (!AuthManager.isUserCancellation(error)) errorMessage = error.message
-            }
-        }
-    }
-
-    // When the member signed out last time, the step before signing in is to end
-    // the browser's session so authentik has to ask who is signing in.
-    val startSignIn: () -> Unit = {
-        scope.launch {
-            try {
-                val signOut = if (auth.shouldChooseAccount) {
-                    auth.browserSignOutIntent()
-                } else {
-                    null
-                }
-                if (signOut != null) {
-                    browserSignOut.launch(signOut)
-                } else {
-                    launcher.launch(auth.authorizationIntent())
-                }
-            } catch (error: Throwable) {
-                auth.abandonAuthorization()
-                if (!AuthManager.isUserCancellation(error)) errorMessage = error.message
-            }
-        }
-    }
+    val startSignIn = rememberSignIn()
 
     Column(
         modifier = Modifier
@@ -190,7 +127,7 @@ fun WelcomeScreen() {
         // ever authenticates an existing one.
         BrandButton(
             enabled = !auth.isBusy && !indico.isBusy,
-            onClick = { startSignIn() },
+            onClick = startSignIn,
         ) {
             if (auth.isBusy || indico.isBusy) {
                 Box(contentAlignment = Alignment.Center) {
@@ -217,18 +154,16 @@ fun WelcomeScreen() {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
-    }
 
-    errorMessage?.let { message ->
-        AlertDialog(
-            onDismissRequest = { errorMessage = null },
-            title = { Text(stringResource(R.string.sign_in_failed)) },
-            text = { Text(message) },
-            confirmButton = {
-                TextButton(onClick = { errorMessage = null }) {
-                    Text(stringResource(R.string.ok))
-                }
-            },
+        // Events, deals and announcements are all public, so nobody has to hold
+        // an account to read them — App Review asks as much of the iOS app
+        // (5.1.1(v)), and the two offer the same thing. What does need an
+        // account says so where it is met.
+        BrandTextButton(
+            text = stringResource(R.string.browse_as_visitor),
+            onClick = { container.settings.skipsWelcome = true },
+            enabled = !auth.isBusy && !indico.isBusy,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

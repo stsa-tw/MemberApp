@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The 我的 tab — what a member actually needs to see about their account.
 ///
-/// Only reachable behind the auth gate, so there is no sign-in branch; that
-/// lives on `WelcomeView`.
+/// For a visitor it is the place to sign in instead: the tab bar still shows
+/// 我的, and an empty screen under it would read as broken.
 ///
 /// Built from `GroupedCard` rather than `List` like the other three tabs. A
 /// `List` insets its section headers to line up with the row text, which under
@@ -19,6 +19,8 @@ struct AccountView: View {
                     if let profile = auth.profile {
                         identitySection(profile)
                         if profile.isOfficer { officerSection }
+                    } else if !auth.isLoggedIn {
+                        signInSection
                     }
                 }
                 .padding(.top, 6)
@@ -63,6 +65,30 @@ struct AccountView: View {
                 }
             }
         }
+    }
+
+    /// Joining is a link out rather than a flow in the app: accounts are created
+    /// through the membership site, and the app only ever authenticates an
+    /// existing one.
+    private var signInSection: some View {
+        VStack(spacing: 12) {
+            Text("尚未登入")
+                .font(.headline)
+            Text("登入 STSA 帳號後，就能使用電子會員卡，並查看你的活動報名與票券。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            SignInButton { Text("登入") }
+                .buttonStyle(.brand)
+                .padding(.top, 4)
+            Link("還不是會員？加入 STSA", destination: URL(string: "https://idms.stsa.tw/membership/#/")!)
+                .font(.subheadline.weight(.medium))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Theme.Metrics.gutter)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: Theme.Radius.card))
+        .padding(.horizontal, Theme.Metrics.gutter)
     }
 
     /// The scanner, for the people who work the door.

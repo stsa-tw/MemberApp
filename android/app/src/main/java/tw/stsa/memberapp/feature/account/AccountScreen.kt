@@ -24,8 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -34,19 +36,22 @@ import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.Settings
+import tw.stsa.memberapp.designsystem.BrandButton
+import tw.stsa.memberapp.designsystem.BrandTextButton
 import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.SectionFooter
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import java.time.Instant
 
 /**
  * The 我的 tab — what a member actually needs to see about their account.
  *
- * Only reachable behind the auth gate, so there is no sign-in branch; that
- * lives on `WelcomeScreen`. Token plumbing is diagnostic, not member-facing, so
+ * For a visitor it is the place to sign in instead: the navigation bar still
+ * shows 我的, and an empty screen under it would read as broken. Token plumbing is diagnostic, not member-facing, so
  * it is confined to a debug-only section at the bottom.
  */
 @Composable
@@ -123,7 +128,47 @@ fun AccountScreen(navController: NavHostController) {
                 }
             }
 
+            if (!auth.isLoggedIn) SignInCard()
+
             if (BuildConfig.DEBUG) TokenDiagnostics()
+        }
+    }
+}
+
+/**
+ * Joining is a link out rather than a flow in the app: accounts are created
+ * through the membership site, and the app only ever authenticates an existing
+ * one.
+ */
+@Composable
+private fun SignInCard() {
+    val signIn = rememberSignIn()
+    val uriHandler = LocalUriHandler.current
+    SectionCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Theme.Metrics.gutter),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.account_signed_out_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.account_signed_out_detail),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            BrandButton(onClick = signIn) {
+                Text(stringResource(R.string.sign_in))
+            }
+            BrandTextButton(
+                text = stringResource(R.string.account_join),
+                onClick = { uriHandler.openUri(MEMBERSHIP_SIGN_UP) },
+            )
         }
     }
 }
@@ -220,3 +265,5 @@ private fun remaining(expiry: Instant?, now: Instant): String {
     val seconds = expiry.epochSecond - now.epochSecond
     return stringResource(R.string.diagnostics_remaining, seconds / 60, seconds % 60)
 }
+
+private const val MEMBERSHIP_SIGN_UP = "https://idms.stsa.tw/membership/#/"

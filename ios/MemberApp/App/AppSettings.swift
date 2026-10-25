@@ -55,12 +55,27 @@ final class AppSettings {
         defaults.set(Array(ids), forKey: Keys.channels)
     }
 
+    /// Whether the app opens on the tabs rather than on `WelcomeView` when no
+    /// one is signed in.
+    ///
+    /// Set by choosing 先逛逛, and by signing in. The second is what makes
+    /// signing out land on the tabs as a visitor rather than back on Welcome:
+    /// someone who has already used the app does not need it pitched to them
+    /// again, and everything a visitor can see is public anyway.
+    ///
+    /// Not a second copy of "is someone signed in" — `AuthManager.isLoggedIn`
+    /// still answers that. This only says which screen a visitor gets.
+    var skipsWelcome: Bool {
+        didSet { defaults.set(skipsWelcome, forKey: Keys.skipsWelcome) }
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
         static let appearance = "settings.appearance"
         static let biometrics = "settings.requireBiometricsForCard"
         static let channels = "settings.subscribedChannels"
+        static let skipsWelcome = "settings.skipsWelcome"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -72,6 +87,7 @@ final class AppSettings {
         requireBiometricsForCard = defaults.object(forKey: Keys.biometrics) == nil
             ? true
             : defaults.bool(forKey: Keys.biometrics)
+        skipsWelcome = defaults.bool(forKey: Keys.skipsWelcome)
         subscribedChannels = (defaults.array(forKey: Keys.channels) as? [String]).map(Set.init)
     }
 }

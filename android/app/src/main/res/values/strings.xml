@@ -32,6 +32,13 @@
     <string name="sign_in_links_indico">登入會一併連結你的 Indico 帳號，用來顯示你的報名與票券。</string>
     <string name="sign_in_failed">登入失敗</string>
     <string name="ok">好</string>
+    <string name="browse_as_visitor">先逛逛</string>
+    <string name="member_card_sign_in">登入後出示電子會員卡</string>
+    <string name="deal_sign_in_show_card">登入以出示會員卡</string>
+    <string name="event_sign_in_for_ticket">登入以查看票券</string>
+    <string name="account_signed_out_title">尚未登入</string>
+    <string name="account_signed_out_detail">登入 STSA 帳號後，就能使用電子會員卡，並查看你的活動報名與票券。</string>
+    <string name="account_join">還不是會員？加入 STSA</string>
 
     <!-- Home -->
     <string name="greeting_morning">早安</string>
@@ -163,6 +170,13 @@
     <string name="event_system">活動系統</string>
     <string name="sign_out">登出</string>
     <string name="sign_out_footer">登出只會清除這支手機上的憑證。因為登入與瀏覽器共用工作階段，下次登入可能不需要重新輸入密碼。</string>
+    <string name="delete_account">刪除帳號</string>
+    <string name="delete_account_footer">永久刪除你的 STSA 帳號與會員資料。刪除前可能會請你再登入一次，確認是本人。</string>
+    <string name="delete_account_confirm_title">刪除 STSA 帳號？</string>
+    <string name="delete_account_confirm_message">刪除後無法復原，會員卡也會一併失效。</string>
+    <string name="delete_account_unavailable">找不到可以開啟刪除帳號頁面的瀏覽器。</string>
+    <string name="continue_action">繼續</string>
+    <string name="cancel">取消</string>
 
     <!-- Biometry -->
     <string name="biometry_fingerprint">指紋</string>

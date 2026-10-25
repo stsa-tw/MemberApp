@@ -44,6 +44,7 @@ import tw.stsa.memberapp.app.Deals
 import tw.stsa.memberapp.app.Events
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
+import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.app.openTab
 import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.SectionHeader
@@ -59,6 +60,7 @@ import java.time.LocalTime
 fun HomeScreen(navController: NavHostController) {
     val container = LocalAppContainer.current
     val auth = container.auth
+    val signIn = rememberSignIn()
     val events = container.events
     val announcements = Announcement.samples
 
@@ -105,12 +107,21 @@ fun HomeScreen(navController: NavHostController) {
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
-            MemberCardBanner(
-                name = auth.profile?.let { profile ->
-                    listOfNotNull(profile.displayName, profile.school).joinToString(" · ")
-                },
-                onClick = { navController.navigate(MemberCard) },
-            )
+            // For a visitor it signs in instead — the card is what most people
+            // came for, and this is where they will look for it.
+            if (auth.isLoggedIn) {
+                MemberCardBanner(
+                    name = auth.profile?.let { profile ->
+                        listOfNotNull(profile.displayName, profile.school).joinToString(" · ")
+                    },
+                    onClick = { navController.navigate(MemberCard) },
+                )
+            } else {
+                MemberCardBanner(
+                    name = stringResource(R.string.member_card_sign_in),
+                    onClick = signIn,
+                )
+            }
 
             Row(
                 modifier = Modifier.padding(horizontal = Theme.Metrics.gutter),

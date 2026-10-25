@@ -323,6 +323,44 @@ class AuthManager(context: Context) {
         }
     }
 
+    /**
+     * Opens the account deletion page in a Custom Tab.
+     *
+     * The shared browser session is safe to use here, unlike on iOS: choosing
+     * an account on this platform goes through [browserSignOutIntent] first, so
+     * the browser's authentik cookie always names whoever is signed into the
+     * app. If it names nobody, the page asks them to sign in.
+     */
+    fun accountDeletionIntent(): Intent {
+        val uri = AuthConfiguration.ACCOUNT_DELETION_URI
+        return authService.createCustomTabsIntentBuilder(uri)
+            .build()
+            .intent
+            .setData(uri)
+    }
+
+    /**
+     * Asks authentik whether this member still exists, after the account
+     * deletion tab closes. Signs out and returns true if they do not.
+     *
+     * The page cannot say how it ended — it has no redirect back to the app, and
+     * closing it reads the same whether the member deleted the account or
+     * changed their mind — so the refresh token is asked instead. Deleting a
+     * user in authentik deletes their tokens with them, so redeeming one answers
+     * `invalid_grant`, which [accessToken] already turns into a sign-out. The
+     * refresh has to be forced: the cached access token is still "valid" for up
+     * to five minutes and would answer without asking anyone.
+     *
+     * A network failure is not an answer, so it leaves the session alone; if the
+     * account did go, the next request finds out the same way.
+     */
+    suspend fun accountWasDeleted(): Boolean {
+        val state = authState ?: return !isLoggedIn
+        state.needsTokenRefresh = true
+        runCatching { accessToken() }
+        return state.authorizationException != null
+    }
+
     fun snapshot(): TokenSnapshot = TokenSnapshot(
         hasRefreshToken = authState?.refreshToken != null,
         accessTokenExpiry = authState?.accessTokenExpirationTime?.let(Instant::ofEpochMilli),

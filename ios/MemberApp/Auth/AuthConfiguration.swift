@@ -34,6 +34,18 @@ enum AuthConfiguration {
     /// Must match `CFBundleURLSchemes` in `Config/Info.plist`.
     static let redirectURI = URL(string: "tw.stsa.membership://callback")!
 
+    /// Where a member deletes their account (App Store guideline 5.1.1(v)).
+    ///
+    /// authentik's `account-deletion` flow, reached through the brand's default
+    /// authentication flow. Authentication comes first because the deletion
+    /// flow requires a signed-in browser and simply denies one that is not; a
+    /// browser that already is signed in skips past it, because the flow is
+    /// `require_unauthenticated` with the default "message, continue" denied
+    /// action, which follows a relative `next`.
+    static let accountDeletionURL = URL(
+        string: "https://idms.stsa.tw/flows/-/default/authentication/?next=%2Fif%2Fflow%2Faccount-deletion%2F"
+    )!
+
     /// `offline_access` is what makes authentik return a refresh token.
     static let scopes = [
         OIDScopeOpenID,

@@ -81,9 +81,32 @@ class AppSettings(private val prefs: SharedPreferences) {
         prefs.edit { putStringSet(KEY_CHANNELS, ids.toSet()) }
     }
 
+    /**
+     * Whether the app opens on the tabs rather than on `WelcomeScreen` when no
+     * one is signed in.
+     *
+     * Set by choosing 先逛逛, and by signing in. The second is what makes
+     * signing out land on the tabs as a visitor rather than back on Welcome:
+     * someone who has already used the app does not need it pitched to them
+     * again, and everything a visitor can see is public anyway.
+     *
+     * Not a second copy of "is someone signed in" — `AuthManager.isLoggedIn`
+     * still answers that. This only says which screen a visitor gets.
+     */
+    private var skipsWelcomeState by mutableStateOf(prefs.getBoolean(KEY_SKIPS_WELCOME, false))
+
+    var skipsWelcome: Boolean
+        get() = skipsWelcomeState
+        set(value) {
+            if (value == skipsWelcomeState) return
+            skipsWelcomeState = value
+            prefs.edit { putBoolean(KEY_SKIPS_WELCOME, value) }
+        }
+
     private companion object {
         const val KEY_APPEARANCE = "settings.appearance"
         const val KEY_BIOMETRICS = "settings.requireBiometricsForCard"
         const val KEY_CHANNELS = "settings.subscribedChannels"
+        const val KEY_SKIPS_WELCOME = "settings.skipsWelcome"
     }
 }

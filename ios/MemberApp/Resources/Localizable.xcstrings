@@ -2741,6 +2741,149 @@
           }
         }
       }
+    },
+    "刪除 STSA 帳號？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete your STSA account?"
+          }
+        }
+      }
+    },
+    "刪除後無法復原，會員卡也會一併失效。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone, and your member card will stop working."
+          }
+        }
+      }
+    },
+    "刪除帳號" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account"
+          }
+        }
+      }
+    },
+    "永久刪除你的 STSA 帳號與會員資料。刪除前會請你再登入一次，確認是本人。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently deletes your STSA account and membership details. You will be asked to sign in once more to confirm it is you."
+          }
+        }
+      }
+    },
+    "無法開啟刪除帳號頁面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the account deletion page"
+          }
+        }
+      }
+    },
+    "繼續" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "先逛逛" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look around first"
+          }
+        }
+      }
+    },
+    "登入後出示電子會員卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to show your member card"
+          }
+        }
+      }
+    },
+    "登入以出示會員卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to show your card"
+          }
+        }
+      }
+    },
+    "登入以查看票券" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to see your ticket"
+          }
+        }
+      }
+    },
+    "尚未登入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not signed in"
+          }
+        }
+      }
+    },
+    "登入 STSA 帳號後，就能使用電子會員卡，並查看你的活動報名與票券。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with your STSA account to use your member card and see your event registrations and tickets."
+          }
+        }
+      }
+    },
+    "還不是會員？加入 STSA" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not a member yet? Join STSA"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

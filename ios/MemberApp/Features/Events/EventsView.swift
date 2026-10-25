@@ -58,9 +58,13 @@ struct EventsView: View {
         }
     }
 
+    /// Nothing to link for a visitor: the Indico link rides on an STSA session,
+    /// and the event page is where they are offered one.
     @ViewBuilder
     private var indicoStatus: some View {
-        if indico.refused != nil {
+        if !auth.isLoggedIn {
+            EmptyView()
+        } else if indico.refused != nil {
             IndicoStatusBanner(state: .mismatch)
         } else if !indico.isLinked {
             IndicoStatusBanner(state: .notLinked) { Task { await link() } }
@@ -147,8 +151,11 @@ struct EventsView: View {
     /// a wrong claim reveals nothing that `event.stsa.tw` does not already hand
     /// to a stranger, and everything the rows lead to is checked again when it is
     /// opened.
+    ///
+    /// A visitor gets all of it too, for the same reason it is safe: none of it
+    /// is theirs, and every row is something `event.stsa.tw` shows anyone.
     private var archive: [IndicoEvent] {
-        guard auth.profile?.isOfficer != true else { return store.past }
+        guard auth.isLoggedIn, auth.profile?.isOfficer != true else { return store.past }
         return store.past.filter { tickets.holdsTicket(for: $0.id) }
     }
 
