@@ -44,6 +44,7 @@ struct EventFormView: View {
             .padding(.top, 16)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle(Text(verbatim: title))
         .navigationBarTitleDisplayMode(.inline)

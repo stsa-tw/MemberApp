@@ -21,6 +21,7 @@ struct DealsView: View {
                 }
                 .padding(.top, 6)
             }
+            .readableWidth()
             .background(Color(.systemGroupedBackground))
             .navigationTitle("會員優惠")
             .toolbar {

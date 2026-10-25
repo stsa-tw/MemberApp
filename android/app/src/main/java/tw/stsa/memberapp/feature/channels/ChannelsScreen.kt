@@ -33,6 +33,7 @@ import tw.stsa.memberapp.designsystem.SectionFooter
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.model.Channel
 
 @Composable
@@ -54,6 +55,7 @@ fun ChannelsScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
         ) {
             SectionHeader(stringResource(R.string.channels))

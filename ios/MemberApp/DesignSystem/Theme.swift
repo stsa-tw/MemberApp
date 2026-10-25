@@ -53,6 +53,9 @@ extension Theme {
     enum Metrics {
         /// Height of the full-width primary CTA.
         static let ctaHeight: CGFloat = 50
+        /// The one button a screen exists to have pressed, where missing it
+        /// costs something — 確認報到 at a door with a queue.
+        static let largeCTAHeight: CGFloat = 64
         /// Horizontal inset for grouped list containers.
         static let gutter: CGFloat = 16
 
@@ -71,11 +74,13 @@ extension Theme {
 /// The full-width brand button that anchors Welcome, Sign Up, Deal Detail, etc.
 struct BrandButtonStyle: ButtonStyle {
     var prominent: Bool = true
+    var large: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
-            .frame(maxWidth: .infinity, minHeight: Theme.Metrics.ctaHeight)
+            .font(large ? .title3.weight(.bold) : .headline)
+            .frame(maxWidth: .infinity,
+                   minHeight: large ? Theme.Metrics.largeCTAHeight : Theme.Metrics.ctaHeight)
             .foregroundStyle(prominent ? .white : Theme.Palette.brand)
             .background(prominent ? AnyShapeStyle(Theme.Palette.brand) : AnyShapeStyle(.clear))
             .clipShape(.rect(cornerRadius: Theme.Radius.button))
@@ -86,4 +91,5 @@ struct BrandButtonStyle: ButtonStyle {
 extension ButtonStyle where Self == BrandButtonStyle {
     static var brand: BrandButtonStyle { BrandButtonStyle() }
     static var brandPlain: BrandButtonStyle { BrandButtonStyle(prominent: false) }
+    static var brandLarge: BrandButtonStyle { BrandButtonStyle(large: true) }
 }

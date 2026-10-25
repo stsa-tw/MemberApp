@@ -58,6 +58,7 @@ import tw.stsa.memberapp.designsystem.FactRow
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.feature.card.QrCode
 import tw.stsa.memberapp.model.IndicoEvent
@@ -123,6 +124,7 @@ fun EventTicketScreen(navController: NavHostController, eventId: String) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(horizontal = Theme.Metrics.gutter)
                 .padding(top = 12.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp),

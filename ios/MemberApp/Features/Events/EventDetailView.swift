@@ -16,43 +16,48 @@ struct EventDetailView: View {
     @State private var isShowingDescription = false
     @State private var calendarDraft: CalendarDraft?
     @State private var isCalendarBlocked = false
+    @State private var width: CGFloat = 0
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 hero
 
-                infoCard
+                if isWide {
+                    // Side by side rather than stacked: on a wide screen the
+                    // stack left the description a long walk below the fold
+                    // and every card twice the width it was drawn at. The
+                    // facts and actions keep the phone's column width; the
+                    // description takes the rest.
+                    HStack(alignment: .top, spacing: 28) {
+                        essentials
+                            .frame(width: Self.essentialsWidth)
+                        description
+                    }
                     .padding(.horizontal, Theme.Metrics.gutter)
                     .padding(.top, 16)
+                    .frame(maxWidth: Self.wideWidth)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    essentials
+                        .padding(.horizontal, Theme.Metrics.gutter)
+                        .padding(.top, 16)
 
-                // Above the member's own actions, because for whoever is working
-                // the door this is what they came for and they have no time to
-                // hunt. Below the facts, because it is not what the page is for.
-                organiserEntry
-                    .padding(.horizontal, Theme.Metrics.gutter)
-                    .padding(.top, 16)
-                    .animation(.snappy(duration: 0.22), value: checkin.access(for: event.id))
-
-                // Inline, directly under the key facts, rather than pinned to
-                // the bottom — see Theme.Metrics.accessoryClearance. This also
-                // puts the action next to the time and place instead of at the
-                // end of a long description.
-                actions
-                    .padding(.horizontal, Theme.Metrics.gutter)
-                    .padding(.top, 16)
-
-
-
-
-                description
+                    description
+                        .padding(.horizontal, 20)
+                        .padding(.top, 22)
+                }
             }
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        // Not `readableWidth()` like the other screens: the hero's colour runs
+        // edge to edge, and only what is under it is held in.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .background(Color(.systemGroupedBackground))
-        // Deliberately not ignoring the top safe area: the hero sits below the
-        // nav row, as in the mock. Extending it underneath put the title behind
-        // the back button and made both unreadable.
+        // The hero's *content* deliberately stays inside the top safe area: it
+        // sits below the nav row, as in the mock. Extending the whole hero
+        // underneath put the title behind the back button and made both
+        // unreadable. Only its colour goes up — see `hero`.
         .navigationBarTitleDisplayMode(.inline)
         // The event's own page is a destination, not an action, and it is the
         // one thing on this screen that is true whatever the member's state —
@@ -106,6 +111,36 @@ struct EventDetailView: View {
             Button("好", role: .cancel) {}
         } message: {
             Text("請在「設定」中允許 STSA 加入行事曆活動。")
+        }
+    }
+
+    /// Wide enough for two columns: the facts at a phone's width, and a
+    /// description beside them with room for a readable line.
+    private var isWide: Bool { width >= 720 }
+
+    /// About what the facts get on a phone, so the card reads the same.
+    private static let essentialsWidth: CGFloat = 380
+    /// Past this the two columns stop growing and centre, as the single
+    /// column does at `Theme.Metrics.readableWidth` on the other screens.
+    private static let wideWidth: CGFloat = 960
+
+    /// The facts, the door and the actions — one column on a phone, the left
+    /// one on a wide screen.
+    private var essentials: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            infoCard
+
+            // Above the member's own actions, because for whoever is working
+            // the door this is what they came for and they have no time to
+            // hunt. Below the facts, because it is not what the page is for.
+            organiserEntry
+                .animation(.snappy(duration: 0.22), value: checkin.access(for: event.id))
+
+            // Inline, directly under the key facts, rather than pinned to the
+            // bottom — see Theme.Metrics.accessoryClearance. This also puts the
+            // action next to the time and place instead of at the end of a long
+            // description.
+            actions
         }
     }
 
@@ -167,6 +202,10 @@ struct EventDetailView: View {
     /// An event description is the reason someone who has not registered opened
     /// this page at all, so hiding it behind a tap would cost the screen its main
     /// job. Four lines is enough to know what the event is; the rest is one tap.
+    ///
+    /// Not truncated at all in two columns. The cut was there to keep the
+    /// actions near the facts, and side by side the description no longer
+    /// stands between them.
     @ViewBuilder
     private var description: some View {
         if !event.summary.isEmpty {
@@ -174,16 +213,16 @@ struct EventDetailView: View {
                 Text(event.summary)
                     .font(.callout)
                     .lineSpacing(4)
-                    .lineLimit(isShowingDescription ? nil : 4)
+                    .lineLimit(isShowingDescription || isWide ? nil : 4)
 
-                Button(isShowingDescription ? "收合" : "顯示更多") {
-                    withAnimation(.snappy(duration: 0.22)) { isShowingDescription.toggle() }
+                if !isWide {
+                    Button(isShowingDescription ? "收合" : "顯示更多") {
+                        withAnimation(.snappy(duration: 0.22)) { isShowingDescription.toggle() }
+                    }
+                    .font(.callout.weight(.medium))
                 }
-                .font(.callout.weight(.medium))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 22)
         }
     }
 
@@ -410,8 +449,15 @@ struct EventDetailView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .bottomLeading)
-        .background(heroTint)
+        // Held to the columns' width so the title starts where they do.
+        .frame(maxWidth: isWide ? Self.wideWidth : .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .bottom)
+        // The colour runs up under the status bar and nav row while the text
+        // stays put. Stopping it at the safe area left a white band above the
+        // hero — barely there under a phone's nav bar, but on iPhone Duo the
+        // navigation moves to a rail at the side and the band is the whole
+        // top of the screen.
+        .background(heroTint, ignoresSafeAreaEdges: .top)
     }
 
     /// The mock gives every event its own hue. There is no colour in Indico's

@@ -59,6 +59,7 @@ import tw.stsa.memberapp.auth.BiometricGate
 import tw.stsa.memberapp.designsystem.BrandTextButton
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.designsystem.sectionContainer
 import java.time.Instant
 import kotlin.math.max
@@ -143,6 +144,7 @@ fun MemberCardScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(horizontal = Theme.Metrics.gutter)
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(14.dp),

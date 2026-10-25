@@ -63,6 +63,7 @@ struct AboutView: View {
             .padding(20)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("關於總會")
         .navigationBarTitleDisplayMode(.inline)

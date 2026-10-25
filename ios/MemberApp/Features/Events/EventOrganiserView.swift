@@ -64,6 +64,7 @@ struct EventOrganiserView: View {
             .padding(.horizontal, Theme.Metrics.gutter)
             .padding(.top, 16)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("幹部功能")
         .navigationBarTitleDisplayMode(.inline)

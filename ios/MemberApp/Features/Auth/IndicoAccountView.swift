@@ -51,6 +51,7 @@ struct IndicoAccountView: View {
             .padding(.top, 8)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("帳號對不上")
         .navigationBarTitleDisplayMode(.inline)

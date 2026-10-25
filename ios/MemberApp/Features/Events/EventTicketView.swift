@@ -45,6 +45,7 @@ struct EventTicketView: View {
             .padding(.top, 12)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("票券")
         .navigationBarTitleDisplayMode(.inline)

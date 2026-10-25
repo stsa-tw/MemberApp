@@ -51,9 +51,11 @@ import tw.stsa.memberapp.designsystem.BrandTextButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.feature.checkin.CheckinError
 import tw.stsa.memberapp.feature.checkin.CheckinStore
+import tw.stsa.memberapp.feature.checkin.ConfirmCheckinButton
 import tw.stsa.memberapp.feature.checkin.RegistrationRow
 import tw.stsa.memberapp.feature.checkin.RegistrationTagChips
 import tw.stsa.memberapp.feature.checkin.UndoDialog
@@ -106,6 +108,7 @@ fun EventFormScreen(navController: NavHostController, eventId: String, formId: I
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(horizontal = Theme.Metrics.gutter)
                 .padding(top = 16.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -307,12 +310,10 @@ private fun RegistrationSheet(
                 enabled = !isSubmitting,
             )
 
-            registration.isAdmissible -> BrandButton(
+            registration.isAdmissible -> ConfirmCheckinButton(
                 onClick = onCheckIn,
                 enabled = !isSubmitting,
-            ) {
-                Text(stringResource(R.string.checkin_confirm))
-            }
+            )
 
             // Withdrawn or rejected, and not checked in: nothing to undo and
             // nobody to admit. Said plainly rather than drawn as a disabled

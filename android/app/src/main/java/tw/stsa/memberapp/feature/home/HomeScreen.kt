@@ -44,6 +44,7 @@ import tw.stsa.memberapp.app.Deals
 import tw.stsa.memberapp.app.Events
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.app.openTab
 import tw.stsa.memberapp.designsystem.SectionCard
@@ -104,6 +105,7 @@ fun HomeScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {

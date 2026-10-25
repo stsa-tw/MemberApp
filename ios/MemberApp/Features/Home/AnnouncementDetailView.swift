@@ -41,6 +41,7 @@ struct AnnouncementDetailView: View {
             .padding(.bottom, Theme.Metrics.accessoryClearance)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .readableWidth()
         .background(Color(.systemBackground))
         .navigationTitle("公告")
         .navigationBarTitleDisplayMode(.inline)

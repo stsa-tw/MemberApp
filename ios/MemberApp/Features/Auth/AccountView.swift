@@ -25,6 +25,7 @@ struct AccountView: View {
                 }
                 .padding(.top, 6)
             }
+            .readableWidth()
             .background(Color(.systemGroupedBackground))
             .navigationTitle("我的")
             .toolbar {

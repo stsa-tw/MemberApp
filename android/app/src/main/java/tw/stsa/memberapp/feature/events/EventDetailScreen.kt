@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,9 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -142,81 +147,109 @@ fun EventDetailScreen(navController: NavHostController, eventId: String) {
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = Theme.Metrics.fabClearance),
-        ) {
-            Hero(event)
+        BoxWithConstraints(Modifier.padding(padding)) {
+            // Side by side rather than stacked once the window is wide enough:
+            // stacked, the description sat a long scroll below the fold and
+            // every card stretched to twice the width it was drawn at. The facts
+            // and actions keep a phone's column width; the description takes
+            // the rest. Mirrors `EventDetailView` on iOS.
+            val isWide = maxWidth >= TWO_COLUMN_MIN_WIDTH
 
-            Spacer(Modifier.size(16.dp))
-            InfoCard(
-                event = event,
-                onAddToCalendar = {
-                    if (!EventLinks.addToCalendar(context, event)) {
-                        scope.launch { snackbarHostState.showSnackbar(noCalendarApp) }
-                    }
-                },
-                onOpenMap = { query ->
-                    if (!EventLinks.openMap(context, query)) {
-                        scope.launch { snackbarHostState.showSnackbar(noMapApp) }
-                    }
-                },
-            )
-
-            // Inline, directly under the key facts, rather than pinned to the
-            // bottom — see Theme.Metrics.fabClearance. This also puts the action
-            // next to the time and place instead of at the end of a long
-            // description.
-            Spacer(Modifier.size(16.dp))
-            Actions(
-                state = tickets.state(eventId),
-                eventUrl = event.url,
-                isUpcoming = event.isUpcoming(),
-                isBusy = indico.isBusy,
-                isSignedIn = auth.isLoggedIn,
-                onOpenUrl = { uriHandler.openUri(it) },
-                onSignIn = signIn,
-                onLink = { linkLauncher.launch(indico.authorizationIntent()) },
-                onShowTicket = { navController.navigate(EventTicket(eventId)) },
-            )
-
-            // Only for someone Indico says manages this event.
-            //
-            // This used to be gated on the `isOfficer` group claim, which
-            // answers a different question — a 幹部 is not necessarily a 幹部 of
-            // *this* event — so the button appeared for people whose first tap
-            // was a 403. `CheckinStore.probe` asks Indico instead, which is the
-            // same permission the screen behind it runs on.
-            //
-            // A row rather than a button, and it carries the count: an organiser
-            // opening the event usually wants the number, not the scanner, and a
-            // row that answers before it is tapped is worth more than one that
-            // does not.
-            //
-            // No date condition: Indico's check-in API will set `checked_in` on
-            // any registration whenever, so an organiser reconciling attendance
-            // after the fact is doing something Indico supports and this app has
-            // no business refusing.
-            if (checkin.access(eventId) == CheckinStore.Access.ALLOWED) {
+            // The facts, the actions and the door — one column on a phone, the
+            // left one on a wide screen.
+            val essentials: @Composable () -> Unit = {
                 Spacer(Modifier.size(16.dp))
-                OrganiserRow(
-                    checkedIn = checkin.checkedInCount(eventId),
-                    registered = checkin.registeredCount(eventId),
-                    forms = checkin.forms(eventId).size,
-                    onClick = { navController.navigate(EventOrganiser(event.id)) },
+                InfoCard(
+                    event = event,
+                    onAddToCalendar = {
+                        if (!EventLinks.addToCalendar(context, event)) {
+                            scope.launch { snackbarHostState.showSnackbar(noCalendarApp) }
+                        }
+                    },
+                    onOpenMap = { query ->
+                        if (!EventLinks.openMap(context, query)) {
+                            scope.launch { snackbarHostState.showSnackbar(noMapApp) }
+                        }
+                    },
                 )
+
+                // Inline, directly under the key facts, rather than pinned to the
+                // bottom — see Theme.Metrics.fabClearance. This also puts the action
+                // next to the time and place instead of at the end of a long
+                // description.
+                Spacer(Modifier.size(16.dp))
+                Actions(
+                    state = tickets.state(eventId),
+                    eventUrl = event.url,
+                    isUpcoming = event.isUpcoming(),
+                    isBusy = indico.isBusy,
+                    isSignedIn = auth.isLoggedIn,
+                    onOpenUrl = { uriHandler.openUri(it) },
+                    onSignIn = signIn,
+                    onLink = { linkLauncher.launch(indico.authorizationIntent()) },
+                    onShowTicket = { navController.navigate(EventTicket(eventId)) },
+                )
+
+                // Only for someone Indico says manages this event.
+                //
+                // This used to be gated on the `isOfficer` group claim, which
+                // answers a different question — a 幹部 is not necessarily a 幹部 of
+                // *this* event — so the button appeared for people whose first tap
+                // was a 403. `CheckinStore.probe` asks Indico instead, which is the
+                // same permission the screen behind it runs on.
+                //
+                // A row rather than a button, and it carries the count: an organiser
+                // opening the event usually wants the number, not the scanner, and a
+                // row that answers before it is tapped is worth more than one that
+                // does not.
+                //
+                // No date condition: Indico's check-in API will set `checked_in` on
+                // any registration whenever, so an organiser reconciling attendance
+                // after the fact is doing something Indico supports and this app has
+                // no business refusing.
+                if (checkin.access(eventId) == CheckinStore.Access.ALLOWED) {
+                    Spacer(Modifier.size(16.dp))
+                    OrganiserRow(
+                        checkedIn = checkin.checkedInCount(eventId),
+                        registered = checkin.registeredCount(eventId),
+                        forms = checkin.forms(eventId).size,
+                        onClick = { navController.navigate(EventOrganiser(event.id)) },
+                    )
+                }
             }
 
-            if (event.summary.isNotEmpty()) {
-                Spacer(Modifier.size(22.dp))
-                Text(
-                    text = event.summary,
-                    style = MaterialTheme.typography.bodyLarge,
-                    lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.5,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = Theme.Metrics.fabClearance),
+            ) {
+                Hero(event, contentMaxWidth = if (isWide) TWO_COLUMN_MAX_WIDTH else Dp.Unspecified)
+
+                if (isWide) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = TWO_COLUMN_MAX_WIDTH),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(Modifier.width(ESSENTIALS_WIDTH + Theme.Metrics.gutter * 2)) {
+                            essentials()
+                        }
+                        Summary(
+                            event.summary,
+                            Modifier
+                                .weight(1f)
+                                .padding(top = 16.dp, end = Theme.Metrics.gutter),
+                        )
+                    }
+                } else {
+                    essentials()
+                    if (event.summary.isNotEmpty()) {
+                        Spacer(Modifier.size(22.dp))
+                        Summary(event.summary, Modifier.padding(horizontal = 20.dp))
+                    }
+                }
             }
         }
     }
@@ -377,12 +410,17 @@ private fun OrganiserRow(checkedIn: Int, registered: Int, forms: Int, onClick: (
 }
 
 @Composable
-private fun Hero(event: IndicoEvent) {
+private fun Hero(event: IndicoEvent, contentMaxWidth: Dp = Dp.Unspecified) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 150.dp)
             .background(heroBrush(event.id))
+            // The colour spans the window; the text is held to the columns
+            // below it, so the title starts where they do.
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = contentMaxWidth)
+            .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.Bottom,
     ) {
@@ -400,6 +438,27 @@ private fun Hero(event: IndicoEvent) {
         )
     }
 }
+
+/** An event's description. Nothing to show for one that has none. */
+@Composable
+private fun Summary(summary: String, modifier: Modifier = Modifier) {
+    if (summary.isEmpty()) return
+    Text(
+        text = summary,
+        style = MaterialTheme.typography.bodyLarge,
+        lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.5,
+        modifier = modifier,
+    )
+}
+
+/** Wide enough for the facts at a phone's width and a readable description beside them. */
+private val TWO_COLUMN_MIN_WIDTH = 720.dp
+
+/** About what the facts get on a phone, so the card reads the same. */
+private val ESSENTIALS_WIDTH = 380.dp
+
+/** Past this the two columns stop growing and centre. */
+private val TWO_COLUMN_MAX_WIDTH = 960.dp
 
 /**
  * The mock gives every event its own hue. There is no colour in Indico's data,

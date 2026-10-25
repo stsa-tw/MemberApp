@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,6 +51,7 @@ import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.SectionIntro
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableSidePadding
 import tw.stsa.memberapp.model.Deal
 
 private const val DEALS_WEBSITE = "https://stsa.tw/discount/"
@@ -88,24 +90,30 @@ fun DealsScreen(navController: NavHostController) {
         val partnersFootnote = stringResource(R.string.deals_footnote)
         val expiredTitle = stringResource(R.string.deals_expired)
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(top = 6.dp, bottom = Theme.Metrics.fabClearance),
-        ) {
-            section(
-                title = partnersTitle,
-                deals = active,
-                footnote = partnersFootnote,
-                onSelect = { navController.navigate(DealDetail(it.id)) },
-            )
-            section(
-                title = expiredTitle,
-                deals = expired,
-                footnote = null,
-                onSelect = { navController.navigate(DealDetail(it.id)) },
-            )
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            val side = readableSidePadding()
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = side,
+                    end = side,
+                    top = 6.dp,
+                    bottom = Theme.Metrics.fabClearance,
+                ),
+            ) {
+                section(
+                    title = partnersTitle,
+                    deals = active,
+                    footnote = partnersFootnote,
+                    onSelect = { navController.navigate(DealDetail(it.id)) },
+                )
+                section(
+                    title = expiredTitle,
+                    deals = expired,
+                    footnote = null,
+                    onSelect = { navController.navigate(DealDetail(it.id)) },
+                )
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ struct ChannelsView: View {
                 Text("選擇你想收到的公告類型。推播通知尚未開放，目前這只會影響 App 內顯示的內容。")
             }
         }
+        .readableWidth()
         .navigationTitle("頻道")
         .navigationBarTitleDisplayMode(.inline)
     }
