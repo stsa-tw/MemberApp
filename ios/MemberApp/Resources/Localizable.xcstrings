@@ -2741,6 +2741,83 @@
           }
         }
       }
+    },
+    "先逛逛" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look around first"
+          }
+        }
+      }
+    },
+    "登入後出示電子會員卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to show your member card"
+          }
+        }
+      }
+    },
+    "登入以出示會員卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to show your card"
+          }
+        }
+      }
+    },
+    "登入以查看票券" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to see your ticket"
+          }
+        }
+      }
+    },
+    "尚未登入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not signed in"
+          }
+        }
+      }
+    },
+    "登入 STSA 帳號後，就能使用電子會員卡，並查看你的活動報名與票券。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with your STSA account to use your member card and see your event registrations and tickets."
+          }
+        }
+      }
+    },
+    "還不是會員？加入 STSA" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not a member yet? Join STSA"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

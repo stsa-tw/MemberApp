@@ -57,17 +57,20 @@ struct SettingsView: View {
                 Link("活動系統", destination: URL(string: "https://event.stsa.tw")!)
             }
 
-            Section {
-                // Only ends the session. Everything that belonged to the
-                // member — the Indico link, their card codes, any roster — is
-                // dropped by `RootView.endSession`, which is also the path an
-                // expired session takes and which this button used to duplicate
-                // and therefore could drift from.
-                Button("登出", role: .destructive) {
-                    auth.logout()
+            // Nothing to end for a visitor; 我的 is where they sign in.
+            if auth.isLoggedIn {
+                Section {
+                    // Only ends the session. Everything that belonged to the
+                    // member — the Indico link, their card codes, any roster — is
+                    // dropped by `RootView.endSession`, which is also the path an
+                    // expired session takes and which this button used to duplicate
+                    // and therefore could drift from.
+                    Button("登出", role: .destructive) {
+                        auth.logout()
+                    }
+                } footer: {
+                    Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
                 }
-            } footer: {
-                Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
             }
         }
         .navigationTitle("設定")

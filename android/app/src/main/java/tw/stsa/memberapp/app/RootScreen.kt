@@ -30,6 +30,8 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,6 +72,7 @@ import tw.stsa.memberapp.feature.home.AnnouncementDetailScreen
 import tw.stsa.memberapp.feature.home.HomeScreen
 import tw.stsa.memberapp.feature.jobs.JobsScreen
 import tw.stsa.memberapp.feature.onboarding.WelcomeScreen
+import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.feature.settings.AboutScreen
 import tw.stsa.memberapp.feature.settings.SettingsScreen
 import kotlin.reflect.KClass
@@ -90,7 +93,12 @@ private val tabs = listOf(
 )
 
 /**
- * Auth gate plus the five-tab shell.
+ * Welcome screen plus the five-tab shell.
+ *
+ * The tabs are open to visitors as well as members: what they show is public,
+ * and each thing that needs an account offers to sign in where it is met. So
+ * the gate here is only whether to pitch the app first — see
+ * `AppSettings.skipsWelcome`.
  *
  * The navigation component is a `NavigationSuiteScaffold` rather than a
  * hardcoded `NavigationBar`: Android runs on tablets, foldables and landscape
@@ -106,7 +114,6 @@ private val tabs = listOf(
  *
  * [showCardRequest] is the launcher shortcut asking for the card.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RootScreen(
     showCardRequest: Boolean = false,
@@ -114,11 +121,52 @@ fun RootScreen(
 ) {
     val container = LocalAppContainer.current
     val auth = container.auth
+    val settings = container.settings
 
-    if (!auth.isLoggedIn) {
+    // Everything that belonged to whoever was signed in goes when the session
+    // does — here rather than in the 登出 button, because a session also ends on
+    // its own: AuthManager signs out by itself when authentik refuses a refresh
+    // token, and that path went through no button, leaving the Indico link and
+    // the door's roster for the next person to sign in on this phone.
+    //
+    // It also rebuilds the shell. Signing out used to take the whole graph with
+    // it, because the graph sat behind the sign-in screen; a visitor keeps it
+    // now, so a screen pushed while signed in — 幹部功能's roster, a ticket —
+    // would otherwise still be standing there. Only on the way out: signing *in*
+    // from a visitor's event page should leave them on that page.
+    var signOuts by remember { mutableIntStateOf(0) }
+    var wasLoggedIn by remember { mutableStateOf(auth.isLoggedIn) }
+    LaunchedEffect(auth.isLoggedIn) {
+        if (auth.isLoggedIn) {
+            // Also covers a member from before visitor mode existed, who has
+            // never set the flag and would otherwise be sent to Welcome by their
+            // next sign-out.
+            settings.skipsWelcome = true
+        } else if (wasLoggedIn) {
+            container.indico.unlink()
+            container.tickets.clear()
+            container.checkin.clear()
+            signOuts++
+        }
+        wasLoggedIn = auth.isLoggedIn
+    }
+
+    if (!auth.isLoggedIn && !settings.skipsWelcome) {
         WelcomeScreen()
         return
     }
+
+    key(signOuts) {
+        TabShell(showCardRequest, onCardRequestHandled)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TabShell(showCardRequest: Boolean, onCardRequestHandled: () -> Unit) {
+    val container = LocalAppContainer.current
+    val auth = container.auth
+    val signIn = rememberSignIn()
 
     // Link Indico as soon as there is a session, rather than making the member
     // find a button for it. It lives here rather than in WelcomeScreen because a
@@ -139,8 +187,8 @@ fun RootScreen(
     ) { result ->
         linkScope.launch { runCatching { indico.completeAuthorization(result.data) } }
     }
-    LaunchedEffect(indico.isLinked) {
-        if (indico.isLinked) return@LaunchedEffect
+    LaunchedEffect(auth.isLoggedIn, indico.isLinked) {
+        if (!auth.isLoggedIn || indico.isLinked) return@LaunchedEffect
         runCatching { indicoLauncher.launch(indico.authorizationIntent()) }
             .onFailure { indico.abandonAuthorization() }
     }
@@ -162,9 +210,9 @@ fun RootScreen(
 
     // Loaded here rather than in EventsScreen: Home shows the upcoming count
     // too, and it was reading an empty store until the events tab was first
-    // opened.
-    LaunchedEffect(auth.isLoggedIn) {
-        if (auth.isLoggedIn && container.events.events.isEmpty()) container.events.load()
+    // opened. The export is public, so a visitor needs it as much as a member.
+    LaunchedEffect(Unit) {
+        if (container.events.events.isEmpty()) container.events.load()
     }
 
     // The shortcut can only be honoured once there is a session to show a card
@@ -215,9 +263,14 @@ fun RootScreen(
     ) {
         Scaffold(
             floatingActionButton = {
+                // Kept for a visitor rather than hidden: the card is the reason
+                // most people install the app, and this is where they will look
+                // for it. For them it signs in instead.
                 if (onTopLevel) {
                     ExtendedFloatingActionButton(
-                        onClick = { navController.navigate(MemberCard) },
+                        onClick = {
+                            if (auth.isLoggedIn) navController.navigate(MemberCard) else signIn()
+                        },
                         expanded = fabExpanded,
                         icon = { Icon(Icons.Filled.CreditCard, contentDescription = null) },
                         text = { Text(stringResource(R.string.member_card)) },

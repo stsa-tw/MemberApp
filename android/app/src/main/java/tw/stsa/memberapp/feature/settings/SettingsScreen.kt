@@ -176,30 +176,29 @@ fun SettingsScreen(navController: NavHostController) {
                 }
             }
 
-            Column {
-                SectionCard {
-                    TextButton(
-                        onClick = {
-                            auth.logout()
-                            // The Indico link and any ticket held in memory
-                            // belong to whoever was signed in, so they go with
-                            // the session.
-                            container.indico.unlink()
-                            container.tickets.clear()
-                            container.checkin.clear()
-                            // The graph is inside the signed-in branch of
-                            // RootScreen, so it goes away with the session; there
-                            // is nothing to pop.
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.sign_out),
-                            color = MaterialTheme.colorScheme.error,
-                        )
+            // Nothing to end for a visitor; 我的 is where they sign in.
+            if (auth.isLoggedIn) {
+                Column {
+                    SectionCard {
+                        TextButton(
+                            onClick = {
+                                // Only ends the session. Everything that belonged
+                                // to the member — the Indico link, any ticket or
+                                // roster — is dropped by RootScreen, which is also the
+                                // path an expired session takes, and which rebuilds
+                                // the graph so there is nothing to pop.
+                                auth.logout()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.sign_out),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
+                    SectionFooter(stringResource(R.string.sign_out_footer))
                 }
-                SectionFooter(stringResource(R.string.sign_out_footer))
             }
         }
     }

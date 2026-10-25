@@ -7,6 +7,7 @@ struct EventDetailView: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
     @Environment(IndicoAuthManager.self) private var indico
     @Environment(TicketStore.self) private var tickets
     @Environment(CheckinStore.self) private var checkin
@@ -274,6 +275,21 @@ struct EventDetailView: View {
                     Text("查看票券")
                 }
                 .buttonStyle(.brand)
+
+            // A visitor lands here too — an unlinked Indico is all the ticket
+            // store can see — but there is nothing to link without an STSA
+            // session. Signing in brings them back to this same case as a
+            // member, with 查看我的票券 where this button was.
+            case .needsLinking where !auth.isLoggedIn:
+                if let url = event.url {
+                    Button(primaryLabel) { openURL(url) }
+                        .buttonStyle(.brand)
+                }
+
+                SignInButton { Text("登入以查看票券") }
+                    .buttonStyle(.brandPlain)
+
+                caption("報名在 Indico 上完成，使用同一個 STSA 帳號。")
 
             case .needsLinking:
                 if let url = event.url {

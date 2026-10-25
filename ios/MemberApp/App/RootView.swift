@@ -1,6 +1,11 @@
 import SwiftUI
 
-/// Auth gate plus the five-tab shell.
+/// Welcome screen plus the five-tab shell.
+///
+/// The tabs are open to visitors as well as members: what they show is public,
+/// and each thing that needs an account offers to sign in where it is met. So
+/// the gate here is only whether to pitch the app first — see
+/// `AppSettings.skipsWelcome`.
 ///
 /// On iOS 26 `TabView` renders the floating Liquid Glass tab bar the prototype
 /// mocks up by hand, so there is no custom bar to build — the trailing 會員卡
@@ -13,6 +18,16 @@ struct RootView: View {
     @Environment(TicketStore.self) private var tickets
     @Environment(MembershipCodeStore.self) private var codes
     @Environment(CheckinStore.self) private var checkin
+    @Environment(AppSettings.self) private var settings
+
+    /// Rebuilds the tabs each time a session ends.
+    ///
+    /// They used to go away with the session by themselves, because signing out
+    /// swapped them for `WelcomeView`. Now a visitor keeps them, so a screen
+    /// pushed while signed in — 幹部功能's roster, a ticket — would otherwise
+    /// still be standing there afterwards. Only on the way out: signing *in*
+    /// from a visitor's event page should leave them on that page.
+    @State private var signOuts = 0
 
 #if DEBUG
     /// Raised for the App Store capture of 票券 and nothing else.
@@ -32,7 +47,7 @@ struct RootView: View {
         @Bindable var session = session
 
         Group {
-            if auth.isLoggedIn {
+            if showsTabs {
                 TabView(selection: $session.selectedTab) {
                     Tab("首頁", systemImage: "house.fill", value: Session.Tab.home) {
                         HomeView()
@@ -53,6 +68,7 @@ struct RootView: View {
                 .tabViewBottomAccessory {
                     MemberCardAccessory()
                 }
+                .id(signOuts)
             } else {
                 WelcomeView()
             }
@@ -79,7 +95,11 @@ struct RootView: View {
         // An expired session drops the app back to Welcome; a card sheet left
         // standing over it would be a dead credential on top of a sign-in screen.
         .onChange(of: auth.isLoggedIn) { _, isLoggedIn in
-            if !isLoggedIn { endSession() }
+            if isLoggedIn {
+                settings.skipsWelcome = true
+            } else {
+                endSession()
+            }
         }
         // A token that turns out to be somebody else's did not only fail to be
         // theirs — it had already been believed. Every answer it gave was filed
@@ -115,11 +135,20 @@ struct RootView: View {
             // What an Indico token is checked against — see `verifyOwner`.
             indico.expectedEmail = auth.profile?.email
         }
+        // A member from before visitor mode existed has never set the flag,
+        // and would otherwise be sent to Welcome by their next sign-out.
         .task(id: auth.isLoggedIn) {
-            guard auth.isLoggedIn, events.events.isEmpty else { return }
+            if auth.isLoggedIn { settings.skipsWelcome = true }
+        }
+        // The export is public, so a visitor's 首頁 count needs it as much as a
+        // member's does.
+        .task(id: showsTabs) {
+            guard showsTabs, events.events.isEmpty else { return }
             await events.load()
         }
     }
+
+    private var showsTabs: Bool { auth.isLoggedIn || settings.skipsWelcome }
 
     /// Drops everything that belonged to whoever was signed in.
     ///
@@ -137,6 +166,7 @@ struct RootView: View {
         codes.clear()
         tickets.clear()
         checkin.clear()
+        signOuts += 1
     }
 }
 
@@ -147,23 +177,36 @@ private struct MemberCardAccessory: View {
     @Environment(IndicoAuthManager.self) private var indico
 
     var body: some View {
-        Button {
-            session.isShowingMemberCard = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "creditcard.fill")
-                    .foregroundStyle(Theme.Palette.brand)
-                Text("會員卡")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                if let name = auth.profile?.displayName {
-                    Text(name)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+        // Kept for a visitor rather than hidden: the card is the reason most
+        // people install the app, and this is where they will look for it.
+        if auth.isLoggedIn {
+            Button {
+                session.isShowingMemberCard = true
+            } label: {
+                label(trailing: auth.profile?.displayName)
             }
-            .padding(.horizontal, 16)
+            .buttonStyle(.plain)
+        } else {
+            SignInButton {
+                label(trailing: String(localized: "登入"))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+    }
+
+    private func label(trailing: String?) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "creditcard.fill")
+                .foregroundStyle(Theme.Palette.brand)
+            Text("會員卡")
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
     }
 }

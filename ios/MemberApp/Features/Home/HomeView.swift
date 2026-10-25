@@ -87,44 +87,58 @@ struct HomeView: View {
 
 // MARK: - Rows
 
-/// The dark banner that opens the member card.
+/// The dark banner that opens the member card, or for a visitor, signs in to
+/// get one.
 private struct MemberCardBanner: View {
     @Environment(Session.self) private var session
     @Environment(AuthManager.self) private var auth
 
     var body: some View {
-        Button {
-            session.isShowingMemberCard = true
-        } label: {
-            HStack(spacing: 14) {
-                Image(.stsaLogo)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 42, height: 42)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("會員卡")
-                        .font(.headline)
-                    if let profile = auth.profile {
-                        Text([profile.displayName, profile.school].compactMap(\.self).joined(separator: " · "))
-                            .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.35))
+        if auth.isLoggedIn {
+            Button {
+                session.isShowingMemberCard = true
+            } label: {
+                banner(subtitle: auth.profile.map {
+                    [$0.displayName, $0.school].compactMap(\.self).joined(separator: " · ")
+                })
             }
-            .foregroundStyle(.white)
-            .padding(16)
-            .background(Theme.Palette.inkCard)
-            .clipShape(.rect(cornerRadius: Theme.Radius.button))
-            .padding(.horizontal, Theme.Metrics.gutter)
+            .buttonStyle(.plain)
+        } else {
+            SignInButton {
+                banner(subtitle: String(localized: "登入後出示電子會員卡"))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+    }
+
+    private func banner(subtitle: String?) -> some View {
+        HStack(spacing: 14) {
+            Image(.stsaLogo)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("會員卡")
+                    .font(.headline)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.35))
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .background(Theme.Palette.inkCard)
+        .clipShape(.rect(cornerRadius: Theme.Radius.button))
+        .padding(.horizontal, Theme.Metrics.gutter)
     }
 }
 
