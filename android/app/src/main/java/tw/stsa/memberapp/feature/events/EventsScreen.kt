@@ -198,7 +198,11 @@ fun EventsScreen(navController: NavHostController) {
                     }
 
                     if (isShowingPast) {
-                        val archive = archive(past, auth.profile?.isOfficer == true, tickets)
+                        val archive = archive(
+                            past,
+                            showsAll = !auth.isLoggedIn || auth.profile?.isOfficer == true,
+                            tickets,
+                        )
                         // Only ever reached by a member: a 幹部's archive is the
                         // whole of `past` and has nothing to wait for.
                         val probing = past.any { !tickets.isSettled(it.id) }
@@ -293,13 +297,16 @@ private fun LazyListScope.section(
  * from an endpoint that answers anonymously: a wrong claim reveals nothing that
  * `event.stsa.tw` does not already hand to a stranger, and everything the rows
  * lead to is checked again when it is opened.
+ *
+ * A visitor gets all of it too, for the same reason it is safe: none of it is
+ * theirs, and every row is something `event.stsa.tw` shows anyone.
  */
 private fun archive(
     past: List<IndicoEvent>,
-    isOfficer: Boolean,
+    showsAll: Boolean,
     tickets: TicketStore,
 ): List<IndicoEvent> =
-    if (isOfficer) past else past.filter { tickets.holdsTicket(it.id) }
+    if (showsAll) past else past.filter { tickets.holdsTicket(it.id) }
 
 @Composable
 private fun EventRow(

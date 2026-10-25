@@ -3,6 +3,7 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(IndicoAuthManager.self) private var indico
+    @Environment(AppSettings.self) private var settings
     @State private var errorMessage: String?
 
     private struct Highlight: Identifiable {
@@ -90,6 +91,14 @@ struct WelcomeView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
+
+                // Events, deals and announcements are all public, so nobody has
+                // to hold an account to read them — and App Review asks that an
+                // app not demand one for what is not account-based (5.1.1(v)).
+                // What does need one says so where it is met.
+                Button("先逛逛") { settings.skipsWelcome = true }
+                    .buttonStyle(.brandPlain)
+                    .disabled(auth.isBusy || indico.isBusy)
             }
         }
         .padding(.horizontal, 28)
@@ -123,4 +132,5 @@ struct WelcomeView: View {
     WelcomeView()
         .environment(AuthManager())
         .environment(IndicoAuthManager())
+        .environment(AppSettings())
 }

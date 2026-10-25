@@ -29,6 +29,13 @@
     <string name="sign_in_links_indico">Signing in also links your Indico account, used to show your registrations and tickets.</string>
     <string name="sign_in_failed">Sign-in failed</string>
     <string name="ok">OK</string>
+    <string name="browse_as_visitor">Look around first</string>
+    <string name="member_card_sign_in">Sign in to show your member card</string>
+    <string name="deal_sign_in_show_card">Sign in to show your card</string>
+    <string name="event_sign_in_for_ticket">Sign in to see your ticket</string>
+    <string name="account_signed_out_title">Not signed in</string>
+    <string name="account_signed_out_detail">Sign in with your STSA account to use your member card and see your event registrations and tickets.</string>
+    <string name="account_join">Not a member yet? Join STSA</string>
 
     <!-- Home -->
     <string name="greeting_morning">Good morning</string>

@@ -4,6 +4,7 @@ struct DealDetailView: View {
     let deal: Deal
 
     @Environment(Session.self) private var session
+    @Environment(AuthManager.self) private var auth
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -32,8 +33,14 @@ struct DealDetailView: View {
                         Text("將前往合作商家網站。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                    } else {
+                    } else if auth.isLoggedIn {
                         Button("出示會員卡") { session.isShowingMemberCard = true }
+                            .buttonStyle(.brand)
+                        Text("合作商家需確認 STSA 會員身分。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        SignInButton { Text("登入以出示會員卡") }
                             .buttonStyle(.brand)
                         Text("合作商家需確認 STSA 會員身分。")
                             .font(.caption)

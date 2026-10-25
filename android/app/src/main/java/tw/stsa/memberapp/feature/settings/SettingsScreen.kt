@@ -64,23 +64,18 @@ fun SettingsScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val languageUnavailable = stringResource(R.string.language_settings_unavailable)
+    val deletionUnavailable = stringResource(R.string.delete_account_unavailable)
     var confirmingDeletion by remember { mutableStateOf(false) }
 
     // The deletion page has no way back to the app, so it only ever ends by
     // being closed — and closing it reads the same whether the member deleted
     // the account or changed their mind. authentik is asked instead; if the
-    // account is gone, the session is too, and RootScreen swaps this graph for
-    // the welcome screen.
+    // account is gone, the session is too, and RootScreen drops what belonged
+    // to it and rebuilds the graph with the app open to a visitor.
     val accountDeletion = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        scope.launch {
-            if (auth.accountWasDeleted()) {
-                container.indico.unlink()
-                container.tickets.clear()
-                container.checkin.clear()
-            }
-        }
+        scope.launch { auth.accountWasDeleted() }
     }
 
     ScreenScaffold(
@@ -200,45 +195,44 @@ fun SettingsScreen(navController: NavHostController) {
                 }
             }
 
-            Column {
-                SectionCard {
-                    TextButton(
-                        onClick = {
-                            auth.logout()
-                            // The Indico link and any ticket held in memory
-                            // belong to whoever was signed in, so they go with
-                            // the session.
-                            container.indico.unlink()
-                            container.tickets.clear()
-                            container.checkin.clear()
-                            // The graph is inside the signed-in branch of
-                            // RootScreen, so it goes away with the session; there
-                            // is nothing to pop.
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.sign_out),
-                            color = MaterialTheme.colorScheme.error,
-                        )
+            // Nothing to end or delete for a visitor; 我的 is where they sign in.
+            if (auth.isLoggedIn) {
+                Column {
+                    SectionCard {
+                        TextButton(
+                            onClick = {
+                                // Only ends the session. Everything that belonged
+                                // to the member — the Indico link, any ticket or
+                                // roster — is dropped by RootScreen, which is also the
+                                // path an expired session takes, and which rebuilds
+                                // the graph so there is nothing to pop.
+                                auth.logout()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.sign_out),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
+                    SectionFooter(stringResource(R.string.sign_out_footer))
                 }
-                SectionFooter(stringResource(R.string.sign_out_footer))
-            }
 
-            Column {
-                SectionCard {
-                    TextButton(
-                        onClick = { confirmingDeletion = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.delete_account),
-                            color = MaterialTheme.colorScheme.error,
-                        )
+                Column {
+                    SectionCard {
+                        TextButton(
+                            onClick = { confirmingDeletion = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.delete_account),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
+                    SectionFooter(stringResource(R.string.delete_account_footer))
                 }
-                SectionFooter(stringResource(R.string.delete_account_footer))
             }
         }
     }
@@ -256,9 +250,7 @@ fun SettingsScreen(navController: NavHostController) {
                             accountDeletion.launch(auth.accountDeletionIntent())
                         } catch (_: ActivityNotFoundException) {
                             scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    context.getString(R.string.delete_account_unavailable)
-                                )
+                                snackbarHostState.showSnackbar(deletionUnavailable)
                             }
                         }
                     },
