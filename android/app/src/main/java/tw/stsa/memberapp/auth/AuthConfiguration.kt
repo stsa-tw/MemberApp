@@ -43,6 +43,20 @@ object AuthConfiguration {
      */
     val REDIRECT_URI: Uri = "tw.stsa.membership://callback".toUri()
 
+    /**
+     * Where a member deletes their account (Play's account deletion policy, and
+     * App Store guideline 5.1.1(v) on the iOS side).
+     *
+     * authentik's `account-deletion` flow, reached through the brand's default
+     * authentication flow. Authentication comes first because the deletion
+     * flow requires a signed-in browser and simply denies one that is not; a
+     * browser that already is signed in skips past it, because the flow is
+     * `require_unauthenticated` with the default "message, continue" denied
+     * action, which follows a relative `next`.
+     */
+    val ACCOUNT_DELETION_URI: Uri =
+        "https://idms.stsa.tw/flows/-/default/authentication/?next=%2Fif%2Fflow%2Faccount-deletion%2F".toUri()
+
     /** `offline_access` is what makes authentik return a refresh token. */
     val SCOPES = listOf("openid", "profile", "email", "offline_access")
 }

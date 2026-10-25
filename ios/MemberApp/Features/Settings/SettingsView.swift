@@ -5,6 +5,8 @@ struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AuthManager.self) private var auth
     @Environment(\.openURL) private var openURL
+    @State private var confirmingDeletion = false
+    @State private var deletionError: String?
 
     var body: some View {
         @Bindable var settings = settings
@@ -69,9 +71,56 @@ struct SettingsView: View {
             } footer: {
                 Text("登出只會清除這支手機上的憑證。因為登入與 Safari 共用工作階段，下次登入可能不需要重新輸入密碼。")
             }
+
+            Section {
+                Button("刪除帳號", role: .destructive) {
+                    confirmingDeletion = true
+                }
+            } footer: {
+                Text("永久刪除你的 STSA 帳號與會員資料。刪除前會請你再登入一次，確認是本人。")
+            }
+        }
+        .confirmationDialog("刪除 STSA 帳號？", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+            Button("繼續", role: .destructive) { deleteAccount() }
+        } message: {
+            Text("刪除後無法復原，會員卡也會一併失效。")
+        }
+        .alert("無法開啟刪除帳號頁面", isPresented: .constant(deletionError != nil)) {
+            Button("好") { deletionError = nil }
+        } message: {
+            Text(deletionError ?? "")
         }
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Runs authentik's deletion page, then asks whether the account survived.
+    ///
+    /// Ephemeral, so the member always signs in on that page first. Safari's
+    /// cookie is the wrong thing to trust here: choosing an account in this app
+    /// signs in through a cookie-less browser (see `AuthManager.login`), which
+    /// leaves Safari still naming whoever it named before — and a deletion page
+    /// that opened as somebody else would delete *them*.
+    ///
+    /// The page has no way back to the app, so it only ever ends by being
+    /// closed; a cancellation is the normal way out, not an error. If the
+    /// account is gone, `accountWasDeleted` has already signed out and
+    /// `RootView` takes the app back to the welcome screen.
+    private func deleteAccount() {
+        Task {
+            do {
+                _ = try await IndicoBrowserSession.authorize(
+                    url: AuthConfiguration.accountDeletionURL,
+                    ephemeral: true
+                )
+            } catch where AuthManager.isUserCancellation(error) {
+                // Closed — deleted or not, the check below finds out.
+            } catch {
+                deletionError = error.localizedDescription
+                return
+            }
+            _ = await auth.accountWasDeleted()
+        }
     }
 
     /// The localisation actually in use, not the device language — they differ

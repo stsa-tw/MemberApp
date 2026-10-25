@@ -6,6 +6,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings as AndroidSettings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -23,8 +26,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -58,6 +64,24 @@ fun SettingsScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val languageUnavailable = stringResource(R.string.language_settings_unavailable)
+    var confirmingDeletion by remember { mutableStateOf(false) }
+
+    // The deletion page has no way back to the app, so it only ever ends by
+    // being closed — and closing it reads the same whether the member deleted
+    // the account or changed their mind. authentik is asked instead; if the
+    // account is gone, the session is too, and RootScreen swaps this graph for
+    // the welcome screen.
+    val accountDeletion = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { _ ->
+        scope.launch {
+            if (auth.accountWasDeleted()) {
+                container.indico.unlink()
+                container.tickets.clear()
+                container.checkin.clear()
+            }
+        }
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.settings),
@@ -201,7 +225,56 @@ fun SettingsScreen(navController: NavHostController) {
                 }
                 SectionFooter(stringResource(R.string.sign_out_footer))
             }
+
+            Column {
+                SectionCard {
+                    TextButton(
+                        onClick = { confirmingDeletion = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.delete_account),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                SectionFooter(stringResource(R.string.delete_account_footer))
+            }
         }
+    }
+
+    if (confirmingDeletion) {
+        AlertDialog(
+            onDismissRequest = { confirmingDeletion = false },
+            title = { Text(stringResource(R.string.delete_account_confirm_title)) },
+            text = { Text(stringResource(R.string.delete_account_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingDeletion = false
+                        try {
+                            accountDeletion.launch(auth.accountDeletionIntent())
+                        } catch (_: ActivityNotFoundException) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.delete_account_unavailable)
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.continue_action),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDeletion = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 

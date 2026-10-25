@@ -153,6 +153,13 @@
     <string name="event_system">Event system</string>
     <string name="sign_out">Sign out</string>
     <string name="sign_out_footer">Signing out only clears credentials on this phone. Because sign-in shares a session with the browser, you may not need to enter your password again next time.</string>
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_footer">Permanently deletes your STSA account and membership details. You may be asked to sign in once more to confirm it is you.</string>
+    <string name="delete_account_confirm_title">Delete your STSA account?</string>
+    <string name="delete_account_confirm_message">This cannot be undone, and your member card will stop working.</string>
+    <string name="delete_account_unavailable">No browser is available to open the account deletion page.</string>
+    <string name="continue_action">Continue</string>
+    <string name="cancel">Cancel</string>
 
     <!-- Biometry -->
     <string name="biometry_fingerprint">your fingerprint</string>

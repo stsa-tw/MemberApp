@@ -291,6 +291,32 @@ final class AuthManager {
         }
     }
 
+    /// Asks authentik whether this member still exists, after the account
+    /// deletion page closes. Signs out and returns true if they do not.
+    ///
+    /// The page cannot say how it ended — it has no redirect back to the app,
+    /// and closing it reads the same whether the member deleted the account or
+    /// changed their mind — so the refresh token is asked instead. Deleting a
+    /// user in authentik deletes their tokens with them, so redeeming one
+    /// answers `invalid_grant`, which `accessToken()` already turns into a
+    /// sign-out. The refresh has to be forced: the cached access token is still
+    /// "valid" for up to five minutes and would answer without asking anyone.
+    ///
+    /// A network failure is not an answer, so it leaves the session alone; if
+    /// the account did go, the next request finds out the same way.
+    func accountWasDeleted() async -> Bool {
+        guard let authState else { return !isLoggedIn }
+        authState.setNeedsTokenRefresh()
+        do {
+            _ = try await accessToken()
+            return false
+        } catch AuthError.sessionExpired {
+            return true
+        } catch {
+            return false
+        }
+    }
+
     /// Builds a request carrying a token that is fresh at the moment of the call.
     /// Use this for every outbound API call rather than holding a token.
     func authorizedRequest(for url: URL) async throws -> URLRequest {
