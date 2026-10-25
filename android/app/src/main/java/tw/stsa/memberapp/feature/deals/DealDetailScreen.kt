@@ -34,6 +34,7 @@ import androidx.navigation.NavHostController
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.MemberCard
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.feature.onboarding.rememberSignIn
 import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.SectionCard
@@ -59,6 +60,7 @@ fun DealDetailScreen(navController: NavHostController, brand: String) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = 18.dp, bottom = Theme.Metrics.fabClearance),
         ) {
             Header(deal)

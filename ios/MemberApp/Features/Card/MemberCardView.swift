@@ -31,6 +31,7 @@ struct MemberCardView: View {
                 .padding(.horizontal, Theme.Metrics.gutter)
                 .padding(.top, 6)
             }
+            .readableWidth()
             .background(Color(.systemGroupedBackground))
             .navigationTitle("會員卡")
             .toolbar {

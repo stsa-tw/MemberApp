@@ -83,6 +83,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .readableWidth()
         .confirmationDialog("刪除 STSA 帳號？", isPresented: $confirmingDeletion, titleVisibility: .visible) {
             Button("繼續", role: .destructive) { deleteAccount() }
         } message: {

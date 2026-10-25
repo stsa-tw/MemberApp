@@ -28,6 +28,7 @@ import tw.stsa.memberapp.designsystem.BrandButton
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.designsystem.sectionContainer
 import tw.stsa.memberapp.model.Announcement
 
@@ -46,6 +47,7 @@ fun AnnouncementDetailScreen(navController: NavHostController, index: Int) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(20.dp)
                 .padding(bottom = Theme.Metrics.fabClearance),
         ) {

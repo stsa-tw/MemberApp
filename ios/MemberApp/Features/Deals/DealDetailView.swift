@@ -68,6 +68,7 @@ struct DealDetailView: View {
             .padding(.top, 18)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
     }

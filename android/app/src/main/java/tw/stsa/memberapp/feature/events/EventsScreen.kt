@@ -3,6 +3,7 @@ package tw.stsa.memberapp.feature.events
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -55,6 +56,7 @@ import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.SectionHeader
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableSidePadding
 import tw.stsa.memberapp.feature.home.DateBlock
 import tw.stsa.memberapp.model.IndicoEvent
 import java.time.format.DateTimeFormatter
@@ -157,98 +159,106 @@ fun EventsScreen(navController: NavHostController) {
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 6.dp, bottom = Theme.Metrics.fabClearance),
-            ) {
-                if (upcoming.isNotEmpty()) {
-                    section(
-                        title = upcomingTitle,
-                        events = upcoming,
-                        highlightFirst = true,
-                        isRegistered = { tickets.holdsTicket(it) },
-                        onSelect = { navController.navigate(EventDetail(it.id)) },
-                    )
-                }
-                if (past.isNotEmpty()) {
-                    // Collapsed by default, and once open it lists the archive
-                    // this member has a reason to see — see [archive] below.
-                    item(key = "past-header") {
-                        Spacer(Modifier.size(16.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(role = Role.Button) { isShowingPast = !isShowingPast }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            SectionHeader(pastTitle, inset = Theme.Metrics.gutter)
-                            Spacer(Modifier.weight(1f))
-                            Icon(
-                                imageVector = if (isShowingPast) {
-                                    Icons.Filled.ExpandLess
-                                } else {
-                                    Icons.Filled.ExpandMore
-                                },
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = Theme.Metrics.gutter),
-                            )
-                        }
-                    }
-
-                    if (isShowingPast) {
-                        val archive = archive(
-                            past,
-                            showsAll = !auth.isLoggedIn || auth.profile?.isOfficer == true,
-                            tickets,
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val side = readableSidePadding()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                    start = side,
+                    end = side,
+                    top = 6.dp,
+                    bottom = Theme.Metrics.fabClearance,
+                ),
+                ) {
+                    if (upcoming.isNotEmpty()) {
+                        section(
+                            title = upcomingTitle,
+                            events = upcoming,
+                            highlightFirst = true,
+                            isRegistered = { tickets.holdsTicket(it) },
+                            onSelect = { navController.navigate(EventDetail(it.id)) },
                         )
-                        // Only ever reached by a member: a 幹部's archive is the
-                        // whole of `past` and has nothing to wait for.
-                        val probing = past.any { !tickets.isSettled(it.id) }
-                        when {
-                            archive.isNotEmpty() -> items(archive, key = { it.id }) { event ->
-                                EventRow(
-                                    event = event,
-                                    isNext = false,
-                                    isRegistered = tickets.holdsTicket(event.id),
-                                    onClick = { navController.navigate(EventDetail(event.id)) },
+                    }
+                    if (past.isNotEmpty()) {
+                        // Collapsed by default, and once open it lists the archive
+                        // this member has a reason to see — see [archive] below.
+                        item(key = "past-header") {
+                            Spacer(Modifier.size(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(role = Role.Button) { isShowingPast = !isShowingPast }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                SectionHeader(pastTitle, inset = Theme.Metrics.gutter)
+                                Spacer(Modifier.weight(1f))
+                                Icon(
+                                    imageVector = if (isShowingPast) {
+                                        Icons.Filled.ExpandLess
+                                    } else {
+                                        Icons.Filled.ExpandMore
+                                    },
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(end = Theme.Metrics.gutter),
                                 )
-                                if (event.id != archive.last().id) {
-                                    RowSeparator(inset = Theme.Metrics.gutter)
+                            }
+                        }
+
+                        if (isShowingPast) {
+                            val archive = archive(
+                                past,
+                                showsAll = !auth.isLoggedIn || auth.profile?.isOfficer == true,
+                                tickets,
+                            )
+                            // Only ever reached by a member: a 幹部's archive is the
+                            // whole of `past` and has nothing to wait for.
+                            val probing = past.any { !tickets.isSettled(it.id) }
+                            when {
+                                archive.isNotEmpty() -> items(archive, key = { it.id }) { event ->
+                                    EventRow(
+                                        event = event,
+                                        isNext = false,
+                                        isRegistered = tickets.holdsTicket(event.id),
+                                        onClick = { navController.navigate(EventDetail(event.id)) },
+                                    )
+                                    if (event.id != archive.last().id) {
+                                        RowSeparator(inset = Theme.Metrics.gutter)
+                                    }
+                                }
+
+                                probing -> item(key = "past-loading") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 18.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) { CircularProgressIndicator(Modifier.size(22.dp)) }
+                                }
+
+                                else -> item(key = "past-none") {
+                                    Text(
+                                        text = stringResource(R.string.events_past_none),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(
+                                            horizontal = Theme.Metrics.gutter,
+                                            vertical = 6.dp,
+                                        ),
+                                    )
                                 }
                             }
-
-                            probing -> item(key = "past-loading") {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 18.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) { CircularProgressIndicator(Modifier.size(22.dp)) }
-                            }
-
-                            else -> item(key = "past-none") {
-                                Text(
-                                    text = stringResource(R.string.events_past_none),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(
-                                        horizontal = Theme.Metrics.gutter,
-                                        vertical = 6.dp,
-                                    ),
-                                )
-                            }
                         }
                     }
-                }
-                if (store.events.isEmpty()) {
-                    item {
-                        EmptyState(
-                            isLoading = store.isLoading,
-                            message = store.errorMessage,
-                            onRetry = { scope.launch { store.load() } },
-                        )
+                    if (store.events.isEmpty()) {
+                        item {
+                            EmptyState(
+                                isLoading = store.isLoading,
+                                message = store.errorMessage,
+                                onRetry = { scope.launch { store.load() } },
+                            )
+                        }
                     }
                 }
             }

@@ -53,6 +53,7 @@ import tw.stsa.memberapp.designsystem.SectionRow
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 
 @Composable
 fun SettingsScreen(navController: NavHostController) {
@@ -87,6 +88,7 @@ fun SettingsScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = 6.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {

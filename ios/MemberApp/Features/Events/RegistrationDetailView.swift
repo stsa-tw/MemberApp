@@ -44,13 +44,17 @@ struct RegistrationDetailView: View {
             VStack(spacing: 16) {
                 header
                 facts
-                if !answers.isEmpty { answerCard }
+                // Above the answers, not after them: a long form pushed the
+                // button below the fold, and the person stood at the desk while
+                // the 幹部 looked for it.
                 actions
+                if !answers.isEmpty { answerCard }
             }
             .padding(.horizontal, Theme.Metrics.gutter)
             .padding(.top, 16)
             .padding(.bottom, Theme.Metrics.accessoryClearance)
         }
+        .readableWidth()
         .background(Color(.systemGroupedBackground))
         .navigationTitle("報名資料")
         .navigationBarTitleDisplayMode(.inline)
@@ -156,9 +160,11 @@ struct RegistrationDetailView: View {
                 .buttonStyle(.brandPlain)
                 .disabled(checkin.isSubmitting)
         } else if registration.isAdmissible {
-            Button("確認報到") { Task { await write(checkedIn: true) } }
-                .buttonStyle(.brand)
-                .disabled(checkin.isSubmitting)
+            Button { Task { await write(checkedIn: true) } } label: {
+                Label("確認報到", systemImage: "checkmark.circle.fill")
+            }
+            .buttonStyle(.brandLarge)
+            .disabled(checkin.isSubmitting)
         } else {
             // Withdrawn or rejected, and not checked in: there is nothing to
             // undo and nobody to admit. Said plainly rather than drawn as a

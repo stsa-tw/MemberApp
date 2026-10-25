@@ -41,6 +41,7 @@ import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.RowSeparator
 import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 
 /** Text gutter for this page. Wider than the standard one, as on iOS. */
 private val PAGE_GUTTER = 20.dp
@@ -71,6 +72,7 @@ fun AboutScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = PAGE_GUTTER, bottom = Theme.Metrics.fabClearance),
         ) {
             Masthead()

@@ -342,12 +342,10 @@ private fun OutcomeSheet(
                     )
                 }
                 if (outcome.registration.isAdmissible && !outcome.registration.checkedIn) {
-                    BrandButton(
+                    ConfirmCheckinButton(
                         onClick = { onConfirm(outcome.registration) },
                         enabled = !isSubmitting,
-                    ) {
-                        Text(stringResource(R.string.checkin_confirm))
-                    }
+                    )
                 }
                 // Where 再次報到 used to be. PATCHing a flag that is already true
                 // changes nothing and said so to nobody; what a worker actually

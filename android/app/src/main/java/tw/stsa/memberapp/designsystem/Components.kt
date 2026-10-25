@@ -186,6 +186,7 @@ fun BrandButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    large: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Button(
@@ -193,7 +194,9 @@ fun BrandButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = Theme.Metrics.ctaHeight),
+            .defaultMinSize(
+                minHeight = if (large) Theme.Metrics.largeCtaHeight else Theme.Metrics.ctaHeight
+            ),
         shape = RoundedCornerShape(Theme.Radius.button),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,

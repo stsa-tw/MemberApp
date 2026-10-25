@@ -61,6 +61,7 @@ struct HomeView: View {
                 }
                 .padding(.top, 6)
             }
+            .readableWidth()
             .background(Color(.systemGroupedBackground))
             .navigationTitle(greeting)
             .toolbar {

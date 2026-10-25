@@ -31,6 +31,7 @@ struct EventsView: View {
                 }
                 .padding(.top, 6)
             }
+            .readableWidth()
             .background(Color(.systemGroupedBackground))
             .navigationTitle("活動")
             .toolbar {

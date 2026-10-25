@@ -49,6 +49,12 @@ object Theme {
     object Metrics {
         /** Height of the full-width primary CTA. */
         val ctaHeight = 50.dp
+
+        /**
+         * The one button a screen exists to have pressed, where missing it
+         * costs something — 確認報到 at a door with a queue.
+         */
+        val largeCtaHeight = 64.dp
         /** Horizontal inset for grouped list containers. */
         val gutter = 16.dp
 

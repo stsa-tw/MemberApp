@@ -335,6 +335,21 @@ struct EventCheckinView: View {
                     live: true,
                     tags: registration.tags
                 )
+                // Straight under the name, large, and above everything else the
+                // scan turned up. It used to come after the form answers and
+                // look exactly like 再掃一次 below it, so a staffer reading the
+                // name and moving on scanned the next person without ever
+                // admitting this one — the commonest way an arrival went
+                // unrecorded.
+                if registration.isAdmissible, !registration.checkedIn {
+                    Button {
+                        Task { await record(registration) }
+                    } label: {
+                        Label("確認報到", systemImage: "checkmark.circle.fill")
+                    }
+                    .buttonStyle(.brandLarge)
+                    .disabled(checkin.isSubmitting)
+                }
                 // A scanned ticket names one registration outright, and it may be
                 // one from another of the event's forms. That is admissible — the
                 // person is here and the row is theirs — but the staffer should
@@ -345,14 +360,6 @@ struct EventCheckinView: View {
                 }
                 if !registration.answers.isEmpty {
                     answers(registration.answers)
-                }
-
-                if registration.isAdmissible, !registration.checkedIn {
-                    Button("確認報到") {
-                        Task { await record(registration) }
-                    }
-                    .buttonStyle(.brand)
-                    .disabled(checkin.isSubmitting)
                 }
                 // Where 再次報到 used to be. PATCHing a flag that is already true
                 // changes nothing and said so to nobody; the thing a staffer
@@ -450,13 +457,20 @@ struct EventCheckinView: View {
                 EmptyView()
             }
 
+            // Quiet while someone is still waiting to be admitted, so the
+            // screen has one loud button and it is 確認報到.
             Button("再掃一次") {
                 validator.reset()
                 result = .scanning
             }
-            .buttonStyle(.brand)
+            .buttonStyle(isAwaitingAdmission ? .brandPlain : .brand)
         }
         .padding(.top, 6)
+    }
+
+    private var isAwaitingAdmission: Bool {
+        guard case .found(let registration) = result else { return false }
+        return registration.isAdmissible && !registration.checkedIn
     }
 
     /// Takes an arrival back off Indico's record.

@@ -30,6 +30,7 @@ import tw.stsa.memberapp.designsystem.ScreenScaffold
 import tw.stsa.memberapp.designsystem.SectionCard
 import tw.stsa.memberapp.designsystem.SectionRow
 import tw.stsa.memberapp.designsystem.Theme
+import tw.stsa.memberapp.designsystem.readableWidth
 import tw.stsa.memberapp.feature.checkin.CheckinStore
 import tw.stsa.memberapp.model.CheckinRegForm
 
@@ -98,6 +99,7 @@ fun EventOrganiserScreen(navController: NavHostController, eventId: String) {
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .padding(top = 16.dp, bottom = Theme.Metrics.fabClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
