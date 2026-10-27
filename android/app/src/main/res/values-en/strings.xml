@@ -36,6 +36,19 @@
     <string name="account_signed_out_title">Not signed in</string>
     <string name="account_signed_out_detail">Sign in with your STSA account to use your member card and see your event registrations and tickets.</string>
     <string name="account_join">Not a member yet? Join STSA</string>
+    <string name="attendance_count">Events this academic year</string>
+    <string name="attendance_link_prompt">Link the events site to see how many events you\'ve been to this academic year.</string>
+    <string name="attendance_link">Link events site</string>
+    <string name="attendance_title">This academic year</string>
+    <string name="attendance_attended">Attended</string>
+    <string name="attendance_not_attended">Registered, not checked in</string>
+    <string name="attendance_none">No events checked in to this academic year yet.</string>
+    <string name="attendance_year_note">Only this academic year (from 1 July) counts.</string>
+    <string name="attendance_status_no_show">Didn\'t attend</string>
+    <string name="attendance_status_upcoming">Upcoming</string>
+    <string name="attendance_status_ongoing">Ongoing</string>
+    <string name="attendance_status_pending">Pending</string>
+    <string name="attendance_footer">Only this academic year (from 1 July) counts. An event counts once you\'ve checked in at it; registering without turning up doesn\'t.</string>
 
     <!-- Home -->
     <string name="greeting_morning">Good morning</string>

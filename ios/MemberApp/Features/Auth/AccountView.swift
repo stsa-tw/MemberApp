@@ -11,6 +11,8 @@ import SwiftUI
 /// the card — the one thing this screen is not free to restyle.
 struct AccountView: View {
     @Environment(AuthManager.self) private var auth
+    @Environment(AttendanceStore.self) private var attendance
+    @Environment(IndicoAuthManager.self) private var indico
 
     var body: some View {
         NavigationStack {
@@ -18,6 +20,11 @@ struct AccountView: View {
                 VStack(spacing: 22) {
                     if let profile = auth.profile {
                         identitySection(profile)
+                        if let count = attendance.count {
+                            attendanceSection(count)
+                        } else if !indico.isLinked {
+                            attendanceLinkSection
+                        }
                         if profile.isOfficer { officerSection }
                     } else if !auth.isLoggedIn {
                         signInSection
@@ -27,6 +34,13 @@ struct AccountView: View {
             }
             .readableWidth()
             .background(Color(.systemGroupedBackground))
+            // Asked each time the tab opens: the number moves whenever the member
+            // is checked in at an event, which is exactly when they are likely to
+            // come and look.
+            .task(id: AttendanceLoad(sub: auth.profile?.sub, linked: indico.isLinked)) {
+                guard auth.isLoggedIn else { return }
+                await attendance.load(using: indico)
+            }
             .navigationTitle("我的")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -64,6 +78,59 @@ struct AccountView: View {
                     RowSeparator()
                     row("學校") { Text(school) }
                 }
+            }
+        }
+    }
+
+    /// Only once the server has answered — see `AttendanceStore.count`.
+    private func attendanceSection(_ count: Int) -> some View {
+        VStack(spacing: 0) {
+            GroupedCardHeader("活動")
+            GroupedCard {
+                NavigationLink {
+                    AttendanceListView()
+                } label: {
+                    row("本學年參加的活動") {
+                        HStack(spacing: 8) {
+                            Text(verbatim: "\(count)")
+                            DisclosureChevron()
+                        }
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+            Text("只算本學年（7 月起）。活動要在現場完成報到才會計入，只報名沒到場的不算。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.top, 6)
+        }
+    }
+
+    /// The count comes from Indico, which the app does not link at launch — so
+    /// without this a member who has never opened a ticket would never learn the
+    /// row exists. Linking reloads the count by itself (see the `.task` above).
+    private var attendanceLinkSection: some View {
+        VStack(spacing: 0) {
+            GroupedCardHeader("活動")
+            GroupedCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("連結活動網站，就能在這裡看到你本學年參加過幾場活動。")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button {
+                        Task { try? await indico.link() }
+                    } label: {
+                        Text("連結活動網站")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.brand)
+                    .disabled(indico.isBusy)
+                }
+                .padding(.horizontal, Theme.Metrics.gutter)
+                .padding(.vertical, 12)
             }
         }
     }
@@ -138,6 +205,16 @@ struct AccountView: View {
     }
 }
 
+/// What a fresh count depends on: who is signed in, and whether Indico can be
+/// asked. Linking happens elsewhere, so the row must appear when it does.
+private struct AttendanceLoad: Equatable {
+    let sub: String?
+    let linked: Bool
+}
+
 #Preview {
-    AccountView().environment(AuthManager())
+    AccountView()
+        .environment(AuthManager())
+        .environment(IndicoAuthManager())
+        .environment(AttendanceStore())
 }

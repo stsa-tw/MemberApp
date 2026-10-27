@@ -74,6 +74,26 @@ Both apps are clients for three services neither of them contains:
 | `event.stsa.tw` | Indico — events, read via the public category export | none |
 | `app.stsa.tw` | OAuth redirect bridge (see [`tools/oauth-bridge/`](tools/oauth-bridge/)) | n/a |
 
+### 參加過的活動 — the 我的 tab's count
+
+The apps count the events the signed-in member has been **checked in** to from
+the STSA plugin's `GET https://event.stsa.tw/api/stsa/registered-events`
+(documented at `/admin/stsa/api-docs/`). It answers for the caller alone, so a
+member's own Indico token is enough — the organiser-only check-in API is not
+involved. Do not filter with `status=checked_in`: that is the event's status,
+and an event still upcoming or ongoing keeps it even after the member has been
+checked in. The apps count `registration.checked_in` instead.
+
+- It needs the Indico link, so the row appears only for members who have linked
+  Indico, and only once Indico has answered. An error is never shown as `0`.
+- Only **this academic year** counts: the apps pass `from=<1 July>` (Singapore
+  calendar), so the number resets each July.
+- Counts **events**, once each: two forms for one event is one event. A
+  registration that was never checked in does not count.
+- The endpoint documents `read:user` as its scope; the apps link with
+  `read:everything`, which Indico accepts for any GET. If an instance refuses
+  that, the row simply never appears.
+
 ## Sign-in
 
 OIDC authorization code + PKCE against the authentik tenant, driven by AppAuth

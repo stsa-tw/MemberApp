@@ -36,6 +36,9 @@ data object Channels
 data object Settings
 
 @Serializable
+data object Attendance
+
+@Serializable
 data object About
 
 @Serializable

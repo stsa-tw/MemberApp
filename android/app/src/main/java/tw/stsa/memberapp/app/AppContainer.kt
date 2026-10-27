@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import tw.stsa.memberapp.auth.AuthManager
 import tw.stsa.memberapp.auth.IndicoAuthManager
+import tw.stsa.memberapp.feature.account.AttendanceStore
 import tw.stsa.memberapp.feature.card.MembershipCodeStore
 import tw.stsa.memberapp.feature.checkin.CheckinStore
 import tw.stsa.memberapp.feature.events.EventsStore
@@ -42,6 +43,7 @@ class AppContainer(context: Context) {
     val events = EventsStore(appContext)
     val tickets = TicketStore(appContext, scope)
     val checkin = CheckinStore()
+    val attendance = AttendanceStore()
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {
