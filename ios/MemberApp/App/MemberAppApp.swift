@@ -10,6 +10,7 @@ struct MemberAppApp: App {
     @State private var events = EventsStore()
     @State private var tickets = TicketStore()
     @State private var checkin = CheckinStore()
+    @State private var attendance = AttendanceStore()
     @State private var settings = AppSettings()
 
     var body: some Scene {
@@ -23,6 +24,7 @@ struct MemberAppApp: App {
                 .environment(events)
                 .environment(tickets)
                 .environment(checkin)
+                .environment(attendance)
                 .environment(settings)
                 .tint(Theme.Palette.brand)
                 .preferredColorScheme(settings.appearance.colorScheme)

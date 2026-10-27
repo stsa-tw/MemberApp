@@ -2884,6 +2884,149 @@
           }
         }
       }
+    },
+    "本學年參加的活動" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Events this academic year"
+          }
+        }
+      }
+    },
+    "只算本學年（7 月起）。活動要在現場完成報到才會計入，只報名沒到場的不算。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only this academic year (from 1 July) counts. An event counts once you've checked in at it; registering without turning up doesn't."
+          }
+        }
+      }
+    },
+    "連結活動網站，就能在這裡看到你本學年參加過幾場活動。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link the events site to see how many events you’ve been to this academic year."
+          }
+        }
+      }
+    },
+    "連結活動網站" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link events site"
+          }
+        }
+      }
+    },
+    "已參加" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attended"
+          }
+        }
+      }
+    },
+    "已報名，未報到" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered, not checked in"
+          }
+        }
+      }
+    },
+    "這個學年還沒有報到過的活動。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No events checked in to this academic year yet."
+          }
+        }
+      }
+    },
+    "只算本學年（7 月起）。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only this academic year (from 1 July) counts."
+          }
+        }
+      }
+    },
+    "本學年的活動" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This academic year"
+          }
+        }
+      }
+    },
+    "未到場" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Didn’t attend"
+          }
+        }
+      }
+    },
+    "尚未開始" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming"
+          }
+        }
+      }
+    },
+    "進行中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongoing"
+          }
+        }
+      }
+    },
+    "待確認" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

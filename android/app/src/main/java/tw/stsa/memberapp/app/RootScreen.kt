@@ -58,6 +58,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import tw.stsa.memberapp.R
 import tw.stsa.memberapp.feature.account.AccountScreen
+import tw.stsa.memberapp.feature.account.AttendanceScreen
 import tw.stsa.memberapp.feature.card.MemberCardScreen
 import tw.stsa.memberapp.feature.channels.ChannelsScreen
 import tw.stsa.memberapp.feature.checkin.CheckinScreen
@@ -146,6 +147,7 @@ fun RootScreen(
             container.indico.unlink()
             container.tickets.clear()
             container.checkin.clear()
+            container.attendance.clear()
             signOuts++
         }
         wasLoggedIn = auth.isLoggedIn
@@ -307,6 +309,7 @@ private fun TabShell(showCardRequest: Boolean, onCardRequestHandled: () -> Unit)
 
                 composable<Channels> { ChannelsScreen(navController) }
                 composable<Settings> { SettingsScreen(navController) }
+                composable<Attendance> { AttendanceScreen(navController) }
                 composable<About> { AboutScreen(navController) }
                 composable<MemberCard> { MemberCardScreen(navController) }
 

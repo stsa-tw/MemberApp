@@ -1,5 +1,8 @@
 package tw.stsa.memberapp.feature.account
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Icon
@@ -21,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,8 +37,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import tw.stsa.memberapp.BuildConfig
 import tw.stsa.memberapp.R
+import tw.stsa.memberapp.app.Attendance
 import tw.stsa.memberapp.app.LocalAppContainer
 import tw.stsa.memberapp.app.Settings
 import tw.stsa.memberapp.designsystem.BrandButton
@@ -57,8 +64,26 @@ import java.time.Instant
  */
 @Composable
 fun AccountScreen(navController: NavHostController) {
-    val auth = LocalAppContainer.current.auth
+    val container = LocalAppContainer.current
+    val auth = container.auth
     val profile = auth.profile
+    val attendance = container.attendance
+    val scope = rememberCoroutineScope()
+
+    // Asked each time the tab opens: the number moves whenever the member is
+    // checked in at an event, which is exactly when they are likely to come and
+    // look.
+    LaunchedEffect(profile?.sub, container.indico.isLinked) {
+        if (auth.isLoggedIn) attendance.load(container.indico)
+    }
+
+    // The count comes from Indico, which is not linked at launch; linking here
+    // reloads it through the effect above.
+    val linkLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        scope.launch { runCatching { container.indico.completeAuthorization(result.data) } }
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.account),
@@ -101,6 +126,49 @@ fun AccountScreen(navController: NavHostController) {
                         profile.school?.let { school ->
                             RowSeparator()
                             LabeledRow(stringResource(R.string.school), school)
+                        }
+                    }
+                }
+
+                // Only once the server has answered — see `AttendanceStore.count`.
+                val attended = attendance.count
+                if (attended != null) {
+                    Column {
+                        SectionHeader(stringResource(R.string.events))
+                        SectionCard {
+                            LabeledRow(
+                                label = stringResource(R.string.attendance_count),
+                                value = attended.toString(),
+                                modifier = Modifier.clickable { navController.navigate(Attendance) },
+                                trailing = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                            )
+                        }
+                        SectionFooter(stringResource(R.string.attendance_footer))
+                    }
+                } else if (profile != null && !container.indico.isLinked) {
+                    Column {
+                        SectionHeader(stringResource(R.string.events))
+                        SectionCard {
+                            Column(
+                                modifier = Modifier.padding(Theme.Metrics.gutter),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Text(stringResource(R.string.attendance_link_prompt))
+                                BrandButton(
+                                    onClick = {
+                                        runCatching {
+                                            linkLauncher.launch(container.indico.authorizationIntent())
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text(stringResource(R.string.attendance_link)) }
+                            }
                         }
                     }
                 }
@@ -179,10 +247,11 @@ private fun SignInCard() {
 private fun LabeledRow(
     label: String,
     value: String? = null,
+    modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Theme.Metrics.gutter, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

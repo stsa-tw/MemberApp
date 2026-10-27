@@ -18,6 +18,7 @@ struct RootView: View {
     @Environment(TicketStore.self) private var tickets
     @Environment(MembershipCodeStore.self) private var codes
     @Environment(CheckinStore.self) private var checkin
+    @Environment(AttendanceStore.self) private var attendance
     @Environment(AppSettings.self) private var settings
 
     /// Rebuilds the tabs each time a session ends.
@@ -166,6 +167,7 @@ struct RootView: View {
         codes.clear()
         tickets.clear()
         checkin.clear()
+        attendance.clear()
         signOuts += 1
     }
 }

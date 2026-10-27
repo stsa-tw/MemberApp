@@ -39,6 +39,19 @@
     <string name="account_signed_out_title">尚未登入</string>
     <string name="account_signed_out_detail">登入 STSA 帳號後，就能使用電子會員卡，並查看你的活動報名與票券。</string>
     <string name="account_join">還不是會員？加入 STSA</string>
+    <string name="attendance_count">本學年參加的活動</string>
+    <string name="attendance_link_prompt">連結活動網站，就能在這裡看到你本學年參加過幾場活動。</string>
+    <string name="attendance_link">連結活動網站</string>
+    <string name="attendance_title">本學年的活動</string>
+    <string name="attendance_attended">已參加</string>
+    <string name="attendance_not_attended">已報名，未報到</string>
+    <string name="attendance_none">這個學年還沒有報到過的活動。</string>
+    <string name="attendance_year_note">只算本學年（7 月起）。</string>
+    <string name="attendance_status_no_show">未到場</string>
+    <string name="attendance_status_upcoming">尚未開始</string>
+    <string name="attendance_status_ongoing">進行中</string>
+    <string name="attendance_status_pending">待確認</string>
+    <string name="attendance_footer">只算本學年（7 月起）。活動要在現場完成報到才會計入，只報名沒到場的不算。</string>
 
     <!-- Home -->
     <string name="greeting_morning">早安</string>
