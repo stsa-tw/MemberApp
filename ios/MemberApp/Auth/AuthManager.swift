@@ -89,16 +89,17 @@ final class AuthManager {
 
         let presenter = try topViewController()
 
-        // AppAuth drives ASWebAuthenticationSession here, so the sign-in page
-        // runs in Safari's session and participates in SSO. Never swap this for
-        // a WKWebView.
+        // ASWebAuthenticationSession, so the sign-in page runs in Safari's
+        // session and participates in SSO. Never swap this for a WKWebView.
+        // `SignInFlowUserAgent` is AppAuth's own browser leg except that it
+        // opens the iOS sign-in flow first — see `AuthConfiguration.signInFlowURL`.
         let state: OIDAuthState = try await withCheckedThrowingContinuation { continuation in
             userAgentSession = OIDAuthState.authState(
                 byPresenting: request,
-                externalUserAgent: OIDExternalUserAgentIOS(
+                externalUserAgent: SignInFlowUserAgent(
                     presenting: presenter,
                     prefersEphemeralSession: asked
-                )!
+                )
             ) { authState, error in
                 if let authState {
                     continuation.resume(returning: authState)

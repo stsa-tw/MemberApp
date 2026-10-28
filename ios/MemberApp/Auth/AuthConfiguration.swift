@@ -46,6 +46,21 @@ enum AuthConfiguration {
         string: "https://idms.stsa.tw/flows/-/default/authentication/?next=%2Fif%2Fflow%2Faccount-deletion%2F"
     )!
 
+    /// The authentication flow the iOS app signs in through, in place of the
+    /// brand's default one.
+    ///
+    /// It offers Sign in with Apple and none of the other third-party sign-ins
+    /// the web page has. That is what App Store guideline 4.8 turns on: an app
+    /// that signs people in with another company's account must offer an
+    /// equivalent that is Apple's, or else offer no third-party sign-in at all.
+    ///
+    /// authentik picks the authentication flow from the brand, and nothing in an
+    /// OIDC request can ask for another. So the app opens this flow itself and
+    /// hands it the authorize request as `next`, the same way account deletion
+    /// reaches its flow; when the person is signed in the flow sends the browser
+    /// on to the authorize endpoint, and PKCE and the redirect are untouched.
+    static let signInFlowURL = URL(string: "https://idms.stsa.tw/if/flow/ios-authentication-flow/")!
+
     /// `offline_access` is what makes authentik return a refresh token.
     static let scopes = [
         OIDScopeOpenID,
